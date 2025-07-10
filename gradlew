@@ -30,4 +30,4 @@ APP_HOME="$(pwd)"
 cd "$SAVED" || exit
 
 # Run gradle wrapper
-exec "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" "$@"
+exec java -jar "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" "$@"
