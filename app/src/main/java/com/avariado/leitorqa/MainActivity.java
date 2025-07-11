@@ -13,6 +13,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -40,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String IS_QA_MODE_KEY = "isQAMode";
     private static final String FONT_SIZE_KEY = "fontSize";
 
+    // Views
     private TextView questionTextView;
     private TextView answerTextView;
     private EditText currentCardInput;
@@ -50,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView searchInfo;
     private TextView fontSizeText;
     
+    // Data
     private List<QAItem> items = new ArrayList<>();
     private List<QAItem> originalItems = new ArrayList<>();
     private int currentIndex = 0;
@@ -57,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean menuVisible = false;
     private int baseFontSize = 20;
     
+    // Search
     private List<Integer> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
     private String searchTerm = "";
@@ -91,10 +95,15 @@ public class MainActivity extends AppCompatActivity {
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
         
-        // Get the main card container
-        LinearLayout cardContainer = findViewById(R.id.card_container);
+        // Configuração do clique para mostrar/ocultar resposta
+        ScrollView scrollContent = findViewById(R.id.scroll_content);
+        scrollContent.setOnClickListener(v -> {
+            if (isQAMode && !menuVisible && !items.isEmpty()) {
+                toggleAnswerVisibility();
+            }
+        });
         
-        // Set click listeners
+        // Configuração dos botões
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
         nextButton.setOnClickListener(v -> safeNextItem());
@@ -107,29 +116,6 @@ public class MainActivity extends AppCompatActivity {
         decreaseFontButton.setOnClickListener(v -> decreaseFontSize());
         searchPrevButton.setOnClickListener(v -> goToPrevSearchResult());
         searchNextButton.setOnClickListener(v -> goToNextSearchResult());
-        
-        // Configuração do clique para mostrar/ocultar resposta
-        contentArea.setOnClickListener(v -> {
-            if (isQAMode && !menuVisible && !items.isEmpty()) {
-                toggleAnswerVisibility();
-            }
-        });
-        
-        // Configuração para evitar que cliques nos botões dentro do cardContainer ativem o toggle
-        View.OnClickListener buttonClickListener = v -> {
-            // Apenas previne a propagação do evento para o cardContainer
-        };
-        
-        // Aplicar o listener a todos os botões dentro do cardContainer
-        prevButton.setOnClickListener(v -> {
-            safePrevItem();
-            buttonClickListener.onClick(v);
-        });
-        
-        nextButton.setOnClickListener(v -> {
-            safeNextItem();
-            buttonClickListener.onClick(v);
-        });
         
         // Configuração da overlay para fechar o menu
         overlay.setOnClickListener(v -> {
