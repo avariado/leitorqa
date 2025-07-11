@@ -1,67 +1,46 @@
 plugins {
     id 'com.android.application'
-    id 'org.jetbrains.kotlin.android' // Opcional se for usar Kotlin
 }
 
 android {
     namespace 'com.avariado.leitorqa'
-    compileSdk 34  // Atualizado para a versão mais recente
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.avariado.leitorqa"
-        minSdk 24  // Android 7.0+ (melhor compatibilidade com 21+)
+        minSdk 21  // Android 5.0+ (original)
         targetSdk 34
         versionCode 1
         versionName "1.0"
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         
-        // Configurações de compatibilidade
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled true
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            minifyEnabled true  // Ativado para reduzir tamanho do APK
-            shrinkResources true
+            minifyEnabled false  // Desativado para facilitar debug
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-        debug {
-            debuggable true
-            applicationIdSuffix ".debug"
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
-
-    // Para projetos com Kotlin (opcional)
-    kotlinOptions {
-        jvmTarget = '17'
+        sourceCompatibility JavaVersion.VERSION_1_8  // Compatível com Java 8+
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     buildFeatures {
-        viewBinding true  // Ativa View Binding
-        // buildConfig true  // Descomente se precisar de BuildConfig
+        viewBinding true
     }
 }
 
 dependencies {
-    // Core Android
-    implementation 'androidx.core:core-ktx:1.12.0'
+    // Bibliotecas básicas (sem -ktx)
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    
-    // Multidex
     implementation 'androidx.multidex:multidex:2.0.1'
-
-    // Arquitetura (opcional)
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2'
-    implementation 'androidx.activity:activity-ktx:1.8.2'
 
     // Testes
     testImplementation 'junit:junit:4.13.2'
