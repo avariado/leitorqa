@@ -4,29 +4,27 @@ plugins {
 
 android {
     namespace 'com.avariado.leitorqa'
-    compileSdk 34
-
+    compileSdk 33 // Reduzido para 33 para compatibilidade
+    
     defaultConfig {
         applicationId "com.avariado.leitorqa"
-        minSdk 21  // Android 5.0+ (original)
-        targetSdk 34
+        minSdk 21
+        targetSdk 33
         versionCode 1
         versionName "1.0"
-        
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled true
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            minifyEnabled false  // Desativado para facilitar debug
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8  // Compatível com Java 8+
+        sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
@@ -36,14 +34,9 @@ android {
 }
 
 dependencies {
-    // Bibliotecas básicas (sem -ktx)
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.cardview:cardview:1.0.0' // Adicionado para o CardView
     implementation 'androidx.multidex:multidex:2.0.1'
-
-    // Testes
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
