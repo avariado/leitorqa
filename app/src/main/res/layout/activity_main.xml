@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -99,7 +100,6 @@
                         android:id="@+id/prev_button"
                         android:layout_width="36dp"
                         android:layout_height="36dp"
-                        android:background="@drawable/ic_prev"
                         android:text="◄"
                         android:textColor="#fff" />
 
@@ -131,7 +131,6 @@
                         android:id="@+id/next_button"
                         android:layout_width="36dp"
                         android:layout_height="36dp"
-                        android:background="@drawable/ic_next"
                         android:text="►"
                         android:textColor="#fff" />
                 </LinearLayout>
@@ -155,7 +154,6 @@
             android:id="@+id/import_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:drawableLeft="@drawable/ic_import"
             android:text="Importar Ficheiro"
             android:textAlignment="textStart" />
 
@@ -163,7 +161,6 @@
             android:id="@+id/export_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:drawableLeft="@drawable/ic_export"
             android:text="Exportar Ficheiro"
             android:textAlignment="textStart" />
 
@@ -171,7 +168,6 @@
             android:id="@+id/edit_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:drawableLeft="@drawable/ic_edit"
             android:text="Editar Conteúdo"
             android:textAlignment="textStart" />
 
@@ -179,7 +175,6 @@
             android:id="@+id/shuffle_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:drawableLeft="@drawable/ic_shuffle"
             android:text="Baralhar Perguntas"
             android:textAlignment="textStart" />
 
@@ -187,7 +182,6 @@
             android:id="@+id/reset_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:drawableLeft="@drawable/ic_reset"
             android:text="Voltar à Ordem Inicial"
             android:textAlignment="textStart" />
 
@@ -208,7 +202,6 @@
                 android:layout_width="30dp"
                 android:layout_height="30dp"
                 android:layout_marginLeft="10dp"
-                android:background="@drawable/ic_decrease_font"
                 android:text="-"
                 android:textColor="#fff" />
 
@@ -224,7 +217,6 @@
                 android:id="@+id/increase_font_button"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:background="@drawable/ic_increase_font"
                 android:text="+"
                 android:textColor="#fff" />
         </LinearLayout>
@@ -253,7 +245,6 @@
                     android:id="@+id/search_prev_button"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
-                    android:background="@drawable/ic_prev"
                     android:enabled="false"
                     android:text="◄"
                     android:textColor="#fff" />
@@ -262,7 +253,6 @@
                     android:id="@+id/search_next_button"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
-                    android:background="@drawable/ic_next"
                     android:enabled="false"
                     android:text="►"
                     android:textColor="#fff" />
