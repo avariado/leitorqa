@@ -2,8 +2,9 @@ package com.avariado.leitorqa;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
-import com.avariado.leitorqa.R;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -34,6 +35,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
+    private static final int PICK_TXT_FILE = 1;
+    private static final int PICK_PDF_FILE = 2;
+    private static final int CREATE_FILE = 3;
+    
     private List<QAItem> items = new ArrayList<>();
     private List<QAItem> originalItems = new ArrayList<>();
     private int currentIndex = 0;
@@ -49,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private View overlay;
     private EditText searchInput;
     private TextView searchInfo;
+    private TextView fontSizeText;
     private List<Integer> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
     private String searchTerm = "";
@@ -77,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
         overlay = findViewById(R.id.overlay);
         searchInput = findViewById(R.id.search_input);
         searchInfo = findViewById(R.id.search_info);
+        fontSizeText = findViewById(R.id.font_size_text);
         
         // Set up buttons
         Button menuButton = findViewById(R.id.menu_button);
@@ -172,6 +179,8 @@ public class MainActivity extends AppCompatActivity {
                 searchTerm = s.toString().trim();
                 if (searchTerm.isEmpty()) {
                     clearSearch();
+                } else {
+                    performSearch();
                 }
             }
             
@@ -214,6 +223,7 @@ public class MainActivity extends AppCompatActivity {
             answerTextView.setText(currentItem.getAnswer());
             
             if (searchTerm != null && !searchTerm.isEmpty() && 
+                (currentItem.getQuestion().toLowerCase().contains(searchTerm.toLowerCase()) || 
                 currentItem.getAnswer().toLowerCase().contains(searchTerm.toLowerCase())) {
                 answerTextView.setVisibility(View.VISIBLE);
             } else {
@@ -285,6 +295,7 @@ public class MainActivity extends AppCompatActivity {
         answerTextView.setTextSize(baseFontSize - 2);
         currentCardInput.setTextSize(baseFontSize - 2);
         totalCardsText.setTextSize(baseFontSize - 2);
+        fontSizeText.setText("Tamanho: " + baseFontSize);
     }
     
     private void loadSampleData() {
@@ -397,13 +408,49 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void importTextFile() {
-        // Implementation for text file import
-        // This would use Android's file picker intent
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("text/plain");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        startActivityForResult(intent, PICK_TXT_FILE);
     }
     
     private void importPdfFile() {
-        // Implementation for PDF file import
-        // This would use Android's file picker intent
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("application/pdf");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        startActivityForResult(intent, PICK_PDF_FILE);
+    }
+    
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        
+        if (resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getData();
+            try {
+                InputStream inputStream = getContentResolver().openInputStream(uri);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+                StringBuilder stringBuilder = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    stringBuilder.append(line).append("\n");
+                }
+                reader.close();
+                
+                if (requestCode == PICK_TXT_FILE) {
+                    parseQAContent(stringBuilder.toString());
+                } else if (requestCode == PICK_PDF_FILE) {
+                    // For PDF, we'll just treat it as plain text for now
+                    parseTextContent(stringBuilder.toString());
+                }
+                
+                updateDisplay();
+                saveState();
+                Toast.makeText(this, "Ficheiro importado com sucesso!", Toast.LENGTH_SHORT).show();
+            } catch (IOException e) {
+                Toast.makeText(this, "Erro ao ler ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }
     }
     
     private void showExportDialog() {
@@ -425,13 +472,18 @@ public class MainActivity extends AppCompatActivity {
             if (!filename.toLowerCase().endsWith(".txt")) {
                 filename += ".txt";
             }
-            exportFile(filename);
+            
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("text/plain");
+            intent.putExtra(Intent.EXTRA_TITLE, filename);
+            startActivityForResult(intent, CREATE_FILE);
         });
         builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
         builder.show();
     }
     
-    private void exportFile(String filename) {
+    private void exportFile(Uri uri) {
         if (items.isEmpty()) return;
         
         StringBuilder content = new StringBuilder();
@@ -446,12 +498,11 @@ public class MainActivity extends AppCompatActivity {
         }
         
         try {
-            File file = new File(getExternalFilesDir(null), filename);
-            FileOutputStream fos = new FileOutputStream(file);
+            FileOutputStream fos = (FileOutputStream) getContentResolver().openOutputStream(uri);
             fos.write(content.toString().getBytes());
             fos.close();
             
-            Toast.makeText(this, "Ficheiro exportado: " + file.getAbsolutePath(), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Ficheiro exportado com sucesso!", Toast.LENGTH_LONG).show();
         } catch (IOException e) {
             Toast.makeText(this, "Erro ao exportar ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
@@ -563,13 +614,14 @@ public class MainActivity extends AppCompatActivity {
         
         if (searchResults.isEmpty()) {
             searchInfo.setText("Nenhum resultado encontrado para: " + searchTerm);
-            return;
+            currentSearchIndex = -1;
+        } else {
+            currentSearchIndex = 0;
+            currentIndex = searchResults.get(currentSearchIndex);
+            updateSearchInfo();
         }
         
-        currentSearchIndex = 0;
-        currentIndex = searchResults.get(currentSearchIndex);
         updateDisplay();
-        updateSearchInfo();
     }
     
     private void goToPrevSearchResult() {
@@ -602,8 +654,9 @@ public class MainActivity extends AppCompatActivity {
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
         
-        searchPrevButton.setEnabled(!searchResults.isEmpty() && currentSearchIndex > 0);
-        searchNextButton.setEnabled(!searchResults.isEmpty() && currentSearchIndex < searchResults.size() - 1);
+        boolean hasResults = !searchResults.isEmpty();
+        searchPrevButton.setEnabled(hasResults && currentSearchIndex > 0);
+        searchNextButton.setEnabled(hasResults && currentSearchIndex < searchResults.size() - 1);
     }
     
     private void highlightText() {
