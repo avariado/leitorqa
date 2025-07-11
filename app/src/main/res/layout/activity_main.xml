@@ -44,100 +44,120 @@
         android:layout_below="@id/header"
         android:padding="20dp">
 
-        <!-- Card -->
-        <androidx.cardview.widget.CardView
-            android:id="@+id/card_view"
+        <!-- Card Container - This will handle taps anywhere on the card -->
+        <FrameLayout
+            android:id="@+id/card_container"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_margin="10dp"
-            app:cardCornerRadius="10dp"
-            app:cardElevation="4dp">
+            android:clickable="true"
+            android:focusable="true">
 
-            <LinearLayout
+            <!-- Card -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_view"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:padding="30dp">
+                android:layout_margin="10dp"
+                app:cardCornerRadius="10dp"
+                app:cardElevation="4dp">
 
-                <!-- Card Content -->
-                <ScrollView
-                    android:id="@+id/card_content"
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:fillViewport="true">
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="30dp">
 
+                    <!-- Card Content -->
+                    <ScrollView
+                        android:id="@+id/card_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:fillViewport="true">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/question_text"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:padding="10dp" />
+
+                            <TextView
+                                android:id="@+id/answer_text"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="#f9f9f9"
+                                android:padding="10dp"
+                                android:visibility="gone" />
+                        </LinearLayout>
+                    </ScrollView>
+
+                    <!-- Card Footer -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical">
+                        android:layout_marginTop="15dp"
+                        android:orientation="horizontal"
+                        android:paddingTop="15dp">
 
-                        <TextView
-                            android:id="@+id/question_text"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:padding="10dp" />
+                        <Button
+                            android:id="@+id/prev_button"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="#6200ee"
+                            android:text="◄"
+                            android:textColor="#fff" />
 
-                        <TextView
-                            android:id="@+id/answer_text"
-                            android:layout_width="match_parent"
+                        <LinearLayout
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:background="#f9f9f9"
-                            android:padding="10dp"
-                            android:visibility="gone" />
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:orientation="horizontal">
+
+                            <EditText
+                                android:id="@+id/current_card_input"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@android:color/transparent"
+                                android:inputType="number"
+                                android:minWidth="30dp"
+                                android:text="1"
+                                android:textAlignment="center" />
+
+                            <TextView
+                                android:id="@+id/total_cards_text"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="/ 0"
+                                android:textSize="16sp" />
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/next_button"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="#6200ee"
+                            android:text="►"
+                            android:textColor="#fff" />
                     </LinearLayout>
-                </ScrollView>
-
-                <!-- Card Footer -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="15dp"
-                    android:orientation="horizontal"
-                    android:paddingTop="15dp">
-
-                    <Button
-                        android:id="@+id/prev_button"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:text="◄"
-                        android:textColor="#fff" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:orientation="horizontal">
-
-                        <EditText
-                            android:id="@+id/current_card_input"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:background="@android:color/transparent"
-                            android:inputType="number"
-                            android:minWidth="30dp"
-                            android:text="1"
-                            android:textAlignment="center" />
-
-                        <TextView
-                            android:id="@+id/total_cards_text"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="/ 0"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-
-                    <Button
-                        android:id="@+id/next_button"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:text="►"
-                        android:textColor="#fff" />
                 </LinearLayout>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
+            </androidx.cardview.widget.CardView>
+        </FrameLayout>
     </FrameLayout>
+
+    <!-- Overlay - This will be shown when menu is open -->
+    <View
+        android:id="@+id/overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:clickable="true"
+        android:visibility="gone" />
 
     <!-- Menu -->
     <LinearLayout
@@ -155,36 +175,46 @@
             android:id="@+id/import_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="#6200ee"
             android:text="Importar Ficheiro"
-            android:textAlignment="textStart" />
+            android:textAlignment="textStart"
+            android:textColor="#fff" />
 
         <Button
             android:id="@+id/export_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="#6200ee"
             android:text="Exportar Ficheiro"
-            android:textAlignment="textStart" />
+            android:textAlignment="textStart"
+            android:textColor="#fff" />
 
         <Button
             android:id="@+id/edit_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="#6200ee"
             android:text="Editar Conteúdo"
-            android:textAlignment="textStart" />
+            android:textAlignment="textStart"
+            android:textColor="#fff" />
 
         <Button
             android:id="@+id/shuffle_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="#6200ee"
             android:text="Baralhar Perguntas"
-            android:textAlignment="textStart" />
+            android:textAlignment="textStart"
+            android:textColor="#fff" />
 
         <Button
             android:id="@+id/reset_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="#6200ee"
             android:text="Voltar à Ordem Inicial"
-            android:textAlignment="textStart" />
+            android:textAlignment="textStart"
+            android:textColor="#fff" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -203,6 +233,7 @@
                 android:layout_width="30dp"
                 android:layout_height="30dp"
                 android:layout_marginLeft="10dp"
+                android:background="#6200ee"
                 android:text="-"
                 android:textColor="#fff" />
 
@@ -218,6 +249,7 @@
                 android:id="@+id/increase_font_button"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
+                android:background="#6200ee"
                 android:text="+"
                 android:textColor="#fff" />
         </LinearLayout>
@@ -246,6 +278,7 @@
                     android:id="@+id/search_prev_button"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
+                    android:background="#6200ee"
                     android:enabled="false"
                     android:text="◄"
                     android:textColor="#fff" />
@@ -254,6 +287,7 @@
                     android:id="@+id/search_next_button"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
+                    android:background="#6200ee"
                     android:enabled="false"
                     android:text="►"
                     android:textColor="#fff" />
@@ -267,12 +301,4 @@
                 android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
-
-    <!-- Overlay -->
-    <View
-        android:id="@+id/overlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#80000000"
-        android:visibility="gone" />
 </RelativeLayout>
