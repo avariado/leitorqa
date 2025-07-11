@@ -34,137 +34,117 @@
             android:textColor="#fff"
             android:textSize="20sp"
             android:textStyle="bold" />
-		<FrameLayout
-			android:id="@+id/card_container"
-			android:layout_width="match_parent"
-			android:layout_height="match_parent"
-			android:layout_below="@id/header"
-			android:padding="20dp">
-
-			<!-- Seu CardView existente fica aqui dentro -->
-			<androidx.cardview.widget.CardView
-				android:id="@+id/card_view"
-				android:layout_width="match_parent"
-				android:layout_height="match_parent"
-				android:layout_margin="10dp"
-				app:cardCornerRadius="10dp"
-				app:cardElevation="4dp">
-				
-				<!-- O resto do seu conteúdo do CardView -->
-				
-			</androidx.cardview.widget.CardView>
-		</FrameLayout>
     </LinearLayout>
 
     <!-- Content -->
-	<FrameLayout
-		android:id="@+id/content"
-		android:layout_width="match_parent"
-		android:layout_height="match_parent"
-		android:layout_below="@id/header"
-		android:padding="20dp">
+    <FrameLayout
+        android:id="@+id/content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/header"
+        android:padding="20dp">
 
-		<!-- Card -->
-	<androidx.cardview.widget.CardView
-		android:id="@+id/card_view"
-		android:layout_width="match_parent"
-		android:layout_height="match_parent"
-		android:layout_margin="10dp"
-		app:cardCornerRadius="10dp"
-		app:cardElevation="4dp">
+        <!-- Card -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="10dp"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="4dp">
 
-		<RelativeLayout
-			android:layout_width="match_parent"
-			android:layout_height="match_parent"
-			android:padding="30dp">
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="30dp">
 
-			<!-- Área clicável principal -->
-			<LinearLayout
-				android:id="@+id/content_area"
-				android:layout_width="match_parent"
-				android:layout_height="match_parent"
-				android:layout_above="@+id/card_footer"
-				android:orientation="vertical"
-				android:clickable="true">
+                <!-- Área clicável principal -->
+                <LinearLayout
+                    android:id="@+id/content_area"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_above="@+id/card_footer"
+                    android:orientation="vertical"
+                    android:clickable="true">
 
-				<ScrollView
-					android:layout_width="match_parent"
-					android:layout_height="match_parent"
-					android:fillViewport="true">
+                    <ScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:fillViewport="true">
 
-					<LinearLayout
-						android:layout_width="match_parent"
-						android:layout_height="wrap_content"
-						android:orientation="vertical">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
 
-						<TextView
-							android:id="@+id/question_text"
-							android:layout_width="match_parent"
-							android:layout_height="wrap_content"
-							android:padding="10dp" />
+                            <TextView
+                                android:id="@+id/question_text"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:padding="10dp" />
 
-						<TextView
-							android:id="@+id/answer_text"
-							android:layout_width="match_parent"
-							android:layout_height="wrap_content"
-							android:background="#f9f9f9"
-							android:padding="10dp"
-							android:visibility="gone" />
-					</LinearLayout>
-				</ScrollView>
-			</LinearLayout>
+                            <TextView
+                                android:id="@+id/answer_text"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="#f9f9f9"
+                                android:padding="10dp"
+                                android:visibility="gone" />
+                        </LinearLayout>
+                    </ScrollView>
+                </LinearLayout>
 
-			<!-- Footer com botões -->
-			<LinearLayout
-				android:id="@+id/card_footer"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:layout_alignParentBottom="true"
-				android:orientation="horizontal">
+                <!-- Footer com botões -->
+                <LinearLayout
+                    android:id="@+id/card_footer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentBottom="true"
+                    android:orientation="horizontal">
 
-				<Button
-					android:id="@+id/prev_button"
-					android:layout_width="36dp"
-					android:layout_height="36dp"
-					android:background="#6200ee"
-					android:text="◄"
-					android:textColor="#fff" />
+                    <Button
+                        android:id="@+id/prev_button"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="#6200ee"
+                        android:text="◄"
+                        android:textColor="#fff" />
 
-				<LinearLayout
-					android:layout_width="0dp"
-					android:layout_height="wrap_content"
-					android:layout_weight="1"
-					android:gravity="center"
-					android:orientation="horizontal">
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="horizontal">
 
-					<EditText
-						android:id="@+id/current_card_input"
-						android:layout_width="wrap_content"
-						android:layout_height="wrap_content"
-						android:inputType="number"
-						android:minWidth="30dp"
-						android:text="1"
-						android:textAlignment="center" />
+                        <EditText
+                            android:id="@+id/current_card_input"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:minWidth="30dp"
+                            android:text="1"
+                            android:textAlignment="center" />
 
-					<TextView
-						android:id="@+id/total_cards_text"
-						android:layout_width="wrap_content"
-						android:layout_height="wrap_content"
-						android:text="/ 0"
-						android:textSize="16sp" />
-				</LinearLayout>
+                        <TextView
+                            android:id="@+id/total_cards_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="/ 0"
+                            android:textSize="16sp" />
+                    </LinearLayout>
 
-				<Button
-					android:id="@+id/next_button"
-					android:layout_width="36dp"
-					android:layout_height="36dp"
-					android:background="#6200ee"
-					android:text="►"
-					android:textColor="#fff" />
-			</LinearLayout>
-		</RelativeLayout>
-	</androidx.cardview.widget.CardView>
-	</FrameLayout>
+                    <Button
+                        android:id="@+id/next_button"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="#6200ee"
+                        android:text="►"
+                        android:textColor="#fff" />
+                </LinearLayout>
+            </RelativeLayout>
+        </androidx.cardview.widget.CardView>
+    </FrameLayout>
 
     <!-- Overlay -->
     <View
