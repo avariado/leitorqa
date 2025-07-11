@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <style name="Theme.AppCompat.Light" parent="Theme.AppCompat.Light"/>
-    <style name="Theme.AppCompat.Light.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar"/>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Tema base -->
+    <style name="Theme.LeitorQA" parent="Theme.AppCompat.Light">
+        <!-- Remova estas linhas se não quiser personalizar -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <!-- Tema sem ActionBar -->
+    <style name="Theme.LeitorQA.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
 </resources>
