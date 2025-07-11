@@ -44,15 +44,13 @@
         android:layout_below="@id/header"
         android:padding="20dp">
 
-        <!-- Card Container - This will handle taps anywhere on the card -->
+        <!-- Card Container -->
         <FrameLayout
             android:id="@+id/card_container"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:clickable="true"
-            android:focusable="true">
+            android:clickable="true">
 
-            <!-- Card -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/card_view"
                 android:layout_width="match_parent"
@@ -67,36 +65,44 @@
                     android:orientation="vertical"
                     android:padding="30dp">
 
-                    <!-- Card Content -->
-                    <ScrollView
-                        android:id="@+id/card_content"
+                    <!-- Área clicável principal -->
+                    <LinearLayout
+                        android:id="@+id/clickable_content_area"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:fillViewport="true">
+                        android:orientation="vertical"
+                        android:clickable="true">
 
-                        <LinearLayout
+                        <ScrollView
+                            android:id="@+id/card_content"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical">
+                            android:layout_height="match_parent"
+                            android:fillViewport="true">
 
-                            <TextView
-                                android:id="@+id/question_text"
+                            <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:padding="10dp" />
+                                android:orientation="vertical">
 
-                            <TextView
-                                android:id="@+id/answer_text"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:background="#f9f9f9"
-                                android:padding="10dp"
-                                android:visibility="gone" />
-                        </LinearLayout>
-                    </ScrollView>
+                                <TextView
+                                    android:id="@+id/question_text"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:padding="10dp" />
 
-                    <!-- Card Footer -->
+                                <TextView
+                                    android:id="@+id/answer_text"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:background="#f9f9f9"
+                                    android:padding="10dp"
+                                    android:visibility="gone" />
+                            </LinearLayout>
+                        </ScrollView>
+                    </LinearLayout>
+
+                    <!-- Footer (não clicável) -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -150,7 +156,7 @@
         </FrameLayout>
     </FrameLayout>
 
-    <!-- Overlay - This will be shown when menu is open -->
+    <!-- Overlay -->
     <View
         android:id="@+id/overlay"
         android:layout_width="match_parent"
