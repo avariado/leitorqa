@@ -222,13 +222,13 @@ public class MainActivity extends AppCompatActivity {
             questionTextView.setText(currentItem.getQuestion());
             answerTextView.setText(currentItem.getAnswer());
             
-            if (searchTerm != null && !searchTerm.isEmpty() && 
-                (currentItem.getQuestion().toLowerCase().contains(searchTerm.toLowerCase()) || 
-                currentItem.getAnswer().toLowerCase().contains(searchTerm.toLowerCase())) {
-                answerTextView.setVisibility(View.VISIBLE);
-            } else {
-                answerTextView.setVisibility(View.GONE);
-            }
+        if (searchTerm != null && !searchTerm.isEmpty() && 
+            (currentItem.getQuestion().toLowerCase().contains(searchTerm.toLowerCase()) || 
+             currentItem.getAnswer().toLowerCase().contains(searchTerm.toLowerCase()))) {
+            answerTextView.setVisibility(View.VISIBLE);
+        } else {
+            answerTextView.setVisibility(View.GONE);
+        }
         } else {
             questionTextView.setText(currentItem.getText());
             answerTextView.setText("");
