@@ -3,6 +3,7 @@ package com.avariado.leitorqa;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import com.avariado.leitorqa.R;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
