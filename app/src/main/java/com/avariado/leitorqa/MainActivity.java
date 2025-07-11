@@ -61,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
     
     private float touchStartX;
     private float touchStartY;
+    private static final float SWIPE_THRESHOLD = 100;
+    private static final float TOUCH_THRESHOLD = 20;
     
     private static final String PREFS_NAME = "AppPrefs";
     private static final String ITEMS_KEY = "items";
@@ -118,27 +120,41 @@ public class MainActivity extends AppCompatActivity {
         cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        touchStartX = event.getX();
-                        touchStartY = event.getY();
-                        return true;
-                    case MotionEvent.ACTION_UP:
-                        float touchEndX = event.getX();
-                        float touchEndY = event.getY();
-                        float diffX = touchEndX - touchStartX;
-                        float diffY = touchEndY - touchStartY;
-                        
-                        if (Math.abs(diffX) > Math.abs(diffY)) {
-                            if (diffX > 100) {
-                                prevItem();
-                            } else if (diffX < -100) {
-                                nextItem();
+                try {
+                    switch (event.getAction()) {
+                        case MotionEvent.ACTION_DOWN:
+                            touchStartX = event.getX();
+                            touchStartY = event.getY();
+                            return true;
+                            
+                        case MotionEvent.ACTION_UP:
+                            float touchEndX = event.getX();
+                            float touchEndY = event.getY();
+                            float diffX = touchEndX - touchStartX;
+                            float diffY = touchEndY - touchStartY;
+                            
+                            // Check if it's a tap (small movement)
+                            if (Math.abs(diffX) < TOUCH_THRESHOLD && Math.abs(diffY) < TOUCH_THRESHOLD) {
+                                // Simple tap - toggle answer visibility in QA mode
+                                if (isQAMode) {
+                                    toggleAnswerVisibility();
+                                }
+                                return true;
                             }
-                        } else if (isQAMode && Math.abs(diffY) < 100) {
-                            toggleAnswerVisibility();
-                        }
-                        return true;
+                            
+                            // Check if it's a horizontal swipe
+                            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > SWIPE_THRESHOLD) {
+                                if (diffX > 0) {
+                                    prevItem();
+                                } else {
+                                    nextItem();
+                                }
+                                return true;
+                            }
+                            return true;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
                 return false;
             }
@@ -154,16 +170,18 @@ public class MainActivity extends AppCompatActivity {
             
             @Override
             public void afterTextChanged(Editable s) {
-                if (currentCardInput.hasFocus()) {
+                if (currentCardInput.hasFocus() && s != null && s.length() > 0) {
                     try {
                         int num = Integer.parseInt(s.toString());
                         if (num >= 1 && num <= items.size()) {
                             currentIndex = num - 1;
                             updateDisplay();
                             saveState();
+                        } else {
+                            currentCardInput.setText(String.valueOf(currentIndex + 1));
                         }
                     } catch (NumberFormatException e) {
-                        // Ignore invalid input
+                        currentCardInput.setText(String.valueOf(currentIndex + 1));
                     }
                 }
             }
@@ -176,11 +194,13 @@ public class MainActivity extends AppCompatActivity {
             
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                searchTerm = s.toString().trim();
-                if (searchTerm.isEmpty()) {
-                    clearSearch();
-                } else {
-                    performSearch();
+                if (s != null) {
+                    searchTerm = s.toString().trim();
+                    if (searchTerm.isEmpty()) {
+                        clearSearch();
+                    } else {
+                        performSearch();
+                    }
                 }
             }
             
@@ -204,63 +224,85 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void toggleAnswerVisibility() {
-        answerTextView.setVisibility(answerTextView.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+        if (answerTextView != null) {
+            answerTextView.setVisibility(answerTextView.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+        }
     }
     
     private void updateDisplay() {
-        if (items.isEmpty()) {
-            questionTextView.setText("Nenhum conteúdo carregado.");
-            answerTextView.setText("");
-            currentCardInput.setText("0");
-            totalCardsText.setText("/ 0");
+        if (items == null || items.isEmpty()) {
+            if (questionTextView != null) {
+                questionTextView.setText("Nenhum conteúdo carregado.");
+            }
+            if (answerTextView != null) {
+                answerTextView.setText("");
+                answerTextView.setVisibility(View.GONE);
+            }
+            if (currentCardInput != null) {
+                currentCardInput.setText("0");
+            }
+            if (totalCardsText != null) {
+                totalCardsText.setText("/ 0");
+            }
             return;
         }
+        
+        // Ensure currentIndex is within bounds
+        if (currentIndex < 0) currentIndex = 0;
+        if (currentIndex >= items.size()) currentIndex = items.size() - 1;
         
         QAItem currentItem = items.get(currentIndex);
         
         if (isQAMode) {
-            questionTextView.setText(currentItem.getQuestion());
-            answerTextView.setText(currentItem.getAnswer());
-            
-        if (searchTerm != null && !searchTerm.isEmpty() && 
-            (currentItem.getQuestion().toLowerCase().contains(searchTerm.toLowerCase()) || 
-             currentItem.getAnswer().toLowerCase().contains(searchTerm.toLowerCase()))) {
-            answerTextView.setVisibility(View.VISIBLE);
+            if (questionTextView != null) {
+                questionTextView.setText(currentItem.getQuestion());
+            }
+            if (answerTextView != null) {
+                answerTextView.setText(currentItem.getAnswer());
+                // Only show answer if we're searching and it matches
+                if (searchTerm != null && !searchTerm.isEmpty() && 
+                    currentItem.getAnswer().toLowerCase().contains(searchTerm.toLowerCase())) {
+                    answerTextView.setVisibility(View.VISIBLE);
+                } else {
+                    answerTextView.setVisibility(View.GONE);
+                }
+            }
         } else {
-            answerTextView.setVisibility(View.GONE);
-        }
-        } else {
-            questionTextView.setText(currentItem.getText());
-            answerTextView.setText("");
-            answerTextView.setVisibility(View.GONE);
+            if (questionTextView != null) {
+                questionTextView.setText(currentItem.getText());
+            }
+            if (answerTextView != null) {
+                answerTextView.setText("");
+                answerTextView.setVisibility(View.GONE);
+            }
         }
         
-        currentCardInput.setText(String.valueOf(currentIndex + 1));
-        totalCardsText.setText("/ " + items.size());
-        
-        if (searchTerm != null && !searchTerm.isEmpty()) {
-            highlightText();
+        if (currentCardInput != null) {
+            currentCardInput.setText(String.valueOf(currentIndex + 1));
+        }
+        if (totalCardsText != null) {
+            totalCardsText.setText("/ " + items.size());
         }
         
         updateSearchButtons();
     }
     
     private void prevItem() {
-        if (items.isEmpty()) return;
+        if (items == null || items.isEmpty()) return;
         currentIndex = (currentIndex - 1 + items.size()) % items.size();
         updateDisplay();
         saveState();
     }
     
     private void nextItem() {
-        if (items.isEmpty()) return;
+        if (items == null || items.isEmpty()) return;
         currentIndex = (currentIndex + 1) % items.size();
         updateDisplay();
         saveState();
     }
     
     private void shuffleItems() {
-        if (items.isEmpty()) return;
+        if (items == null || items.isEmpty()) return;
         
         Collections.shuffle(items);
         currentIndex = 0;
@@ -270,7 +312,7 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void resetOrder() {
-        if (originalItems.isEmpty()) return;
+        if (originalItems == null || originalItems.isEmpty()) return;
         items = new ArrayList<>(originalItems);
         currentIndex = 0;
         updateDisplay();
@@ -291,12 +333,19 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void updateFontSize() {
-        questionTextView.setTextSize(baseFontSize);
-        answerTextView.setTextSize(baseFontSize - 2);
-        currentCardInput.setTextSize(baseFontSize - 2);
-        totalCardsText.setTextSize(baseFontSize - 2);
+        if (questionTextView != null) {
+            questionTextView.setTextSize(baseFontSize);
+        }
+        if (answerTextView != null) {
+            answerTextView.setTextSize(baseFontSize - 2);
+        }
+        if (currentCardInput != null) {
+            currentCardInput.setTextSize(baseFontSize - 2);
+        }
+        if (totalCardsText != null) {
+            totalCardsText.setTextSize(baseFontSize - 2);
+        }
         
-        // Atualize para usar o TextView existente
         if (fontSizeText != null) {
             fontSizeText.setText(String.valueOf(baseFontSize));
         }
@@ -311,8 +360,8 @@ public class MainActivity extends AppCompatActivity {
             while ((line = reader.readLine()) != null) {
                 sb.append(line).append("\n");
             }
-            parseQAContent(sb.toString());
             reader.close();
+            parseQAContent(sb.toString());
         } catch (IOException e) {
             // Default sample data if file not found
             String sampleData = "O que é HTML?\tHTML é a linguagem de marcação padrão para criar páginas web.\n" +
@@ -322,6 +371,8 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void parseQAContent(String text) {
+        if (text == null) return;
+        
         String[] lines = text.split("\n");
         items.clear();
         originalItems.clear();
@@ -347,6 +398,8 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void parseTextContent(String text) {
+        if (text == null) return;
+        
         String cleanedText = text.replaceAll("(\\r\\n|\\n|\\r)(?<![.!?,;:])", " ");
         cleanedText = cleanedText.replaceAll("\\s+", " ").trim();
         
@@ -488,7 +541,7 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void exportFile(Uri uri) {
-        if (items.isEmpty()) return;
+        if (items == null || items.isEmpty()) return;
         
         StringBuilder content = new StringBuilder();
         if (isQAMode) {
@@ -598,6 +651,8 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void performSearch() {
+        if (searchInput == null || items == null) return;
+        
         searchTerm = searchInput.getText().toString().trim();
         if (searchTerm.isEmpty()) {
             clearSearch();
@@ -617,7 +672,9 @@ public class MainActivity extends AppCompatActivity {
         }
         
         if (searchResults.isEmpty()) {
-            searchInfo.setText("Nenhum resultado encontrado para: " + searchTerm);
+            if (searchInfo != null) {
+                searchInfo.setText("Nenhum resultado encontrado para: " + searchTerm);
+            }
             currentSearchIndex = -1;
         } else {
             currentSearchIndex = 0;
@@ -629,7 +686,7 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void goToPrevSearchResult() {
-        if (searchResults.isEmpty()) return;
+        if (searchResults == null || searchResults.isEmpty()) return;
         
         currentSearchIndex = (currentSearchIndex - 1 + searchResults.size()) % searchResults.size();
         currentIndex = searchResults.get(currentSearchIndex);
@@ -638,7 +695,7 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void goToNextSearchResult() {
-        if (searchResults.isEmpty()) return;
+        if (searchResults == null || searchResults.isEmpty()) return;
         
         currentSearchIndex = (currentSearchIndex + 1) % searchResults.size();
         currentIndex = searchResults.get(currentSearchIndex);
@@ -647,6 +704,8 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void updateSearchInfo() {
+        if (searchInfo == null) return;
+        
         if (searchResults.isEmpty()) {
             searchInfo.setText("");
         } else {
@@ -658,21 +717,20 @@ public class MainActivity extends AppCompatActivity {
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
         
+        if (searchPrevButton == null || searchNextButton == null) return;
+        
         boolean hasResults = !searchResults.isEmpty();
         searchPrevButton.setEnabled(hasResults && currentSearchIndex > 0);
         searchNextButton.setEnabled(hasResults && currentSearchIndex < searchResults.size() - 1);
-    }
-    
-    private void highlightText() {
-        // Android's TextView doesn't support direct HTML highlighting like web views
-        // This would need a custom solution using SpannableString
     }
     
     private void clearSearch() {
         searchTerm = "";
         searchResults.clear();
         currentSearchIndex = -1;
-        searchInfo.setText("");
+        if (searchInfo != null) {
+            searchInfo.setText("");
+        }
         updateSearchButtons();
         updateDisplay();
     }
