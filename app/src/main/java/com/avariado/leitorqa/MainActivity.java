@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -106,11 +105,19 @@ public class MainActivity extends AppCompatActivity {
         searchPrevButton.setOnClickListener(v -> goToPrevSearchResult());
         searchNextButton.setOnClickListener(v -> goToNextSearchResult());
         
-        // Set up touch listeners
-        View cardView = findViewById(R.id.card_view);
-        cardView.setOnClickListener(v -> {
-            if (isQAMode) {
+        // Set up card click listener - will work on entire card area except buttons
+        View cardContainer = findViewById(R.id.card_container);
+        cardContainer.setOnClickListener(v -> {
+            // Only toggle answer if menu is not visible and in QA mode
+            if (!menuVisible && isQAMode) {
                 toggleAnswerVisibility();
+            }
+        });
+        
+        // Set up overlay click listener to close menu
+        overlay.setOnClickListener(v -> {
+            if (menuVisible) {
+                toggleMenu();
             }
         });
         
