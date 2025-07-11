@@ -109,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
         searchNextButton.setOnClickListener(v -> goToNextSearchResult());
         
         // Configuração do clique para mostrar/ocultar resposta
-        cardContainer.setOnClickListener(v -> {
+        contentArea.setOnClickListener(v -> {
             if (isQAMode && !menuVisible && !items.isEmpty()) {
                 toggleAnswerVisibility();
             }
