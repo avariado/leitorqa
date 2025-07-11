@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import android.util.Log;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PICK_TXT_FILE = 1;
@@ -106,13 +107,19 @@ public class MainActivity extends AppCompatActivity {
         searchPrevButton.setOnClickListener(v -> goToPrevSearchResult());
         searchNextButton.setOnClickListener(v -> goToNextSearchResult());
         
-        // Configuração do clique para mostrar/ocultar resposta
-        LinearLayout clickableArea = findViewById(R.id.clickable_content_area);
-        clickableArea.setOnClickListener(v -> {
-            if (isQAMode && !menuVisible && !items.isEmpty()) {
-                toggleAnswerVisibility();
-            }
-        });
+		// Configuração do clique para mostrar/ocultar resposta
+		View contentArea = findViewById(R.id.content_area);
+		contentArea.setOnClickListener(v -> {
+			if (isQAMode && !menuVisible && !items.isEmpty()) {
+				toggleAnswerVisibility();
+			}
+		});
+
+		// Adicione esta linha para debug (pode remover depois de testar)
+		contentArea.setOnTouchListener((v, event) -> {
+			Log.d("TOUCH_DEBUG", "Touch detected at: " + event.getX() + "," + event.getY());
+			return false;
+		});
         
         // Configuração da overlay para fechar o menu
         overlay.setOnClickListener(v -> {
@@ -152,9 +159,6 @@ public class MainActivity extends AppCompatActivity {
             public void afterTextChanged(Editable s) {}
         });
         
-        // Prevenção de conflitos com botões
-        setupClickableAreas();
-        
         // Load initial data
         loadState();
         if (items.isEmpty()) {
@@ -162,22 +166,6 @@ public class MainActivity extends AppCompatActivity {
         }
         updateDisplay();
         updateFontSize();
-    }
-
-    private void setupClickableAreas() {
-        // Prevenir conflito de toques nos botões
-        View prevButton = findViewById(R.id.prev_button);
-        View nextButton = findViewById(R.id.next_button);
-        
-        prevButton.setOnTouchListener((v, event) -> {
-            v.getParent().requestDisallowInterceptTouchEvent(true);
-            return false;
-        });
-        
-        nextButton.setOnTouchListener((v, event) -> {
-            v.getParent().requestDisallowInterceptTouchEvent(true);
-            return false;
-        });
     }
 
     private void safePrevItem() {
