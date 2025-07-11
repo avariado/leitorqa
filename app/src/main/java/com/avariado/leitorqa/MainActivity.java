@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -105,23 +106,22 @@ public class MainActivity extends AppCompatActivity {
         searchPrevButton.setOnClickListener(v -> goToPrevSearchResult());
         searchNextButton.setOnClickListener(v -> goToNextSearchResult());
         
-        // Set up card click listener - will work on entire card area except buttons
-        View cardContainer = findViewById(R.id.card_container);
-        cardContainer.setOnClickListener(v -> {
-            // Only toggle answer if menu is not visible and in QA mode
-            if (!menuVisible && isQAMode) {
+        // Configuração do clique para mostrar/ocultar resposta
+        LinearLayout clickableArea = findViewById(R.id.clickable_content_area);
+        clickableArea.setOnClickListener(v -> {
+            if (isQAMode && !menuVisible && !items.isEmpty()) {
                 toggleAnswerVisibility();
             }
         });
         
-        // Set up overlay click listener to close menu
+        // Configuração da overlay para fechar o menu
         overlay.setOnClickListener(v -> {
             if (menuVisible) {
                 toggleMenu();
             }
         });
         
-        // Set up current card input listener
+        // Configuração do input do cartão atual
         currentCardInput.setOnFocusChangeListener((v, hasFocus) -> {
             if (!hasFocus) {
                 validateAndUpdateCardNumber();
@@ -133,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
         
-        // Set up search input listener
+        // Configuração da pesquisa
         searchInput.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -152,6 +152,9 @@ public class MainActivity extends AppCompatActivity {
             public void afterTextChanged(Editable s) {}
         });
         
+        // Prevenção de conflitos com botões
+        setupClickableAreas();
+        
         // Load initial data
         loadState();
         if (items.isEmpty()) {
@@ -160,7 +163,23 @@ public class MainActivity extends AppCompatActivity {
         updateDisplay();
         updateFontSize();
     }
-    
+
+    private void setupClickableAreas() {
+        // Prevenir conflito de toques nos botões
+        View prevButton = findViewById(R.id.prev_button);
+        View nextButton = findViewById(R.id.next_button);
+        
+        prevButton.setOnTouchListener((v, event) -> {
+            v.getParent().requestDisallowInterceptTouchEvent(true);
+            return false;
+        });
+        
+        nextButton.setOnTouchListener((v, event) -> {
+            v.getParent().requestDisallowInterceptTouchEvent(true);
+            return false;
+        });
+    }
+
     private void safePrevItem() {
         try {
             prevItem();
@@ -245,7 +264,7 @@ public class MainActivity extends AppCompatActivity {
         currentCardInput.setText(String.valueOf(currentIndex + 1));
         totalCardsText.setText("/ " + items.size());
     }
-    
+
     private void prevItem() {
         if (items.isEmpty()) return;
         currentIndex = (currentIndex - 1 + items.size()) % items.size();
