@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
         overlay = findViewById(R.id.overlay);
         searchInput = findViewById(R.id.search_input);
         searchInfo = findViewById(R.id.search_info);
-        fontSizeText = findViewById(R.id.font_size_text);
+        fontSizeText = findViewById(R.id.current_font_size);
         
         // Set up buttons
         Button menuButton = findViewById(R.id.menu_button);
@@ -295,7 +295,11 @@ public class MainActivity extends AppCompatActivity {
         answerTextView.setTextSize(baseFontSize - 2);
         currentCardInput.setTextSize(baseFontSize - 2);
         totalCardsText.setTextSize(baseFontSize - 2);
-        fontSizeText.setText("Tamanho: " + baseFontSize);
+        
+        // Atualize para usar o TextView existente
+        if (fontSizeText != null) {
+            fontSizeText.setText(String.valueOf(baseFontSize));
+        }
     }
     
     private void loadSampleData() {
