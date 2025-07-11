@@ -15,9 +15,8 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.appcompat.app.AppCompatActivity;
-
+import androidx.cardview.widget.CardView;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,26 +29,32 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
-    private static final int PICK_TXT_FILE = 1;
-    private static final int PICK_PDF_FILE = 2;
-    private static final int CREATE_FILE = 3;
+    // [Resto das suas variáveis permanecem IGUAIS]
     
-    private List<QAItem> items = new ArrayList<>();
-    private List<QAItem> originalItems = new ArrayList<>();
-    private int currentIndex = 0;
-    private boolean isQAMode = true;
-    private int baseFontSize = 20;
-    
-    private TextView questionTextView;
-    private TextView answerTextView;
-    private EditText currentCardInput;
-    private TextView totalCardsText;
-    private LinearLayout menuLayout;
-    private boolean menuVisible = false;
-    private View overlay;
-    private EditText searchInput;
-    private TextView searchInfo;
-    private TextView fontSizeText;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        
+        // Initialize views (MANTIDO IGUAL)
+        questionTextView = findViewById(R.id.question_text);
+        answerTextView = findViewById(R.id.answer_text);
+        currentCardInput = findViewById(R.id.current_card_input);
+        totalCardsText = findViewById(R.id.total_cards_text);
+        menuLayout = findViewById(R.id.menu_layout);
+        overlay = findViewById(R.id.overlay);
+        searchInput = findViewById(R.id.search_input);
+        searchInfo = findViewById(R.id.search_info);
+        fontSizeText = findViewById(R.id.current_font_size);
+        
+        // ------ ALTERAÇÃO PRINCIPAL ------ //
+        CardView cardView = findViewById(R.id.card_view);
+        cardView.setOnClickListener(v -> {
+            if (isQAMode && !menuVisible && !items.isEmpty()) {
+                toggleAnswerVisibility();
+            }
+        });
+		
     private List<Integer> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
     private String searchTerm = "";
