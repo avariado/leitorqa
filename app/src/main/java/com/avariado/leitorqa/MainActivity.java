@@ -96,17 +96,30 @@ public class MainActivity extends AppCompatActivity {
         Button searchNextButton = findViewById(R.id.search_next_button);
         
         // Configuração do clique para mostrar/ocultar resposta
-        ScrollView scrollContent = findViewById(R.id.scroll_content);
-        scrollContent.setOnClickListener(v -> {
+        RelativeLayout mainContentArea = findViewById(R.id.main_content_area);
+        mainContentArea.setOnClickListener(v -> {
             if (isQAMode && !menuVisible && !items.isEmpty()) {
                 toggleAnswerVisibility();
             }
         });
-        
+    
         // Configuração dos botões
         menuButton.setOnClickListener(v -> toggleMenu());
-        prevButton.setOnClickListener(v -> safePrevItem());
-        nextButton.setOnClickListener(v -> safeNextItem());
+        
+        // Configuração especial para os botões de navegação
+        prevButton.setOnClickListener(v -> {
+            safePrevItem();
+            // Previne a propagação do evento para a área principal
+            v.setClickable(true);
+        });
+        
+        nextButton.setOnClickListener(v -> {
+            safeNextItem();
+            // Previne a propagação do evento para a área principal
+            v.setClickable(true);
+        });
+        
+        // Configuração dos outros botões
         importButton.setOnClickListener(v -> showFileImportDialog());
         exportButton.setOnClickListener(v -> showExportDialog());
         editButton.setOnClickListener(v -> showEditDialog());
@@ -124,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         
-        // Configuração do input do cartão atual
+        // Resto das configurações...
         currentCardInput.setOnFocusChangeListener((v, hasFocus) -> {
             if (!hasFocus) {
                 validateAndUpdateCardNumber();
@@ -136,7 +149,6 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
         
-        // Configuração da pesquisa
         searchInput.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
