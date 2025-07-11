@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace 'com.avariado.leitorqa'
-    compileSdk 33 // Reduzido para 33 para compatibilidade
+    compileSdk 33
     
     defaultConfig {
         applicationId "com.avariado.leitorqa"
@@ -12,6 +12,7 @@ android {
         targetSdk 33
         versionCode 1
         versionName "1.0"
+        
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled true
     }
@@ -37,6 +38,6 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.cardview:cardview:1.0.0' // Adicionado para o CardView
+    implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'androidx.multidex:multidex:2.0.1'
 }
