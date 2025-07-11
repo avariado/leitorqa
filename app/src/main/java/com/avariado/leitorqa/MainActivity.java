@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -29,7 +28,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import android.util.Log;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PICK_TXT_FILE = 1;
@@ -107,19 +105,13 @@ public class MainActivity extends AppCompatActivity {
         searchPrevButton.setOnClickListener(v -> goToPrevSearchResult());
         searchNextButton.setOnClickListener(v -> goToNextSearchResult());
         
-		// Configuração do clique para mostrar/ocultar resposta
-		View contentArea = findViewById(R.id.content_area);
-		contentArea.setOnClickListener(v -> {
-			if (isQAMode && !menuVisible && !items.isEmpty()) {
-				toggleAnswerVisibility();
-			}
-		});
-
-		// Adicione esta linha para debug (pode remover depois de testar)
-		contentArea.setOnTouchListener((v, event) -> {
-			Log.d("TOUCH_DEBUG", "Touch detected at: " + event.getX() + "," + event.getY());
-			return false;
-		});
+        // Configuração do clique para mostrar/ocultar resposta
+        View cardContainer = findViewById(R.id.card_container);
+        cardContainer.setOnClickListener(v -> {
+            if (isQAMode && !menuVisible && !items.isEmpty()) {
+                toggleAnswerVisibility();
+            }
+        });
         
         // Configuração da overlay para fechar o menu
         overlay.setOnClickListener(v -> {
