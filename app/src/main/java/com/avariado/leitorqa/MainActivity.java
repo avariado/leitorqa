@@ -91,6 +91,9 @@ public class MainActivity extends AppCompatActivity {
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
         
+        // Get the main card container
+        LinearLayout cardContainer = findViewById(R.id.card_container);
+        
         // Set click listeners
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
@@ -106,11 +109,26 @@ public class MainActivity extends AppCompatActivity {
         searchNextButton.setOnClickListener(v -> goToNextSearchResult());
         
         // Configuração do clique para mostrar/ocultar resposta
-        CardView cardView = findViewById(R.id.card_view);
-        cardView.setOnClickListener(v -> {
+        cardContainer.setOnClickListener(v -> {
             if (isQAMode && !menuVisible && !items.isEmpty()) {
                 toggleAnswerVisibility();
             }
+        });
+        
+        // Configuração para evitar que cliques nos botões dentro do cardContainer ativem o toggle
+        View.OnClickListener buttonClickListener = v -> {
+            // Apenas previne a propagação do evento para o cardContainer
+        };
+        
+        // Aplicar o listener a todos os botões dentro do cardContainer
+        prevButton.setOnClickListener(v -> {
+            safePrevItem();
+            buttonClickListener.onClick(v);
+        });
+        
+        nextButton.setOnClickListener(v -> {
+            safeNextItem();
+            buttonClickListener.onClick(v);
         });
         
         // Configuração da overlay para fechar o menu
