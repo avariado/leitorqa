@@ -13,6 +13,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -70,18 +71,18 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
-        // Initialize views
+        // Certifique-se de que esses IDs existam no XML
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
-        currentCardInput = findViewById(R.id.current_card_input);
-        totalCardsText = findViewById(R.id.total_cards_text);
+        currentCardInput = findViewById(R.id.current_card_input);  // Verifique no XML
+        totalCardsText = findViewById(R.id.total_cards_text);      // Verifique no XML
         menuLayout = findViewById(R.id.menu_layout);
         overlay = findViewById(R.id.overlay);
         searchInput = findViewById(R.id.search_input);
         searchInfo = findViewById(R.id.search_info);
         fontSizeText = findViewById(R.id.current_font_size);
         
-        // Set up buttons
+        // Botões - verifique todos esses IDs no XML
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
         Button nextButton = findViewById(R.id.next_button);
@@ -95,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
         
-        // Configuração do clique para mostrar/ocultar resposta
+        // Área clicável principal - verifique no XML
         RelativeLayout mainContentArea = findViewById(R.id.main_content_area);
         mainContentArea.setOnClickListener(v -> {
             if (isQAMode && !menuVisible && !items.isEmpty()) {
@@ -105,6 +106,17 @@ public class MainActivity extends AppCompatActivity {
     
         // Configuração dos botões
         menuButton.setOnClickListener(v -> toggleMenu());
+        prevButton.setOnClickListener(v -> safePrevItem());
+        nextButton.setOnClickListener(v -> safeNextItem());
+        importButton.setOnClickListener(v -> showFileImportDialog());
+        exportButton.setOnClickListener(v -> showExportDialog());
+        editButton.setOnClickListener(v -> showEditDialog());
+        shuffleButton.setOnClickListener(v -> shuffleItems());
+        resetButton.setOnClickListener(v -> resetOrder());
+        increaseFontButton.setOnClickListener(v -> increaseFontSize());
+        decreaseFontButton.setOnClickListener(v -> decreaseFontSize());
+        searchPrevButton.setOnClickListener(v -> goToPrevSearchResult());
+        searchNextButton.setOnClickListener(v -> goToNextSearchResult());
         
         // Configuração especial para os botões de navegação
         prevButton.setOnClickListener(v -> {
