@@ -121,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
                         float diffX = touchEndX - touchStartX;
                         float diffY = touchEndY - touchStartY;
                         
-                        if (Math.abs(diffX) > Math.abs(diffY) {
+                        if (Math.abs(diffX) > Math.abs(diffY)) {
                             if (diffX > 100) {
                                 prevItem();
                             } else if (diffX < -100) {
