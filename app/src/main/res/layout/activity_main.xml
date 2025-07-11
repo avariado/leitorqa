@@ -121,12 +121,11 @@
                             android:textAlignment="center" />
 
                         <TextView
-                            android:id="@+id/font_size_text"
+                            android:id="@+id/total_cards_text"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Tamanho: 20"
-                            android:textSize="16sp"
-                            android:layout_margin="8dp"/>
+                            android:text="/ 0"
+                            android:textSize="16sp" />
                     </LinearLayout>
 
                     <Button
