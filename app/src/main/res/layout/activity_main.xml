@@ -7,7 +7,7 @@
     android:background="#f5f5f5"
     tools:context=".MainActivity">
 
-    <!-- Header (mantido igual) -->
+    <!-- Header -->
     <LinearLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
@@ -16,7 +16,24 @@
         android:elevation="4dp"
         android:orientation="horizontal"
         android:padding="15dp">
-        <!-- ... conteúdo do header ... -->
+
+        <Button
+            android:id="@+id/menu_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@null"
+            android:text="☰"
+            android:textColor="#fff"
+            android:textSize="24sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="Leitor QnA"
+            android:textColor="#fff"
+            android:textSize="20sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <!-- Conteúdo Principal -->
@@ -79,7 +96,45 @@
                     android:layout_alignParentBottom="true"
                     android:orientation="horizontal">
 
-                    <!-- ... botões anteriores/próximos ... -->
+                    <Button
+                        android:id="@+id/prev_button"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="#6200ee"
+                        android:text="◄"
+                        android:textColor="#fff" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <EditText
+                            android:id="@+id/current_card_input"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:minWidth="30dp"
+                            android:text="1"
+                            android:textAlignment="center" />
+
+                        <TextView
+                            android:id="@+id/total_cards_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="/ 0"
+                            android:textSize="16sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/next_button"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="#6200ee"
+                        android:text="►"
+                        android:textColor="#fff" />
                 </LinearLayout>
             </RelativeLayout>
         </androidx.cardview.widget.CardView>
