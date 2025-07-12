@@ -423,12 +423,14 @@ public class MainActivity extends AppCompatActivity {
     private void parseTextContent(String text) {
         if (text == null) return;
         
-        // Remove quebras de linha e junta tudo em uma única string
-        String singleLine = text.replaceAll("[\\r\\n]+", "");
+        // Substitui quebras de linha por espaços e normaliza espaços múltiplos
+        String normalizedText = text.replaceAll("[\\r\\n]+", " ")
+                                  .replaceAll("\\s+", " ")
+                                  .trim();
         
         // Divide em frases usando pontuação como delimitador
         Pattern pattern = Pattern.compile("[^.!?]+[.!?]+");
-        Matcher matcher = pattern.matcher(singleLine);
+        Matcher matcher = pattern.matcher(normalizedText);
         List<String> sentences = new ArrayList<>();
         
         while (matcher.find()) {
