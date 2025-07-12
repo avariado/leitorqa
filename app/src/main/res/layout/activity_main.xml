@@ -52,7 +52,7 @@
             app:cardCornerRadius="10dp"
             app:cardElevation="4dp">
 
-            <!-- Esta será nossa área clicável principal -->
+            <!-- Área clicável principal -->
             <RelativeLayout
                 android:id="@+id/main_content_area"
                 android:layout_width="match_parent"
