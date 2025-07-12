@@ -136,21 +136,18 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         
-        cardView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                
-                // Handle simple tap to toggle answer visibility
-                if (event.getAction() == MotionEvent.ACTION_UP && !menuVisible && !items.isEmpty()) {
-                    // Verifica se foi um toque simples (não parte de um swipe)
-                    if (!isSwipe) {
-                        toggleAnswerVisibility();
-                    }
-                    isSwipe = false; // Reseta o flag de swipe
-                }
-                return true;
+        cardView.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            
+            if (event.getAction() == MotionEvent.ACTION_UP && !isSwipe && !menuVisible) {
+                toggleAnswerVisibility();
             }
+            return true;
+        });
+
+        textScrollView.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            return false; // Permite que o evento passe para o pai
         });
         
         // Prevent scroll view from intercepting touches
