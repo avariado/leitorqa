@@ -56,7 +56,6 @@ public class MainActivity extends AppCompatActivity {
     private static final String IS_QA_MODE_KEY = "isQAMode";
     private static final String FONT_SIZE_KEY = "fontSize";
 
-    // Views
     private TextView questionTextView;
     private TextView answerTextView;
     private EditText currentCardInput;
@@ -70,7 +69,6 @@ public class MainActivity extends AppCompatActivity {
     private CardView cardView;
     private ScrollView textScrollView;
     
-    // Data
     private List<QAItem> items = new ArrayList<>();
     private List<QAItem> originalItems = new ArrayList<>();
     private int currentIndex = 0;
@@ -78,12 +76,10 @@ public class MainActivity extends AppCompatActivity {
     private boolean menuVisible = false;
     private int baseFontSize = 20;
     
-    // Search
     private List<Integer> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
     private String searchTerm = "";
 
-    // Gestures
     private GestureDetectorCompat gestureDetector;
 
     @Override
@@ -91,7 +87,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
-        // Initialize views
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
         currentCardInput = findViewById(R.id.current_card_input);
@@ -105,7 +100,6 @@ public class MainActivity extends AppCompatActivity {
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
         
-        // Initialize gesture detector
         gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
         
         Button menuButton = findViewById(R.id.menu_button);
@@ -121,7 +115,6 @@ public class MainActivity extends AppCompatActivity {
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
         
-        // Set up touch listeners
         cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -225,10 +218,8 @@ public class MainActivity extends AppCompatActivity {
                 Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                 
                 if (diffX > 0) {
-                    // Swipe right to left - previous
                     safePrevItem();
                 } else {
-                    // Swipe left to right - next
                     safeNextItem();
                 }
                 return true;
@@ -432,40 +423,36 @@ public class MainActivity extends AppCompatActivity {
     private void parseTextContent(String text) {
         if (text == null) return;
         
-        String cleanedText = text.replaceAll("(\\r\\n|\\n|\\r)(?<![.!?,;:])", " ");
-        cleanedText = cleanedText.replaceAll("\\s+", " ").trim();
+        // Remove quebras de linha e junta tudo em uma única string
+        String singleLine = text.replaceAll("[\\r\\n]+", "");
         
-        Pattern pattern = Pattern.compile("[^.!?]+[.!?…]+");
-        Matcher matcher = pattern.matcher(cleanedText);
+        // Divide em frases usando pontuação como delimitador
+        Pattern pattern = Pattern.compile("[^.!?]+[.!?]+");
+        Matcher matcher = pattern.matcher(singleLine);
         List<String> sentences = new ArrayList<>();
+        
         while (matcher.find()) {
             sentences.add(matcher.group().trim());
         }
         
+        // Processa as frases para garantir mínimo de 75 caracteres
         List<QAItem> processedItems = new ArrayList<>();
-        StringBuilder currentChunk = new StringBuilder();
+        StringBuilder currentSentence = new StringBuilder();
         
-        for (int i = 0; i < sentences.size(); i++) {
-            String sentence = sentences.get(i);
-            
-            if (currentChunk.length() + sentence.length() < 75 && i < sentences.size() - 1) {
-                if (currentChunk.length() > 0) {
-                    currentChunk.append(" ");
-                }
-                currentChunk.append(sentence);
-                continue;
-            }
-            
-            if (currentChunk.length() > 0 || sentence.length() >= 75) {
-                processedItems.add(new QAItem(currentChunk.length() > 0 ? 
-                    currentChunk.toString() + " " + sentence : sentence));
-                currentChunk = new StringBuilder();
-            } else if (i == sentences.size() - 1 && !processedItems.isEmpty()) {
-                QAItem lastItem = processedItems.get(processedItems.size() - 1);
-                lastItem.setText(lastItem.getText() + " " + sentence);
+        for (String sentence : sentences) {
+            if (currentSentence.length() == 0) {
+                currentSentence.append(sentence);
+            } else if (currentSentence.length() + sentence.length() < 75) {
+                currentSentence.append(" ").append(sentence);
             } else {
-                processedItems.add(new QAItem(sentence));
+                processedItems.add(new QAItem(currentSentence.toString()));
+                currentSentence = new StringBuilder(sentence);
             }
+        }
+        
+        // Adiciona a última frase se não estiver vazia
+        if (currentSentence.length() > 0) {
+            processedItems.add(new QAItem(currentSentence.toString()));
         }
         
         items = processedItems;
@@ -492,7 +479,12 @@ public class MainActivity extends AppCompatActivity {
                 String fileContent = readTextFileWithEncodingDetection(uri);
                 
                 if (requestCode == PICK_TXT_FILE) {
-                    parseQAContent(fileContent);
+                    // Verifica se é formato QA (contém tabs ou ;;)
+                    if (fileContent.contains("\t") || fileContent.contains(";;")) {
+                        parseQAContent(fileContent);
+                    } else {
+                        parseTextContent(fileContent);
+                    }
                     updateDisplay();
                     saveState();
                     Toast.makeText(this, "Ficheiro importado com sucesso!", Toast.LENGTH_SHORT).show();
