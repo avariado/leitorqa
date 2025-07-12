@@ -86,6 +86,29 @@ public class MainActivity extends AppCompatActivity {
     private static final int TOUCH_SLOP = 20;
     private int currentSearchIndex = -1;
     private String searchTerm = "";
+
+    private final GestureDetector.SimpleOnGestureListener gestureListener = 
+        new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onDown(MotionEvent e) {
+                return true; // 
+            }
+    
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                // Aumente a sensibilidade se necessário (ajuste o valor 100)
+                if (Math.abs(e1.getX() - e2.getX()) > 100 && 
+                    Math.abs(velocityX) > 50) { // Velocidade mínima
+                    if (e1.getX() > e2.getX()) { 
+                        safeNextItem(); // Swipe para esquerda
+                    } else {
+                        safePrevItem(); // Swipe para direita
+                    }
+                    return true;
+                }
+                return false;
+            }
+        };
     
     // Gestures
     private GestureDetectorCompat gestureDetector;
@@ -94,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        gestureDetector = new GestureDetectorCompat(this, gestureListener);
         
         // Initialize views
         questionTextView = findViewById(R.id.question_text);
@@ -127,31 +151,22 @@ public class MainActivity extends AppCompatActivity {
         
         // Set up touch listeners for the main container and card view
         
-        cardView.setOnTouchListener(new View.OnTouchListener() {
-            private final GestureDetector gestureDetector = new GestureDetector(MainActivity.this, new GestureDetector.SimpleOnGestureListener() {
-                @Override
-                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                    if (Math.abs(e1.getX() - e2.getX()) > 100) { // SWIPE
-                        if (e1.getX() > e2.getX()) { // Esquerda
-                            safeNextItem();
-                        } else { // Direita
-                            safePrevItem();
-                        }
-                        return true;
-                    }
-                    return false;
-                }
-            });
-        
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                if (event.getAction() == MotionEvent.ACTION_UP) { // TOQUE SIMPLES
-                    toggleAnswerVisibility();
-                }
-                return true;
+        cardView.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (!menuVisible) toggleAnswerVisibility(); // TOQUE SIMPLES
             }
+            return true;
         });
+        
+        textScrollView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (!menuVisible) toggleAnswerVisibility(); // TOQUE no texto
+            }
+            return false; // Permite rolagem
+        });
+        
+        new GestureDetectorCompat(this, gestureListener); // Inicializa detector de swipe
         
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
