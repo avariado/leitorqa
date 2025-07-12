@@ -116,22 +116,19 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public boolean onSingleTapConfirmed(MotionEvent e) {
+            public boolean onSingleTapUp(MotionEvent e) {
                 // Verifica se o toque foi dentro da área do card mas fora dos botões
                 View mainContentArea = findViewById(R.id.main_content_area);
                 int[] location = new int[2];
                 mainContentArea.getLocationOnScreen(location);
                 
-                float x = e.getRawX();
-                float y = e.getRawY();
+                Rect rect = new Rect();
+                mainContentArea.getGlobalVisibleRect(rect);
                 
                 // Coordenadas da área clicável (todo o card exceto o footer)
-                int left = location[0];
-                int top = location[1];
-                int right = left + mainContentArea.getWidth();
-                int bottom = top + mainContentArea.getHeight() - findViewById(R.id.card_footer).getHeight();
+                int footerTop = rect.bottom - findViewById(R.id.card_footer).getHeight();
                 
-                if (x >= left && x <= right && y >= top && y <= bottom && isQAMode && !menuVisible && !items.isEmpty()) {
+                if (e.getY() < footerTop && isQAMode && !menuVisible && !items.isEmpty()) {
                     toggleAnswerVisibility();
                     return true;
                 }
@@ -142,19 +139,16 @@ public class MainActivity extends AppCompatActivity {
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
                 boolean result = false;
                 try {
-                    float diffY = e2.getY() - e1.getY();
                     float diffX = e2.getX() - e1.getX();
-                    if (Math.abs(diffX) > Math.abs(diffY)) {
-                        if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                            if (diffX > 0) {
-                                // Swipe da esquerda para direita - anterior
-                                safePrevItem();
-                            } else {
-                                // Swipe da direita para esquerda - próximo
-                                safeNextItem();
-                            }
-                            result = true;
+                    if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                        if (diffX > 0) {
+                            // Swipe da direita para esquerda - anterior
+                            safePrevItem();
+                        } else {
+                            // Swipe da esquerda para direita - próximo
+                            safeNextItem();
                         }
+                        result = true;
                     }
                 } catch (Exception exception) {
                     exception.printStackTrace();
@@ -168,6 +162,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
+                
+                // Importante: retornar true para consumir o evento
                 return true;
             }
         });
