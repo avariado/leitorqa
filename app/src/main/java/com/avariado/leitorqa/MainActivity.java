@@ -21,6 +21,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import android.graphics.Rect;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -104,7 +105,7 @@ public class MainActivity extends AppCompatActivity {
         Button decreaseFontButton = findViewById(R.id.decrease_font_button);
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
-        
+                
         // Configuração do GestureDetector
         gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             private static final int SWIPE_THRESHOLD = 100;
@@ -119,14 +120,12 @@ public class MainActivity extends AppCompatActivity {
             public boolean onSingleTapUp(MotionEvent e) {
                 // Verifica se o toque foi dentro da área do card mas fora dos botões
                 View mainContentArea = findViewById(R.id.main_content_area);
-                int[] location = new int[2];
-                mainContentArea.getLocationOnScreen(location);
-                
                 Rect rect = new Rect();
                 mainContentArea.getGlobalVisibleRect(rect);
                 
                 // Coordenadas da área clicável (todo o card exceto o footer)
-                int footerTop = rect.bottom - findViewById(R.id.card_footer).getHeight();
+                View footer = findViewById(R.id.card_footer);
+                int footerTop = rect.bottom - footer.getHeight();
                 
                 if (e.getY() < footerTop && isQAMode && !menuVisible && !items.isEmpty()) {
                     toggleAnswerVisibility();
