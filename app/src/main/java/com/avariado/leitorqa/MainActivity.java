@@ -423,7 +423,7 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode == RESULT_OK && data != null) {
             Uri uri = data.getData();
             try {
-                String fileContent = readTextFileWithEncodingDetection(uri);
+                String fileContent = readTextFileNuclear(uri);
                 
                 if (requestCode == PICK_TXT_FILE) {
                     parseQAContent(fileContent);
