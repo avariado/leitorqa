@@ -62,11 +62,13 @@
 
                 <!-- Área de texto (pergunta/resposta) -->
                 <ScrollView
-                    android:id="@+id/text_scroll_view"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_above="@id/card_footer"
-                    android:fillViewport="true">
+                        android:id="@+id/text_scroll_view"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_above="@id/card_footer"
+                        android:fillViewport="true"
+                        android:overScrollMode="never"
+                        android:scrollbars="none">
 
                     <LinearLayout
                         android:layout_width="match_parent"
