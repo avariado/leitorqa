@@ -13,289 +13,85 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#6200ee"
-        android:elevation="4dp"
         android:orientation="horizontal"
         android:padding="15dp">
-
+        
         <Button
             android:id="@+id/menu_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@null"
             android:text="☰"
-            android:textColor="#fff"
-            android:textSize="24sp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:text="Leitor QnA"
-            android:textColor="#fff"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:textColor="#fff"/>
     </LinearLayout>
 
-    <!-- Conteúdo Principal -->
+    <!-- Área Principal do Card -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/header"
         android:padding="20dp">
 
-        <!-- CardView principal -->
+        <!-- CardView simplificado -->
         <androidx.cardview.widget.CardView
             android:id="@+id/card_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_margin="10dp"
-            app:cardCornerRadius="10dp"
-            app:cardElevation="4dp">
+            app:cardCornerRadius="10dp">
 
-            <!-- Área clicável principal -->
-            <FrameLayout
-                android:id="@+id/clickable_area"
+            <!-- Camada de clique que cobre TUDO -->
+            <RelativeLayout
+                android:id="@+id/full_click_area"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true">
+                android:padding="20dp">
 
-                <RelativeLayout
+                <!-- Conteúdo principal -->
+                <ScrollView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:padding="30dp">
+                    android:layout_above="@id/card_footer"
+                    android:fillViewport="true">
 
-                    <!-- Área de conteúdo rolável -->
-                    <ScrollView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:layout_above="@id/card_footer"
-                        android:fillViewport="true">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/question_text"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:padding="10dp" />
-
-                            <TextView
-                                android:id="@+id/answer_text"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:background="#f9f9f9"
-                                android:padding="10dp"
-                                android:visibility="gone" />
-                        </LinearLayout>
-                    </ScrollView>
-
-                    <!-- Footer com botões -->
                     <LinearLayout
-                        android:id="@+id/card_footer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_alignParentBottom="true"
-                        android:orientation="horizontal">
+                        android:orientation="vertical">
 
-                        <Button
-                            android:id="@+id/prev_button"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
-                            android:background="#6200ee"
-                            android:text="◄"
-                            android:textColor="#fff" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
+                        <TextView
+                            android:id="@+id/question_text"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="horizontal">
+                            android:padding="10dp"/>
 
-                            <EditText
-                                android:id="@+id/current_card_input"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:inputType="number"
-                                android:minWidth="30dp"
-                                android:text="1"
-                                android:textAlignment="center" />
-
-                            <TextView
-                                android:id="@+id/total_cards_text"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="/ 0"
-                                android:textSize="16sp" />
-                        </LinearLayout>
-
-                        <Button
-                            android:id="@+id/next_button"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
-                            android:background="#6200ee"
-                            android:text="►"
-                            android:textColor="#fff" />
+                        <TextView
+                            android:id="@+id/answer_text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone"/>
                     </LinearLayout>
-                </RelativeLayout>
-            </FrameLayout>
+                </ScrollView>
+
+                <!-- Footer (não intercepta cliques) -->
+                <LinearLayout
+                    android:id="@+id/card_footer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentBottom="true"
+                    android:orientation="horizontal">
+
+                    <!-- Botões de navegação -->
+                    <Button
+                        android:id="@+id/prev_button"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"/>
+
+                    <Button
+                        android:id="@+id/next_button"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"/>
+                </LinearLayout>
+            </RelativeLayout>
         </androidx.cardview.widget.CardView>
     </FrameLayout>
-
-    <!-- Overlay -->
-    <View
-        android:id="@+id/overlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#80000000"
-        android:clickable="true"
-        android:visibility="gone" />
-
-    <!-- Menu -->
-    <LinearLayout
-        android:id="@+id/menu_layout"
-        android:layout_width="300dp"
-        android:layout_height="match_parent"
-        android:layout_alignParentLeft="true"
-        android:background="#fff"
-        android:elevation="5dp"
-        android:orientation="vertical"
-        android:padding="20dp"
-        android:visibility="gone">
-
-        <Button
-            android:id="@+id/import_button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="#6200ee"
-            android:text="Importar Ficheiro"
-            android:textAlignment="textStart"
-            android:textColor="#fff" />
-
-        <Button
-            android:id="@+id/export_button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="#6200ee"
-            android:text="Exportar Ficheiro"
-            android:textAlignment="textStart"
-            android:textColor="#fff" />
-
-        <Button
-            android:id="@+id/edit_button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="#6200ee"
-            android:text="Editar Conteúdo"
-            android:textAlignment="textStart"
-            android:textColor="#fff" />
-
-        <Button
-            android:id="@+id/shuffle_button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="#6200ee"
-            android:text="Baralhar Perguntas"
-            android:textAlignment="textStart"
-            android:textColor="#fff" />
-
-        <Button
-            android:id="@+id/reset_button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="#6200ee"
-            android:text="Voltar à Ordem Inicial"
-            android:textAlignment="textStart"
-            android:textColor="#fff" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="15dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Tamanho da Fonte"
-                android:textSize="16sp" />
-
-            <Button
-                android:id="@+id/decrease_font_button"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_marginLeft="10dp"
-                android:background="#6200ee"
-                android:text="-"
-                android:textColor="#fff" />
-
-            <TextView
-                android:id="@+id/current_font_size"
-                android:layout_width="30dp"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="20"
-                android:textSize="18sp" />
-
-            <Button
-                android:id="@+id/increase_font_button"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:background="#6200ee"
-                android:text="+"
-                android:textColor="#fff" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="15dp">
-
-            <EditText
-                android:id="@+id/search_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Procurar..."
-                android:inputType="text"
-                android:padding="8dp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/search_prev_button"
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
-                    android:background="#6200ee"
-                    android:enabled="false"
-                    android:text="◄"
-                    android:textColor="#fff" />
-
-                <Button
-                    android:id="@+id/search_next_button"
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
-                    android:background="#6200ee"
-                    android:enabled="false"
-                    android:text="►"
-                    android:textColor="#fff" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/search_info"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:textSize="12sp" />
-        </LinearLayout>
-    </LinearLayout>
 </RelativeLayout>
