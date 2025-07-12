@@ -8,7 +8,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -47,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String IS_QA_MODE_KEY = "isQAMode";
     private static final String FONT_SIZE_KEY = "fontSize";
 
+    // Views
     private TextView questionTextView;
     private TextView answerTextView;
     private EditText currentCardInput;
@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView searchInfo;
     private TextView fontSizeText;
     
+    // Data
     private List<QAItem> items = new ArrayList<>();
     private List<QAItem> originalItems = new ArrayList<>();
     private int currentIndex = 0;
@@ -64,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean menuVisible = false;
     private int baseFontSize = 20;
     
+    // Search
     private List<Integer> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
     private String searchTerm = "";
@@ -340,109 +342,58 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = 0;
         isQAMode = !items.isEmpty() && items.get(0).isQA();
     }
-
+    
     private void parseTextContent(String text) {
-        if (text == null || text.isEmpty()) return;
-
-        // 1. Remove TODAS as quebras de linha
-        String singleLine = text.replace("\r\n", " ")
-                              .replace("\n", " ")
-                              .replace("\r", " ")
-                              .replaceAll("\\s+", " ")
-                              .trim();
-
-        // 2. Divisão em frases completas
+        if (text == null) return;
+        
+        String cleanedText = text.replaceAll("(\\r\\n|\\n|\\r)(?<![.!?,;:])", " ");
+        cleanedText = cleanedText.replaceAll("\\s+", " ").trim();
+        
+        Pattern pattern = Pattern.compile("[^.!?]+[.!?…]+");
+        Matcher matcher = pattern.matcher(cleanedText);
+        List<String> sentences = new ArrayList<>();
+        while (matcher.find()) {
+            sentences.add(matcher.group().trim());
+        }
+        
         List<QAItem> processedItems = new ArrayList<>();
-        StringBuilder currentSentence = new StringBuilder();
-        int charCount = 0;
-        boolean inQuotes = false;
-
-        for (int i = 0; i < singleLine.length(); i++) {
-            char c = singleLine.charAt(i);
-            currentSentence.append(c);
-            charCount++;
-
-            if (c == '"' || c == '\'') {
-                inQuotes = !inQuotes;
+        StringBuilder currentChunk = new StringBuilder();
+        
+        for (int i = 0; i < sentences.size(); i++) {
+            String sentence = sentences.get(i);
+            
+            if (currentChunk.length() + sentence.length() < 75 && i < sentences.size() - 1) {
+                if (currentChunk.length() > 0) {
+                    currentChunk.append(" ");
+                }
+                currentChunk.append(sentence);
+                continue;
             }
-
-            if (!inQuotes && (c == '.' || c == '!' || c == '?' || 
-                (c == '.' && i+2 < singleLine.length() && 
-                 singleLine.substring(i, i+3).equals("...")))) {
-                
-                if (c == '.' && i+2 < singleLine.length() && 
-                    singleLine.substring(i, i+3).equals("...")) {
-                    currentSentence.append("..");
-                    i += 2;
-                }
-
-                if (charCount >= 75 || i == singleLine.length()-1) {
-                    processedItems.add(new QAItem(currentSentence.toString().trim()));
-                    currentSentence = new StringBuilder();
-                    charCount = 0;
-                }
+            
+            if (currentChunk.length() > 0 || sentence.length() >= 75) {
+                processedItems.add(new QAItem(currentChunk.length() > 0 ? 
+                    currentChunk.toString() + " " + sentence : sentence));
+                currentChunk = new StringBuilder();
+            } else if (i == sentences.size() - 1 && !processedItems.isEmpty()) {
+                QAItem lastItem = processedItems.get(processedItems.size() - 1);
+                lastItem.setText(lastItem.getText() + " " + sentence);
+            } else {
+                processedItems.add(new QAItem(sentence));
             }
         }
-
+        
         items = processedItems;
         originalItems = new ArrayList<>(items);
         currentIndex = 0;
         isQAMode = false;
     }
-
+    
     private void importTextFile() {
         toggleMenu();
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("text/*");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         startActivityForResult(intent, PICK_TXT_FILE);
-    }
-
-    private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
-        InputStream inputStream = getContentResolver().openInputStream(uri);
-        BufferedInputStream bis = new BufferedInputStream(inputStream);
-        bis.mark(100000);
-
-        // 1. Tenta UTF-8 primeiro
-        try {
-            String content = readStream(bis, StandardCharsets.UTF_8);
-            if (!hasInvalidUTF8Characters(content)) {
-                return content;
-            }
-        } catch (Exception e) {
-            Log.e("ENCODING", "Falha UTF-8", e);
-        }
-
-        // 2. Tenta Windows-1252 (ANSI)
-        try {
-            bis.reset();
-            return readStream(bis, Charset.forName("Windows-1252"));
-        } catch (Exception e) {
-            Log.e("ENCODING", "Falha Windows-1252", e);
-        }
-
-        // 3. Fallback para ISO-8859-1
-        try {
-            bis.reset();
-            return readStream(bis, StandardCharsets.ISO_8859_1);
-        } finally {
-            bis.close();
-        }
-    }
-
-    private boolean hasInvalidUTF8Characters(String content) {
-        return content.contains("�");
-    }
-
-    private String readStream(InputStream is, Charset charset) throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(is, charset));
-        StringBuilder sb = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) {
-            sb.append(line).append("\n");
-        }
-        reader.close();
-        return sb.toString();
     }
 
     @Override
@@ -453,17 +404,59 @@ public class MainActivity extends AppCompatActivity {
             Uri uri = data.getData();
             try {
                 String fileContent = readTextFileWithEncodingDetection(uri);
-                parseTextContent(fileContent);
-                updateDisplay();
-                saveState();
-                Toast.makeText(this, "Ficheiro importado com sucesso!", Toast.LENGTH_SHORT).show();
+                
+                if (requestCode == PICK_TXT_FILE) {
+                    parseQAContent(fileContent);
+                    updateDisplay();
+                    saveState();
+                    Toast.makeText(this, "Ficheiro importado com sucesso!", Toast.LENGTH_SHORT).show();
+                } else if (requestCode == CREATE_FILE) {
+                    exportFile(uri);
+                }
             } catch (IOException e) {
                 Toast.makeText(this, "Erro ao ler ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                Log.e("FILE_IMPORT", "Falha na importação", e);
+                e.printStackTrace();
             }
         }
     }
 
+    private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
+        // Lê o conteúdo completo em bytes primeiro
+        InputStream inputStream = getContentResolver().openInputStream(uri);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int length;
+        while ((length = inputStream.read(buffer)) != -1) {
+            byteArrayOutputStream.write(buffer, 0, length);
+        }
+        byte[] fileContentBytes = byteArrayOutputStream.toByteArray();
+        inputStream.close();
+
+        // Tenta UTF-8 primeiro
+        try {
+            String content = new String(fileContentBytes, StandardCharsets.UTF_8);
+            if (!hasInvalidUTF8Characters(content)) {
+                return content;
+            }
+        } catch (Exception e) {
+            // Continua para próxima tentativa
+        }
+
+        // Tenta Windows-1252 (ANSI)
+        try {
+            return new String(fileContentBytes, "Windows-1252");
+        } catch (Exception e) {
+            // Continua para próxima tentativa
+        }
+
+        // Tenta ISO-8859-1 como último recurso
+        return new String(fileContentBytes, StandardCharsets.ISO_8859_1);
+    }
+
+    private boolean hasInvalidUTF8Characters(String content) {
+        return content.contains("�");
+    }
+    
     private void showExportDialog() {
         toggleMenu();
         
