@@ -52,7 +52,7 @@
             app:cardCornerRadius="10dp"
             app:cardElevation="4dp">
 
-            <!-- Área clicável principal (100% funcional) -->
+            <!-- Área clicável principal -->
             <FrameLayout
                 android:id="@+id/clickable_area"
                 android:layout_width="match_parent"
@@ -94,7 +94,7 @@
                         </LinearLayout>
                     </ScrollView>
 
-                    <!-- Footer com botões (não clicável para toggle) -->
+                    <!-- Footer com botões -->
                     <LinearLayout
                         android:id="@+id/card_footer"
                         android:layout_width="match_parent"
@@ -147,7 +147,7 @@
         </androidx.cardview.widget.CardView>
     </FrameLayout>
 
-    <!-- Overlay para o menu -->
+    <!-- Overlay -->
     <View
         android:id="@+id/overlay"
         android:layout_width="match_parent"
@@ -156,7 +156,7 @@
         android:clickable="true"
         android:visibility="gone" />
 
-    <!-- Menu lateral -->
+    <!-- Menu -->
     <LinearLayout
         android:id="@+id/menu_layout"
         android:layout_width="300dp"
@@ -168,6 +168,134 @@
         android:padding="20dp"
         android:visibility="gone">
 
-        <!-- Itens do menu... -->
+        <Button
+            android:id="@+id/import_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#6200ee"
+            android:text="Importar Ficheiro"
+            android:textAlignment="textStart"
+            android:textColor="#fff" />
+
+        <Button
+            android:id="@+id/export_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#6200ee"
+            android:text="Exportar Ficheiro"
+            android:textAlignment="textStart"
+            android:textColor="#fff" />
+
+        <Button
+            android:id="@+id/edit_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#6200ee"
+            android:text="Editar Conteúdo"
+            android:textAlignment="textStart"
+            android:textColor="#fff" />
+
+        <Button
+            android:id="@+id/shuffle_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#6200ee"
+            android:text="Baralhar Perguntas"
+            android:textAlignment="textStart"
+            android:textColor="#fff" />
+
+        <Button
+            android:id="@+id/reset_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#6200ee"
+            android:text="Voltar à Ordem Inicial"
+            android:textAlignment="textStart"
+            android:textColor="#fff" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="15dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tamanho da Fonte"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/decrease_font_button"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginLeft="10dp"
+                android:background="#6200ee"
+                android:text="-"
+                android:textColor="#fff" />
+
+            <TextView
+                android:id="@+id/current_font_size"
+                android:layout_width="30dp"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="20"
+                android:textSize="18sp" />
+
+            <Button
+                android:id="@+id/increase_font_button"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:background="#6200ee"
+                android:text="+"
+                android:textColor="#fff" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="15dp">
+
+            <EditText
+                android:id="@+id/search_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Procurar..."
+                android:inputType="text"
+                android:padding="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/search_prev_button"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:background="#6200ee"
+                    android:enabled="false"
+                    android:text="◄"
+                    android:textColor="#fff" />
+
+                <Button
+                    android:id="@+id/search_next_button"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:background="#6200ee"
+                    android:enabled="false"
+                    android:text="►"
+                    android:textColor="#fff" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/search_info"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textSize="12sp" />
+        </LinearLayout>
     </LinearLayout>
 </RelativeLayout>
