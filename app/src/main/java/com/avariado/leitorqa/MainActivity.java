@@ -407,61 +407,54 @@ public class MainActivity extends AppCompatActivity {
                 
                 if (requestCode == PICK_TXT_FILE) {
                     parseQAContent(fileContent);
+                    updateDisplay();
+                    saveState();
+                    Toast.makeText(this, "Ficheiro importado com sucesso!", Toast.LENGTH_SHORT).show();
                 } else if (requestCode == CREATE_FILE) {
                     exportFile(uri);
                 }
-                
-                updateDisplay();
-                saveState();
-                Toast.makeText(this, "Ficheiro importado com sucesso!", Toast.LENGTH_SHORT).show();
             } catch (IOException e) {
                 Toast.makeText(this, "Erro ao ler ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                e.printStackTrace();
             }
         }
     }
 
     private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
+        // Lê o conteúdo completo em bytes primeiro
         InputStream inputStream = getContentResolver().openInputStream(uri);
-        BufferedInputStream bis = new BufferedInputStream(inputStream);
-        bis.mark(100000); // Marca para poder resetar depois
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int length;
+        while ((length = inputStream.read(buffer)) != -1) {
+            byteArrayOutputStream.write(buffer, 0, length);
+        }
+        byte[] fileContentBytes = byteArrayOutputStream.toByteArray();
+        inputStream.close();
 
-        // Primeiro tenta UTF-8
+        // Tenta UTF-8 primeiro
         try {
-            String content = readStream(bis, StandardCharsets.UTF_8);
+            String content = new String(fileContentBytes, StandardCharsets.UTF_8);
             if (!hasInvalidUTF8Characters(content)) {
                 return content;
             }
         } catch (Exception e) {
-            // Ignora e tenta próxima codificação
+            // Continua para próxima tentativa
         }
 
+        // Tenta Windows-1252 (ANSI)
         try {
-            bis.reset(); // Volta ao início do stream
-            // Tenta Windows-1252 (ANSI)
-            return readStream(bis, Charset.forName("Windows-1252"));
+            return new String(fileContentBytes, "Windows-1252");
         } catch (Exception e) {
-            bis.reset();
-            // Tenta ISO-8859-1 como último recurso
-            return readStream(bis, StandardCharsets.ISO_8859_1);
-        } finally {
-            bis.close();
+            // Continua para próxima tentativa
         }
+
+        // Tenta ISO-8859-1 como último recurso
+        return new String(fileContentBytes, StandardCharsets.ISO_8859_1);
     }
 
     private boolean hasInvalidUTF8Characters(String content) {
-        // Verifica se há caracteres de substituição do UTF-8 (�)
         return content.contains("�");
-    }
-
-    private String readStream(InputStream inputStream, Charset charset) throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, charset));
-        StringBuilder stringBuilder = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) {
-            stringBuilder.append(line).append("\n");
-        }
-        reader.close();
-        return stringBuilder.toString();
     }
     
     private void showExportDialog() {
