@@ -47,7 +47,6 @@ public class MainActivity extends AppCompatActivity {
     private static final String IS_QA_MODE_KEY = "isQAMode";
     private static final String FONT_SIZE_KEY = "fontSize";
 
-    // Views
     private TextView questionTextView;
     private TextView answerTextView;
     private EditText currentCardInput;
@@ -58,7 +57,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView searchInfo;
     private TextView fontSizeText;
     
-    // Data
     private List<QAItem> items = new ArrayList<>();
     private List<QAItem> originalItems = new ArrayList<>();
     private int currentIndex = 0;
@@ -66,7 +64,6 @@ public class MainActivity extends AppCompatActivity {
     private boolean menuVisible = false;
     private int baseFontSize = 20;
     
-    // Search
     private List<Integer> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
     private String searchTerm = "";
@@ -76,7 +73,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
-        // Inicialização de views (mantido igual)
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
         currentCardInput = findViewById(R.id.current_card_input);
@@ -87,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
         searchInfo = findViewById(R.id.search_info);
         fontSizeText = findViewById(R.id.current_font_size);
         
-        // Inicialização de botões (mantido igual)
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
         Button nextButton = findViewById(R.id.next_button);
@@ -101,10 +96,13 @@ public class MainActivity extends AppCompatActivity {
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
         
-        // Listeners (mantido igual)
         RelativeLayout mainContentArea = findViewById(R.id.main_content_area);
-        mainContentArea.setOnClickListener(v -> toggleAnswerVisibility());
-        
+        mainContentArea.setOnClickListener(v -> {
+            if (isQAMode && !menuVisible && !items.isEmpty()) {
+                toggleAnswerVisibility();
+            }
+        });
+    
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
         nextButton.setOnClickListener(v -> safeNextItem());
@@ -119,11 +117,15 @@ public class MainActivity extends AppCompatActivity {
         searchNextButton.setOnClickListener(v -> goToNextSearchResult());
         
         overlay.setOnClickListener(v -> {
-            if (menuVisible) toggleMenu();
+            if (menuVisible) {
+                toggleMenu();
+            }
         });
         
         currentCardInput.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) validateAndUpdateCardNumber();
+            if (!hasFocus) {
+                validateAndUpdateCardNumber();
+            }
         });
         
         currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
@@ -132,28 +134,45 @@ public class MainActivity extends AppCompatActivity {
         });
         
         searchInput.addTextChangedListener(new TextWatcher() {
+            @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            
+            @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 searchTerm = s.toString().trim();
-                if (searchTerm.isEmpty()) clearSearch();
-                else performSearch();
+                if (searchTerm.isEmpty()) {
+                    clearSearch();
+                } else {
+                    performSearch();
+                }
             }
+            
+            @Override
             public void afterTextChanged(Editable s) {}
         });
         
         loadState();
-        if (items.isEmpty()) loadSampleData();
+        if (items.isEmpty()) {
+            loadSampleData();
+        }
         updateDisplay();
         updateFontSize();
     }
 
-    // Métodos auxiliares (mantidos iguais)
     private void safePrevItem() {
-        try { prevItem(); } catch (Exception e) { showError("Erro ao navegar"); }
+        try {
+            prevItem();
+        } catch (Exception e) {
+            showError("Erro ao navegar para o cartão anterior");
+        }
     }
     
     private void safeNextItem() {
-        try { nextItem(); } catch (Exception e) { showError("Erro ao navegar"); }
+        try {
+            nextItem();
+        } catch (Exception e) {
+            showError("Erro ao navegar para o próximo cartão");
+        }
     }
     
     private void showError(String message) {
@@ -175,11 +194,11 @@ public class MainActivity extends AppCompatActivity {
                 saveState();
             } else {
                 currentCardInput.setText(String.valueOf(currentIndex + 1));
-                showError("Número inválido");
+                showError("Número de cartão inválido");
             }
         } catch (NumberFormatException e) {
             currentCardInput.setText(String.valueOf(currentIndex + 1));
-            showError("Insira um número válido");
+            showError("Por favor insira um número válido");
         }
     }
     
@@ -199,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
     
     private void updateDisplay() {
         if (items.isEmpty()) {
-            questionTextView.setText("Nenhum conteúdo");
+            questionTextView.setText("Nenhum conteúdo carregado.");
             answerTextView.setText("");
             currentCardInput.setText("0");
             totalCardsText.setText("/ 0");
@@ -207,6 +226,7 @@ public class MainActivity extends AppCompatActivity {
         }
         
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
+        
         QAItem currentItem = items.get(currentIndex);
         
         if (isQAMode) {
@@ -239,6 +259,7 @@ public class MainActivity extends AppCompatActivity {
     
     private void shuffleItems() {
         if (items.isEmpty()) return;
+        
         Collections.shuffle(items);
         currentIndex = 0;
         updateDisplay();
@@ -287,7 +308,8 @@ public class MainActivity extends AppCompatActivity {
             reader.close();
             parseQAContent(sb.toString());
         } catch (IOException e) {
-            String sampleData = "Exemplo Q?\tExemplo A\nOutra Q?\tOutra A";
+            String sampleData = "O que é HTML?\tHTML é a linguagem de marcação padrão para criar páginas web.\n" +
+                              "O que é CSS?\tCSS é a linguagem de estilos usada para descrever a apresentação de um documento HTML.";
             parseQAContent(sampleData);
         }
     }
@@ -306,7 +328,9 @@ public class MainActivity extends AppCompatActivity {
             String[] parts = line.split(separator);
             
             if (parts.length >= 2) {
-                items.add(new QAItem(parts[0].trim(), parts[1].trim()));
+                String question = parts[0].trim();
+                String answer = parts[1].trim();
+                items.add(new QAItem(question, answer));
             } else {
                 items.add(new QAItem(line.trim()));
             }
@@ -317,15 +341,14 @@ public class MainActivity extends AppCompatActivity {
         isQAMode = !items.isEmpty() && items.get(0).isQA();
     }
 
-    // MÉTODO COMPLETO DE PROCESSAMENTO DE TEXTO
     private void parseTextContent(String text) {
         if (text == null || text.isEmpty()) return;
 
         // 1. Remove TODAS as quebras de linha
         String singleLine = text.replace("\r\n", " ")
-                              .replace("\n", " )
+                              .replace("\n", " ")
                               .replace("\r", " ")
-                              .replaceAll("\\s+", " )
+                              .replaceAll("\\s+", " ")
                               .trim();
 
         // 2. Divisão em frases completas
@@ -339,7 +362,9 @@ public class MainActivity extends AppCompatActivity {
             currentSentence.append(c);
             charCount++;
 
-            if (c == '"' || c == '\'') inQuotes = !inQuotes;
+            if (c == '"' || c == '\'') {
+                inQuotes = !inQuotes;
+            }
 
             if (!inQuotes && (c == '.' || c == '!' || c == '?' || 
                 (c == '.' && i+2 < singleLine.length() && 
@@ -365,20 +390,27 @@ public class MainActivity extends AppCompatActivity {
         isQAMode = false;
     }
 
-    // MÉTODO COMPLETO DE LEITURA COM DETECÇÃO DE ENCODING
+    private void importTextFile() {
+        toggleMenu();
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("text/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        startActivityForResult(intent, PICK_TXT_FILE);
+    }
+
     private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
         InputStream inputStream = getContentResolver().openInputStream(uri);
         BufferedInputStream bis = new BufferedInputStream(inputStream);
         bis.mark(100000);
 
-        // 1. Tenta UTF-8
+        // 1. Tenta UTF-8 primeiro
         try {
             String content = readStream(bis, StandardCharsets.UTF_8);
             if (!hasInvalidUTF8Characters(content)) {
                 return content;
             }
         } catch (Exception e) {
-            Log.e("ENCODING", "UTF-8 failed", e);
+            Log.e("ENCODING", "Falha UTF-8", e);
         }
 
         // 2. Tenta Windows-1252 (ANSI)
@@ -386,7 +418,7 @@ public class MainActivity extends AppCompatActivity {
             bis.reset();
             return readStream(bis, Charset.forName("Windows-1252"));
         } catch (Exception e) {
-            Log.e("ENCODING", "ANSI failed", e);
+            Log.e("ENCODING", "Falha Windows-1252", e);
         }
 
         // 3. Fallback para ISO-8859-1
@@ -398,7 +430,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // MÉTODO DE VERIFICAÇÃO DE UTF-8 (RESTAURADO)
     private boolean hasInvalidUTF8Characters(String content) {
         return content.contains("�");
     }
@@ -425,10 +456,10 @@ public class MainActivity extends AppCompatActivity {
                 parseTextContent(fileContent);
                 updateDisplay();
                 saveState();
-                Toast.makeText(this, "Ficheiro importado!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Ficheiro importado com sucesso!", Toast.LENGTH_SHORT).show();
             } catch (IOException e) {
-                Toast.makeText(this, "Erro: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                Log.e("FILE_IMPORT", "Error", e);
+                Toast.makeText(this, "Erro ao ler ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                Log.e("FILE_IMPORT", "Falha na importação", e);
             }
         }
     }
@@ -686,7 +717,7 @@ public class MainActivity extends AppCompatActivity {
                 
                 String[] parts = line.split("\t");
                 if (parts.length >= 2) {
-                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim());
+                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim()));
                 } else {
                     loadedOriginalItems.add(new QAItem(line.trim()));
                 }
@@ -713,16 +744,33 @@ public class MainActivity extends AppCompatActivity {
         private String answer;
         private String text;
         
-        public QAItem(String text) { this.text = text; }
+        public QAItem(String text) {
+            this.text = text;
+        }
+        
         public QAItem(String question, String answer) {
             this.question = question;
             this.answer = answer;
         }
         
-        public String getQuestion() { return question; }
-        public String getAnswer() { return answer; }
-        public String getText() { return text; }
-        public void setText(String text) { this.text = text; }
-        public boolean isQA() { return question != null && answer != null; }
+        public String getQuestion() {
+            return question;
+        }
+        
+        public String getAnswer() {
+            return answer;
+        }
+        
+        public String getText() {
+            return text;
+        }
+        
+        public void setText(String text) {
+            this.text = text;
+        }
+        
+        public boolean isQA() {
+            return question != null && answer != null;
+        }
     }
 }
