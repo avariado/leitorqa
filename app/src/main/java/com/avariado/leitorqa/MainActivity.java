@@ -81,6 +81,9 @@ public class MainActivity extends AppCompatActivity {
     // Search
     private List<Integer> searchResults = new ArrayList<>();
     private boolean isSwipe = false;
+    private float startX = 0;
+    private float startY = 0;
+    private static final int TOUCH_SLOP = 20;
     private int currentSearchIndex = -1;
     private String searchTerm = "";
     
@@ -125,17 +128,25 @@ public class MainActivity extends AppCompatActivity {
         // Set up touch listeners for the main container and card view
         
         cardView.setOnTouchListener((v, event) -> {
-            gestureDetector.onTouchEvent(event);
-            
-            if (event.getAction() == MotionEvent.ACTION_UP && !isSwipe && !menuVisible) {
-                toggleAnswerVisibility();
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    startX = event.getX();
+                    startY = event.getY();
+                    break;
+                    
+                case MotionEvent.ACTION_UP:
+                    float endX = event.getX();
+                    float endY = event.getY();
+                    
+                    // Verifica se foi um toque simples (não swipe)
+                    if (Math.abs(endX - startX) < TOUCH_SLOP && 
+                        Math.abs(endY - startY) < TOUCH_SLOP && 
+                        !menuVisible) {
+                        toggleAnswerVisibility();
+                    }
+                    break;
             }
             return true;
-        });
-
-        textScrollView.setOnTouchListener((v, event) -> {
-            gestureDetector.onTouchEvent(event);
-            return false; // Permite que o evento passe para o pai
         });
         
         menuButton.setOnClickListener(v -> toggleMenu());
@@ -195,39 +206,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
-        private static final int SWIPE_THRESHOLD = 100;
-        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-    
         @Override
         public boolean onDown(MotionEvent e) {
-            isSwipe = false; // Reseta quando um novo toque começa
             return true;
         }
     
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            boolean result = false;
-            try {
-                float diffX = e2.getX() - e1.getX();
-                float diffY = e2.getY() - e1.getY();
-                
-                if (Math.abs(diffX) > Math.abs(diffY)) {
-                    if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                        isSwipe = true; // Marca que ocorreu um swipe
-                        if (diffX > 0) {
-                            // Swipe right - previous item
-                            safePrevItem();
-                        } else {
-                            // Swipe left - next item
-                            safeNextItem();
-                        }
-                        result = true;
-                    }
+            final int SWIPE_THRESHOLD = 100;
+            final int SWIPE_VELOCITY_THRESHOLD = 100;
+            
+            float diffX = e2.getX() - e1.getX();
+            if (Math.abs(diffX) > SWIPE_THRESHOLD && 
+                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                if (diffX > 0) {
+                    safePrevItem();
+                } else {
+                    safeNextItem();
                 }
-            } catch (Exception exception) {
-                exception.printStackTrace();
+                return true;
             }
-            return result;
+            return false;
         }
     }
 
