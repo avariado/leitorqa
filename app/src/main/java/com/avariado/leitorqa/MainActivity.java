@@ -1,6 +1,7 @@
 package com.avariado.leitorqa;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -16,6 +17,7 @@ import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -115,6 +117,13 @@ public class MainActivity extends AppCompatActivity {
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
         
+        // Configuração do input do cartão
+        currentCardInput.setFocusable(false);
+        currentCardInput.setFocusableInTouchMode(false);
+        currentCardInput.setCursorVisible(false);
+        
+        setupCardInputBehavior();
+
         cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -140,21 +149,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 return false;
-            }
-        });
-
-        currentCardInput.setOnClickListener(v -> {
-            currentCardInput.setFocusableInTouchMode(true);
-            currentCardInput.setFocusable(true);
-            currentCardInput.requestFocus();
-            currentCardInput.setCursorVisible(true); // Mostra cursor ao editar
-        });
-        
-        currentCardInput.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
-                validateAndUpdateCardNumber();
-                currentCardInput.setCursorVisible(false); // Esconde cursor novamente
-                currentCardInput.setFocusable(false); // Volta ao estado inicial
             }
         });
         
@@ -183,11 +177,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         
-        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
-            validateAndUpdateCardNumber();
-            return true;
-        });
-        
         searchInput.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -212,6 +201,48 @@ public class MainActivity extends AppCompatActivity {
         }
         updateDisplay();
         updateFontSize();
+    }
+
+    private void setupCardInputBehavior() {
+        currentCardInput.setOnClickListener(v -> enableEditing());
+        
+        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                finishEditing();
+                return true;
+            }
+            return false;
+        });
+        
+        cardView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (!menuVisible) {
+                    finishEditing();
+                    toggleAnswerVisibility();
+                }
+            }
+            gestureDetector.onTouchEvent(event);
+            return true;
+        });
+    }
+
+    private void enableEditing() {
+        currentCardInput.setFocusable(true);
+        currentCardInput.setFocusableInTouchMode(true);
+        currentCardInput.requestFocus();
+        currentCardInput.setCursorVisible(true);
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(currentCardInput, InputMethodManager.SHOW_IMPLICIT);
+    }
+
+    private void finishEditing() {
+        currentCardInput.clearFocus();
+        currentCardInput.setFocusable(false);
+        currentCardInput.setFocusableInTouchMode(false);
+        currentCardInput.setCursorVisible(false);
+        validateAndUpdateCardNumber();
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
 
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
