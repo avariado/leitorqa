@@ -14,6 +14,7 @@ import android.text.Spanned;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
 import android.view.GestureDetector;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -202,6 +203,44 @@ public class MainActivity extends AppCompatActivity {
         }
         updateDisplay();
         updateFontSize();
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        int action = event.getAction();
+        int keyCode = event.getKeyCode();
+        
+        // Verificar se é um emulador (pode ajustar esta verificação conforme necessário)
+        boolean isEmulator = android.os.Build.FINGERPRINT.startsWith("generic")
+                || android.os.Build.FINGERPRINT.startsWith("unknown")
+                || android.os.Build.MODEL.contains("google_sdk")
+                || android.os.Build.MODEL.contains("Emulator")
+                || android.os.Build.MODEL.contains("Android SDK built for x86")
+                || android.os.Build.MANUFACTURER.contains("Genymotion")
+                || (android.os.Build.BRAND.startsWith("generic") && android.os.Build.DEVICE.startsWith("generic"))
+                || "google_sdk".equals(android.os.Build.PRODUCT);
+        
+        if (isEmulator && action == KeyEvent.ACTION_DOWN) {
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_DPAD_LEFT:
+                    safePrevItem();
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                    safeNextItem();
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_UP:
+                    textScrollView.smoothScrollBy(0, -50); // Rolar para cima
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_DOWN:
+                    textScrollView.smoothScrollBy(0, 50); // Rolar para baixo
+                    return true;
+                case KeyEvent.KEYCODE_ENTER:
+                case KeyEvent.KEYCODE_SPACE:
+                    toggleAnswerVisibility();
+                    return true;
+            }
+        }
+        return super.dispatchKeyEvent(event);
     }
 
     private void setupCardInputBehavior() {
