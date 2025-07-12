@@ -123,18 +123,6 @@ public class MainActivity extends AppCompatActivity {
         Button searchNextButton = findViewById(R.id.search_next_button);
         
         // Set up touch listeners for the main container and card view
-        mainContainer.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                
-                // Handle simple tap to toggle answer visibility
-                if (event.getAction() == MotionEvent.ACTION_UP && !menuVisible && !items.isEmpty()) {
-                    toggleAnswerVisibility();
-                }
-                return true;
-            }
-        });
         
         cardView.setOnTouchListener((v, event) -> {
             gestureDetector.onTouchEvent(event);
@@ -150,15 +138,6 @@ public class MainActivity extends AppCompatActivity {
             return false; // Permite que o evento passe para o pai
         });
         
-        // Prevent scroll view from intercepting touches
-        textScrollView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return false; // Let the parent handle the touch
-            }
-        });
-    
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
         nextButton.setOnClickListener(v -> safeNextItem());
