@@ -12,7 +12,9 @@ import android.text.Html;
 import android.text.Spanned;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -23,6 +25,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.view.GestureDetectorCompat;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -62,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText searchInput;
     private TextView searchInfo;
     private TextView fontSizeText;
+    private RelativeLayout mainContentArea;
     
     // Data
     private List<QAItem> items = new ArrayList<>();
@@ -75,12 +79,16 @@ public class MainActivity extends AppCompatActivity {
     private List<Integer> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
     private String searchTerm = "";
+    
+    // Gestures
+    private GestureDetectorCompat gestureDetector;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
+        // Initialize views
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
         currentCardInput = findViewById(R.id.current_card_input);
@@ -90,6 +98,10 @@ public class MainActivity extends AppCompatActivity {
         searchInput = findViewById(R.id.search_input);
         searchInfo = findViewById(R.id.search_info);
         fontSizeText = findViewById(R.id.current_font_size);
+        mainContentArea = findViewById(R.id.main_content_area);
+        
+        // Initialize gesture detector
+        gestureDetector = new GestureDetectorCompat(this, new GestureListener());
         
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
@@ -104,10 +116,17 @@ public class MainActivity extends AppCompatActivity {
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
         
-        RelativeLayout mainContentArea = findViewById(R.id.main_content_area);
-        mainContentArea.setOnClickListener(v -> {
-            if (isQAMode && !menuVisible && !items.isEmpty()) {
-                toggleAnswerVisibility();
+        // Set up touch listener for the main content area
+        mainContentArea.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                
+                // Handle simple tap to toggle answer visibility
+                if (event.getAction() == MotionEvent.ACTION_UP && !menuVisible && !items.isEmpty()) {
+                    toggleAnswerVisibility();
+                }
+                return true;
             }
         });
     
@@ -165,6 +184,41 @@ public class MainActivity extends AppCompatActivity {
         }
         updateDisplay();
         updateFontSize();
+    }
+
+    private class GestureListener extends GestureDetector.SimpleOnGestureListener {
+        private static final int SWIPE_THRESHOLD = 100;
+        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
+
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            boolean result = false;
+            try {
+                float diffX = e2.getX() - e1.getX();
+                float diffY = e2.getY() - e1.getY();
+                
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                        if (diffX > 0) {
+                            // Swipe right - previous item
+                            safePrevItem();
+                        } else {
+                            // Swipe left - next item
+                            safeNextItem();
+                        }
+                        result = true;
+                    }
+                }
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
+            return result;
+        }
     }
 
     private void safePrevItem() {
