@@ -127,26 +127,30 @@ public class MainActivity extends AppCompatActivity {
         
         // Set up touch listeners for the main container and card view
         
-        cardView.setOnTouchListener((v, event) -> {
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    startX = event.getX();
-                    startY = event.getY();
-                    break;
-                    
-                case MotionEvent.ACTION_UP:
-                    float endX = event.getX();
-                    float endY = event.getY();
-                    
-                    // Verifica se foi um toque simples (não swipe)
-                    if (Math.abs(endX - startX) < TOUCH_SLOP && 
-                        Math.abs(endY - startY) < TOUCH_SLOP && 
-                        !menuVisible) {
-                        toggleAnswerVisibility();
+        cardView.setOnTouchListener(new View.OnTouchListener() {
+            private final GestureDetector gestureDetector = new GestureDetector(MainActivity.this, new GestureDetector.SimpleOnGestureListener() {
+                @Override
+                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                    if (Math.abs(e1.getX() - e2.getX()) > 100) { // SWIPE
+                        if (e1.getX() > e2.getX()) { // Esquerda
+                            safeNextItem();
+                        } else { // Direita
+                            safePrevItem();
+                        }
+                        return true;
                     }
-                    break;
+                    return false;
+                }
+            });
+        
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                if (event.getAction() == MotionEvent.ACTION_UP) { // TOQUE SIMPLES
+                    toggleAnswerVisibility();
+                }
+                return true;
             }
-            return true;
         });
         
         menuButton.setOnClickListener(v -> toggleMenu());
