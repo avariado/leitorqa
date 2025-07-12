@@ -86,18 +86,14 @@ public class MainActivity extends AppCompatActivity {
     private static final int TOUCH_SLOP = 20;
     private int currentSearchIndex = -1;
     private String searchTerm = "";
-
-    private final GestureDetectorCompat gestureDetector;
-
-    public MainActivity() {
-    this.gestureDetector = new GestureDetectorCompat(this, new GestureListener());
-    }
+    
+    // Gestures
+    private GestureDetectorCompat gestureDetector;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        gestureDetector = new GestureDetectorCompat(this, gestureListener);
         
         // Initialize views
         questionTextView = findViewById(R.id.question_text);
@@ -131,26 +127,31 @@ public class MainActivity extends AppCompatActivity {
         
         // Set up touch listeners for the main container and card view
         
-        cardView.setOnTouchListener((v, event) -> {
-            gestureDetector.onTouchEvent(event); // 👈 Processa swipes
-            
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                // Toque simples (apenas se não foi swipe)
-                if (!gestureDetector.isInProgress() && !menuVisible) {
+        cardView.setOnTouchListener(new View.OnTouchListener() {
+            private final GestureDetector gestureDetector = new GestureDetector(MainActivity.this, new GestureDetector.SimpleOnGestureListener() {
+                @Override
+                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                    if (Math.abs(e1.getX() - e2.getX()) > 100) { // SWIPE
+                        if (e1.getX() > e2.getX()) { // Esquerda
+                            safeNextItem();
+                        } else { // Direita
+                            safePrevItem();
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+            });
+        
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                if (event.getAction() == MotionEvent.ACTION_UP) { // TOQUE SIMPLES
                     toggleAnswerVisibility();
                 }
+                return true;
             }
-            return true;
         });
-        
-        textScrollView.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (!menuVisible) toggleAnswerVisibility(); // TOQUE no texto
-            }
-            return false; // Permite rolagem
-        });
-        
-        new GestureDetectorCompat(this, gestureListener); // Inicializa detector de swipe
         
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
@@ -209,22 +210,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
-        private static final int SWIPE_THRESHOLD = 100;
-        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-    
         @Override
         public boolean onDown(MotionEvent e) {
-            return true; // 🔥 Crucial para funcionar
+            return true;
         }
     
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            final int SWIPE_THRESHOLD = 100;
+            final int SWIPE_VELOCITY_THRESHOLD = 100;
+            
             float diffX = e2.getX() - e1.getX();
-            if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+            if (Math.abs(diffX) > SWIPE_THRESHOLD && 
+                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                 if (diffX > 0) {
-                    safePrevItem(); // Swipe para direita
+                    safePrevItem();
                 } else {
-                    safeNextItem(); // Swipe para esquerda
+                    safeNextItem();
                 }
                 return true;
             }
