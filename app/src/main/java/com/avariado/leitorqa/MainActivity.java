@@ -403,7 +403,7 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode == RESULT_OK && data != null) {
             Uri uri = data.getData();
             try {
-                String fileContent = readTextFile(uri);
+                String fileContent = readTextFileWithEncodingDetection(uri);
                 
                 if (requestCode == PICK_TXT_FILE) {
                     parseQAContent(fileContent);
@@ -420,27 +420,37 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private String readTextFile(Uri uri) throws IOException {
+    private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
         InputStream inputStream = getContentResolver().openInputStream(uri);
         BufferedInputStream bis = new BufferedInputStream(inputStream);
         bis.mark(100000); // Marca para poder resetar depois
-        
+
         // Primeiro tenta UTF-8
         try {
-            return readStream(bis, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            try {
-                bis.reset(); // Volta ao início do stream
-                // Tenta ISO-8859-1 (Latin-1) se UTF-8 falhar
-                return readStream(bis, StandardCharsets.ISO_8859_1);
-            } catch (Exception e2) {
-                bis.reset();
-                // Tenta Windows-1252 como último recurso
-                return readStream(bis, Charset.forName("Windows-1252"));
+            String content = readStream(bis, StandardCharsets.UTF_8);
+            if (!hasInvalidUTF8Characters(content)) {
+                return content;
             }
+        } catch (Exception e) {
+            // Ignora e tenta próxima codificação
+        }
+
+        try {
+            bis.reset(); // Volta ao início do stream
+            // Tenta Windows-1252 (ANSI)
+            return readStream(bis, Charset.forName("Windows-1252"));
+        } catch (Exception e) {
+            bis.reset();
+            // Tenta ISO-8859-1 como último recurso
+            return readStream(bis, StandardCharsets.ISO_8859_1);
         } finally {
             bis.close();
         }
+    }
+
+    private boolean hasInvalidUTF8Characters(String content) {
+        // Verifica se há caracteres de substituição do UTF-8 (�)
+        return content.contains("�");
     }
 
     private String readStream(InputStream inputStream, Charset charset) throws IOException {
