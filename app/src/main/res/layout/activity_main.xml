@@ -19,8 +19,8 @@
 
         <Button
             android:id="@+id/menu_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="48dp"  <!-- Largura fixa -->
+            android:layout_height="48dp"
             android:background="@null"
             android:text="☰"
             android:textColor="#fff"
@@ -29,12 +29,17 @@
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_weight="1"  <!-- Ocupa todo espaço disponível -->
             android:gravity="center"
             android:text="Leitor Q&amp;A"
             android:textColor="#fff"
             android:textSize="20sp"
             android:textStyle="bold" />
+
+        <View
+            android:layout_width="48dp"  <!-- Mesma largura do botão -->
+            android:layout_height="1dp"
+            android:visibility="invisible" />
     </LinearLayout>
 
     <!-- Conteúdo Principal -->
