@@ -29,10 +29,18 @@ import java.util.Collections;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    // Constantes
-    private static final int PICK_TXT_FILE = 1;
-    private static final int CREATE_FILE = 2;
+    // Constantes para SharedPreferences
     private static final String PREFS_NAME = "AppPrefs";
+    private static final String ITEMS_KEY = "saved_items";
+    private static final String ORIGINAL_ITEMS_KEY = "original_items";
+    private static final String CURRENT_INDEX_KEY = "current_index";
+    private static final String FONT_SIZE_KEY = "font_size";
+
+    // Constantes para Intents
+    private static final int PICK_TXT_FILE = 1001;
+    private static final int CREATE_FILE = 1002;
+    
+    // Constante para swipe
     private static final int MIN_SWIPE_DISTANCE = 150;
 
     // Views
@@ -86,7 +94,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        // Configuração do touch listener para swipes e toques
         cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -102,7 +109,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Configuração dos botões
         findViewById(R.id.menu_button).setOnClickListener(v -> toggleMenu());
         findViewById(R.id.prev_button).setOnClickListener(v -> prevItem());
         findViewById(R.id.next_button).setOnClickListener(v -> nextItem());
