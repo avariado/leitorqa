@@ -12,8 +12,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -30,10 +31,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
+
+    // Constantes
     private static final int PICK_TXT_FILE = 1;
     private static final int PICK_PDF_FILE = 2;
     private static final int CREATE_FILE = 3;
     
+    // Preferências
     private static final String PREFS_NAME = "AppPrefs";
     private static final String ITEMS_KEY = "items";
     private static final String ORIGINAL_ITEMS_KEY = "originalItems";
@@ -41,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String IS_QA_MODE_KEY = "isQAMode";
     private static final String FONT_SIZE_KEY = "fontSize";
 
+    // Views
     private TextView questionTextView;
     private TextView answerTextView;
     private EditText currentCardInput;
@@ -51,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView searchInfo;
     private TextView fontSizeText;
     
+    // Dados
     private List<QAItem> items = new ArrayList<>();
     private List<QAItem> originalItems = new ArrayList<>();
     private int currentIndex = 0;
@@ -58,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean menuVisible = false;
     private int baseFontSize = 20;
     
+    // Busca
     private List<Integer> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
     private String searchTerm = "";
@@ -67,9 +74,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
+        // Inicializar views
         initViews();
+        
+        // Configurar listeners
         setupClickListeners();
         
+        // Carregar dados
         loadState();
         if (items.isEmpty()) {
             loadSampleData();
@@ -91,13 +102,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupClickListeners() {
-        FrameLayout clickableArea = findViewById(R.id.clickable_area);
-        clickableArea.setOnClickListener(v -> {
+        // Área clicável principal (FUNCIONA EM QUALQUER PONTO DO CARD)
+        RelativeLayout fullClickArea = findViewById(R.id.full_click_area);
+        fullClickArea.setOnClickListener(v -> {
             if (isQAMode && !menuVisible && !items.isEmpty()) {
                 toggleAnswerVisibility();
             }
         });
 
+        // Botões
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
         Button nextButton = findViewById(R.id.next_button);
