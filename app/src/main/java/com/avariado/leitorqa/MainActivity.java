@@ -210,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
         int action = event.getAction();
         int keyCode = event.getKeyCode();
         
-        // Verificar se é um emulador (pode ajustar esta verificação conforme necessário)
+        // Verificar se é um emulador
         boolean isEmulator = android.os.Build.FINGERPRINT.startsWith("generic")
                 || android.os.Build.FINGERPRINT.startsWith("unknown")
                 || android.os.Build.MODEL.contains("google_sdk")
@@ -235,9 +235,11 @@ public class MainActivity extends AppCompatActivity {
                     textScrollView.smoothScrollBy(0, 50); // Rolar para baixo
                     return true;
                 case KeyEvent.KEYCODE_ENTER:
-                case KeyEvent.KEYCODE_SPACE:
                     toggleAnswerVisibility();
                     return true;
+                case KeyEvent.KEYCODE_SPACE:
+                    // O espaço pode continuar abrindo o menu como está atualmente
+                    return false; // Deixa o sistema tratar normalmente
             }
         }
         return super.dispatchKeyEvent(event);
