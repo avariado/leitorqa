@@ -242,9 +242,6 @@ public class MainActivity extends AppCompatActivity {
             }
             return super.onKeyDown(keyCode, event);
         }
-    
-        // ... (todo o resto do código permanece exatamente igual)
-    }
 
     private void setupCardInputBehavior() {
         currentCardInput.setOnClickListener(v -> enableEditing());
