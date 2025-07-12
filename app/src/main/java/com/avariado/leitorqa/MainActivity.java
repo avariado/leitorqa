@@ -31,13 +31,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
-
-    // Constantes
     private static final int PICK_TXT_FILE = 1;
-    private static final int PICK_PDF_FILE = 2;
-    private static final int CREATE_FILE = 3;
+    private static final int CREATE_FILE = 2;
     
-    // Preferências
     private static final String PREFS_NAME = "AppPrefs";
     private static final String ITEMS_KEY = "items";
     private static final String ORIGINAL_ITEMS_KEY = "originalItems";
@@ -56,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView searchInfo;
     private TextView fontSizeText;
     
-    // Dados
+    // Data
     private List<QAItem> items = new ArrayList<>();
     private List<QAItem> originalItems = new ArrayList<>();
     private int currentIndex = 0;
@@ -64,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean menuVisible = false;
     private int baseFontSize = 20;
     
-    // Busca
+    // Search
     private List<Integer> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
     private String searchTerm = "";
@@ -74,22 +70,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
-        // Inicializar views
-        initViews();
-        
-        // Configurar listeners
-        setupClickListeners();
-        
-        // Carregar dados
-        loadState();
-        if (items.isEmpty()) {
-            loadSampleData();
-        }
-        updateDisplay();
-        updateFontSize();
-    }
-
-    private void initViews() {
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
         currentCardInput = findViewById(R.id.current_card_input);
@@ -99,18 +79,7 @@ public class MainActivity extends AppCompatActivity {
         searchInput = findViewById(R.id.search_input);
         searchInfo = findViewById(R.id.search_info);
         fontSizeText = findViewById(R.id.current_font_size);
-    }
-
-    private void setupClickListeners() {
-        // Área clicável principal (FUNCIONA EM QUALQUER PONTO DO CARD)
-        RelativeLayout fullClickArea = findViewById(R.id.full_click_area);
-        fullClickArea.setOnClickListener(v -> {
-            if (isQAMode && !menuVisible && !items.isEmpty()) {
-                toggleAnswerVisibility();
-            }
-        });
-
-        // Botões
+        
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
         Button nextButton = findViewById(R.id.next_button);
@@ -123,11 +92,18 @@ public class MainActivity extends AppCompatActivity {
         Button decreaseFontButton = findViewById(R.id.decrease_font_button);
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
-
+        
+        RelativeLayout mainContentArea = findViewById(R.id.main_content_area);
+        mainContentArea.setOnClickListener(v -> {
+            if (isQAMode && !menuVisible && !items.isEmpty()) {
+                toggleAnswerVisibility();
+            }
+        });
+    
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
         nextButton.setOnClickListener(v -> safeNextItem());
-        importButton.setOnClickListener(v -> showFileImportDialog());
+        importButton.setOnClickListener(v -> importTextFile());
         exportButton.setOnClickListener(v -> showExportDialog());
         editButton.setOnClickListener(v -> showEditDialog());
         shuffleButton.setOnClickListener(v -> shuffleItems());
@@ -138,27 +114,46 @@ public class MainActivity extends AppCompatActivity {
         searchNextButton.setOnClickListener(v -> goToNextSearchResult());
         
         overlay.setOnClickListener(v -> {
-            if (menuVisible) toggleMenu();
+            if (menuVisible) {
+                toggleMenu();
+            }
         });
-
+        
         currentCardInput.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) validateAndUpdateCardNumber();
+            if (!hasFocus) {
+                validateAndUpdateCardNumber();
+            }
         });
         
         currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
             validateAndUpdateCardNumber();
             return true;
         });
-
+        
         searchInput.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
                 searchTerm = s.toString().trim();
-                if (searchTerm.isEmpty()) clearSearch();
-                else performSearch();
+                if (searchTerm.isEmpty()) {
+                    clearSearch();
+                } else {
+                    performSearch();
+                }
             }
-            @Override public void afterTextChanged(Editable s) {}
+            
+            @Override
+            public void afterTextChanged(Editable s) {}
         });
+        
+        loadState();
+        if (items.isEmpty()) {
+            loadSampleData();
+        }
+        updateDisplay();
+        updateFontSize();
     }
 
     private void safePrevItem() {
@@ -211,9 +206,11 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void toggleAnswerVisibility() {
-        answerTextView.setVisibility(
-            answerTextView.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE
-        );
+        if (answerTextView.getVisibility() == View.VISIBLE) {
+            answerTextView.setVisibility(View.GONE);
+        } else {
+            answerTextView.setVisibility(View.VISIBLE);
+        }
     }
     
     private void updateDisplay() {
@@ -226,6 +223,7 @@ public class MainActivity extends AppCompatActivity {
         }
         
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
+        
         QAItem currentItem = items.get(currentIndex);
         
         if (isQAMode) {
@@ -258,6 +256,7 @@ public class MainActivity extends AppCompatActivity {
     
     private void shuffleItems() {
         if (items.isEmpty()) return;
+        
         Collections.shuffle(items);
         currentIndex = 0;
         updateDisplay();
@@ -326,7 +325,9 @@ public class MainActivity extends AppCompatActivity {
             String[] parts = line.split(separator);
             
             if (parts.length >= 2) {
-                items.add(new QAItem(parts[0].trim(), parts[1].trim()));
+                String question = parts[0].trim();
+                String answer = parts[1].trim();
+                items.add(new QAItem(question, answer));
             } else {
                 items.add(new QAItem(line.trim()));
             }
@@ -357,15 +358,16 @@ public class MainActivity extends AppCompatActivity {
             String sentence = sentences.get(i);
             
             if (currentChunk.length() + sentence.length() < 75 && i < sentences.size() - 1) {
-                if (currentChunk.length() > 0) currentChunk.append(" ");
+                if (currentChunk.length() > 0) {
+                    currentChunk.append(" ");
+                }
                 currentChunk.append(sentence);
                 continue;
             }
             
             if (currentChunk.length() > 0 || sentence.length() >= 75) {
-                processedItems.add(new QAItem(
-                    currentChunk.length() > 0 ? currentChunk + " " + sentence : sentence
-                ));
+                processedItems.add(new QAItem(currentChunk.length() > 0 ? 
+                    currentChunk.toString() + " " + sentence : sentence));
                 currentChunk = new StringBuilder();
             } else if (i == sentences.size() - 1 && !processedItems.isEmpty()) {
                 QAItem lastItem = processedItems.get(processedItems.size() - 1);
@@ -381,32 +383,12 @@ public class MainActivity extends AppCompatActivity {
         isQAMode = false;
     }
     
-    private void showFileImportDialog() {
-        toggleMenu();
-        
-        new AlertDialog.Builder(this)
-            .setTitle("Importar Ficheiro")
-            .setItems(new String[]{"Importar TXT", "Importar PDF", "Cancelar"}, (dialog, which) -> {
-                switch (which) {
-                    case 0: importTextFile(); break;
-                    case 1: importPdfFile(); break;
-                }
-            })
-            .show();
-    }
-    
     private void importTextFile() {
+        toggleMenu();
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("text/plain");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         startActivityForResult(intent, PICK_TXT_FILE);
-    }
-    
-    private void importPdfFile() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("application/pdf");
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        startActivityForResult(intent, PICK_PDF_FILE);
     }
     
     @Override
@@ -414,18 +396,22 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         
         if (resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getData();
             try {
-                InputStream is = getContentResolver().openInputStream(data.getData());
-                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-                StringBuilder sb = new StringBuilder();
+                InputStream inputStream = getContentResolver().openInputStream(uri);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+                StringBuilder stringBuilder = new StringBuilder();
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    sb.append(line).append("\n");
+                    stringBuilder.append(line).append("\n");
                 }
                 reader.close();
                 
-                if (requestCode == PICK_TXT_FILE) parseQAContent(sb.toString());
-                else if (requestCode == PICK_PDF_FILE) parseTextContent(sb.toString());
+                if (requestCode == PICK_TXT_FILE) {
+                    parseQAContent(stringBuilder.toString());
+                } else if (requestCode == CREATE_FILE) {
+                    exportFile(uri);
+                }
                 
                 updateDisplay();
                 saveState();
@@ -439,36 +425,63 @@ public class MainActivity extends AppCompatActivity {
     private void showExportDialog() {
         toggleMenu();
         
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.export_dialog, null);
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.export_dialog, null);
         EditText filenameInput = dialogView.findViewById(R.id.export_filename);
         filenameInput.setText(isQAMode ? "perguntas_respostas.txt" : "documento.txt");
         
-        new AlertDialog.Builder(this)
-            .setView(dialogView)
-            .setTitle("Exportar Ficheiro")
-            .setPositiveButton("Exportar", (dialog, which) -> {
-                String filename = filenameInput.getText().toString().trim();
-                if (filename.isEmpty()) {
-                    filename = isQAMode ? "perguntas_respostas.txt" : "documento.txt";
-                }
-                if (!filename.toLowerCase().endsWith(".txt")) {
-                    filename += ".txt";
-                }
-                
-                Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("text/plain");
-                intent.putExtra(Intent.EXTRA_TITLE, filename);
-                startActivityForResult(intent, CREATE_FILE);
-            })
-            .setNegativeButton("Cancelar", null)
-            .show();
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        builder.setTitle("Exportar Ficheiro");
+        builder.setPositiveButton("Exportar", (dialog, which) -> {
+            String filename = filenameInput.getText().toString().trim();
+            if (filename.isEmpty()) {
+                filename = isQAMode ? "perguntas_respostas.txt" : "documento.txt";
+            }
+            if (!filename.toLowerCase().endsWith(".txt")) {
+                filename += ".txt";
+            }
+            
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("text/plain");
+            intent.putExtra(Intent.EXTRA_TITLE, filename);
+            startActivityForResult(intent, CREATE_FILE);
+        });
+        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+    
+    private void exportFile(Uri uri) {
+        if (items.isEmpty()) return;
+        
+        StringBuilder content = new StringBuilder();
+        if (isQAMode) {
+            for (QAItem item : items) {
+                content.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
+            }
+        } else {
+            for (QAItem item : items) {
+                content.append(item.getText()).append("\n");
+            }
+        }
+        
+        try {
+            OutputStream fos = getContentResolver().openOutputStream(uri);
+            fos.write(content.toString().getBytes());
+            fos.close();
+            
+            Toast.makeText(this, "Ficheiro exportado com sucesso!", Toast.LENGTH_LONG).show();
+        } catch (IOException e) {
+            Toast.makeText(this, "Erro ao exportar ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
     
     private void showEditDialog() {
         toggleMenu();
         
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.edit_dialog, null);
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.edit_dialog, null);
         EditText contentEditor = dialogView.findViewById(R.id.content_editor);
         
         StringBuilder content = new StringBuilder();
@@ -483,29 +496,33 @@ public class MainActivity extends AppCompatActivity {
         }
         contentEditor.setText(content.toString());
         
-        new AlertDialog.Builder(this)
-            .setView(dialogView)
-            .setTitle("Editar Conteúdo")
-            .setPositiveButton("Guardar", (dialog, which) -> {
-                String text = contentEditor.getText().toString();
-                if (text.trim().isEmpty()) {
-                    Toast.makeText(this, "O conteúdo não pode estar vazio!", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                
-                if (text.contains("\t") || text.contains(";;")) {
-                    parseQAContent(text);
-                } else if (checkAlternatingLinesFormat(text)) {
-                    parseAlternatingLinesContent(text);
-                } else {
-                    parseTextContent(text);
-                }
-                
-                updateDisplay();
-                saveState();
-            })
-            .setNegativeButton("Cancelar", null)
-            .show();
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        builder.setTitle("Editar Conteúdo");
+        builder.setPositiveButton("Guardar", (dialog, which) -> {
+            String text = contentEditor.getText().toString();
+            if (text.trim().isEmpty()) {
+                Toast.makeText(this, "O conteúdo não pode estar vazio!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            boolean hasTabs = text.contains("\t");
+            boolean hasDoubleSemicolon = text.contains(";;");
+            boolean isAlternatingLines = checkAlternatingLinesFormat(text);
+            
+            if (hasTabs || hasDoubleSemicolon) {
+                parseQAContent(text);
+            } else if (isAlternatingLines) {
+                parseAlternatingLinesContent(text);
+            } else {
+                parseTextContent(text);
+            }
+            
+            updateDisplay();
+            saveState();
+        });
+        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
+        builder.show();
     }
     
     private boolean checkAlternatingLinesFormat(String text) {
@@ -521,6 +538,7 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         }
+        
         return true;
     }
     
@@ -534,7 +552,9 @@ public class MainActivity extends AppCompatActivity {
         }
         
         for (int i = 0; i < lines.length - 1; i += 2) {
-            items.add(new QAItem(lines[i].trim(), lines[i + 1].trim()));
+            String question = lines[i].trim();
+            String answer = lines[i + 1].trim();
+            items.add(new QAItem(question, answer));
         }
         
         originalItems = new ArrayList<>(items);
@@ -550,6 +570,7 @@ public class MainActivity extends AppCompatActivity {
         }
         
         searchResults.clear();
+        
         for (int i = 0; i < items.size(); i++) {
             QAItem item = items.get(i);
             String textToSearch = isQAMode ? 
@@ -568,11 +589,13 @@ public class MainActivity extends AppCompatActivity {
             currentIndex = searchResults.get(currentSearchIndex);
             updateSearchInfo();
         }
+        
         updateDisplay();
     }
     
     private void goToPrevSearchResult() {
         if (searchResults.isEmpty()) return;
+        
         currentSearchIndex = (currentSearchIndex - 1 + searchResults.size()) % searchResults.size();
         currentIndex = searchResults.get(currentSearchIndex);
         updateDisplay();
@@ -581,6 +604,7 @@ public class MainActivity extends AppCompatActivity {
     
     private void goToNextSearchResult() {
         if (searchResults.isEmpty()) return;
+        
         currentSearchIndex = (currentSearchIndex + 1) % searchResults.size();
         currentIndex = searchResults.get(currentSearchIndex);
         updateDisplay();
@@ -588,8 +612,11 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void updateSearchInfo() {
-        searchInfo.setText(searchResults.isEmpty() ? "" : 
-            "Resultado " + (currentSearchIndex + 1) + " de " + searchResults.size());
+        if (searchResults.isEmpty()) {
+            searchInfo.setText("");
+        } else {
+            searchInfo.setText("Resultado " + (currentSearchIndex + 1) + " de " + searchResults.size());
+        }
     }
     
     private void clearSearch() {
@@ -601,19 +628,26 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void saveState() {
-        SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
         
         StringBuilder itemsStr = new StringBuilder();
         for (QAItem item : items) {
-            itemsStr.append(item.isQA() ? 
-                item.getQuestion() + "\t" + item.getAnswer() : item.getText()).append("\n");
+            if (item.isQA()) {
+                itemsStr.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
+            } else {
+                itemsStr.append(item.getText()).append("\n");
+            }
         }
         editor.putString(ITEMS_KEY, itemsStr.toString());
         
         StringBuilder originalItemsStr = new StringBuilder();
         for (QAItem item : originalItems) {
-            originalItemsStr.append(item.isQA() ? 
-                item.getQuestion() + "\t" + item.getAnswer() : item.getText()).append("\n");
+            if (item.isQA()) {
+                originalItemsStr.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
+            } else {
+                originalItemsStr.append(item.getText()).append("\n");
+            }
         }
         editor.putString(ORIGINAL_ITEMS_KEY, originalItemsStr.toString());
         
@@ -627,21 +661,26 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         
         String itemsStr = prefs.getString(ITEMS_KEY, "");
-        if (!itemsStr.isEmpty()) parseQAContent(itemsStr);
-        
         String originalItemsStr = prefs.getString(ORIGINAL_ITEMS_KEY, "");
+        
+        if (!itemsStr.isEmpty()) {
+            parseQAContent(itemsStr);
+        }
+        
         if (!originalItemsStr.isEmpty()) {
-            List<QAItem> loadedItems = new ArrayList<>();
-            for (String line : originalItemsStr.split("\n")) {
+            List<QAItem> loadedOriginalItems = new ArrayList<>();
+            String[] lines = originalItemsStr.split("\n");
+            for (String line : lines) {
                 if (line.trim().isEmpty()) continue;
+                
                 String[] parts = line.split("\t");
                 if (parts.length >= 2) {
-                    loadedItems.add(new QAItem(parts[0].trim(), parts[1].trim()));
+                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim()));
                 } else {
-                    loadedItems.add(new QAItem(line.trim()));
+                    loadedOriginalItems.add(new QAItem(line.trim()));
                 }
             }
-            originalItems = loadedItems;
+            originalItems = loadedOriginalItems;
         }
         
         currentIndex = prefs.getInt(CURRENT_INDEX_KEY, 0);
@@ -651,8 +690,11 @@ public class MainActivity extends AppCompatActivity {
     
     @Override
     public void onBackPressed() {
-        if (menuVisible) toggleMenu();
-        else super.onBackPressed();
+        if (menuVisible) {
+            toggleMenu();
+        } else {
+            super.onBackPressed();
+        }
     }
     
     private static class QAItem {
@@ -660,16 +702,33 @@ public class MainActivity extends AppCompatActivity {
         private String answer;
         private String text;
         
-        public QAItem(String text) { this.text = text; }
+        public QAItem(String text) {
+            this.text = text;
+        }
+        
         public QAItem(String question, String answer) {
             this.question = question;
             this.answer = answer;
         }
         
-        public String getQuestion() { return question; }
-        public String getAnswer() { return answer; }
-        public String getText() { return text; }
-        public void setText(String text) { this.text = text; }
-        public boolean isQA() { return question != null && answer != null; }
+        public String getQuestion() {
+            return question;
+        }
+        
+        public String getAnswer() {
+            return answer;
+        }
+        
+        public String getText() {
+            return text;
+        }
+        
+        public void setText(String text) {
+            this.text = text;
+        }
+        
+        public boolean isQA() {
+            return question != null && answer != null;
+        }
     }
 }
