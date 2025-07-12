@@ -215,8 +215,8 @@ public class MainActivity extends AppCompatActivity {
             }
             return super.onKeyDown(keyCode, event);
         }
-        
-        // Comportamento normal quando não está editando
+    
+        // Comportamento quando não está editando
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 safePrevItem();
@@ -227,10 +227,39 @@ public class MainActivity extends AppCompatActivity {
             case KeyEvent.KEYCODE_ENTER:
             case KeyEvent.KEYCODE_NUMPAD_ENTER:
                 toggleAnswerVisibility();
-                return true;
+                return true; // Consome o evento
+            case KeyEvent.KEYCODE_SPACE:
+                toggleMenu();
+                return true; // Consome o evento
             default:
                 return super.onKeyDown(keyCode, event);
         }
+    }
+    
+    // Adicione também este método para garantir que o evento seja tratado antes
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            int keyCode = event.getKeyCode();
+            
+            if (currentCardInput.hasFocus() && 
+               (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                finishEditing();
+                return true;
+            }
+            
+            if (!currentCardInput.hasFocus()) {
+                if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                    toggleAnswerVisibility();
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_SPACE) {
+                    toggleMenu();
+                    return true;
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event);
     }
 
     private void setupCardInputBehavior() {
