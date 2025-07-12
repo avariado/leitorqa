@@ -17,6 +17,7 @@ import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
@@ -469,21 +470,18 @@ public class MainActivity extends AppCompatActivity {
     private void parseTextContent(String text) {
         if (text == null) return;
         
-        // Substitui quebras de linha por espaços e normaliza espaços múltiplos
-        String normalizedText = text.replaceAll("[\\r\\n]+", " ")
-                                  .replaceAll("\\s+", " ")
-                                  .trim();
+        String singleLine = text.replaceAll("[\\r\\n]+", " ")
+                              .replaceAll("\\s+", " ")
+                              .trim();
         
-        // Divide em frases usando pontuação como delimitador
         Pattern pattern = Pattern.compile("[^.!?]+[.!?]+");
-        Matcher matcher = pattern.matcher(normalizedText);
+        Matcher matcher = pattern.matcher(singleLine);
         List<String> sentences = new ArrayList<>();
         
         while (matcher.find()) {
             sentences.add(matcher.group().trim());
         }
         
-        // Processa as frases para garantir mínimo de 75 caracteres
         List<QAItem> processedItems = new ArrayList<>();
         StringBuilder currentSentence = new StringBuilder();
         
@@ -498,7 +496,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         
-        // Adiciona a última frase se não estiver vazia
         if (currentSentence.length() > 0) {
             processedItems.add(new QAItem(currentSentence.toString()));
         }
@@ -527,7 +524,6 @@ public class MainActivity extends AppCompatActivity {
                 String fileContent = readTextFileWithEncodingDetection(uri);
                 
                 if (requestCode == PICK_TXT_FILE) {
-                    // Verifica se é formato QA (contém tabs ou ;;)
                     if (fileContent.contains("\t") || fileContent.contains(";;")) {
                         parseQAContent(fileContent);
                     } else {
@@ -557,24 +553,19 @@ public class MainActivity extends AppCompatActivity {
         byte[] fileContentBytes = byteArrayOutputStream.toByteArray();
         inputStream.close();
 
-        // Tenta UTF-8 primeiro
         try {
             String content = new String(fileContentBytes, StandardCharsets.UTF_8);
             if (!hasInvalidUTF8Characters(content)) {
                 return content;
             }
         } catch (Exception e) {
-            // Continua para próxima tentativa
         }
 
-        // Tenta Windows-1252 (ANSI)
         try {
             return new String(fileContentBytes, "Windows-1252");
         } catch (Exception e) {
-            // Continua para próxima tentativa
         }
 
-        // Tenta ISO-8859-1 como último recurso
         return new String(fileContentBytes, StandardCharsets.ISO_8859_1);
     }
 
