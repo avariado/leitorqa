@@ -80,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
     
     // Search
     private List<Integer> searchResults = new ArrayList<>();
+    private boolean isSwipe = false;
     private int currentSearchIndex = -1;
     private String searchTerm = "";
     
@@ -142,7 +143,11 @@ public class MainActivity extends AppCompatActivity {
                 
                 // Handle simple tap to toggle answer visibility
                 if (event.getAction() == MotionEvent.ACTION_UP && !menuVisible && !items.isEmpty()) {
-                    toggleAnswerVisibility();
+                    // Verifica se foi um toque simples (não parte de um swipe)
+                    if (!isSwipe) {
+                        toggleAnswerVisibility();
+                    }
+                    isSwipe = false; // Reseta o flag de swipe
                 }
                 return true;
             }
@@ -216,12 +221,13 @@ public class MainActivity extends AppCompatActivity {
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-
+    
         @Override
         public boolean onDown(MotionEvent e) {
+            isSwipe = false; // Reseta quando um novo toque começa
             return true;
         }
-
+    
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             boolean result = false;
@@ -231,6 +237,7 @@ public class MainActivity extends AppCompatActivity {
                 
                 if (Math.abs(diffX) > Math.abs(diffY)) {
                     if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                        isSwipe = true; // Marca que ocorreu um swipe
                         if (diffX > 0) {
                             // Swipe right - previous item
                             safePrevItem();
