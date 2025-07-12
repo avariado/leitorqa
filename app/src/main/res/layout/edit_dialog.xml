@@ -6,9 +6,9 @@
     android:padding="16dp">
 
     <EditText
-        android:id="@+id/export_filename"
+        android:id="@+id/content_editor"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Nome do ficheiro"
-        android:inputType="text"/>
+        android:layout_height="400dp"
+        android:gravity="top"
+        android:inputType="textMultiLine"/>
 </LinearLayout>
