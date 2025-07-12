@@ -30,7 +30,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="Leitor QnA"
+            android:text="Leitor QA"
             android:textColor="#fff"
             android:textSize="20sp"
             android:textStyle="bold" />
