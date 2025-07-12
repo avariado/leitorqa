@@ -1,4 +1,3 @@
-java
 package com.avariado.leitorqa;
 
 import android.app.AlertDialog;
