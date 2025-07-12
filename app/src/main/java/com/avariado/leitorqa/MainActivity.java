@@ -73,6 +73,9 @@ public class MainActivity extends AppCompatActivity {
     private int currentSearchIndex = -1;
     private String searchTerm = "";
 
+    private float x1, x2;
+    private static final int MIN_DISTANCE = 150;  // Distância mínima para swipe
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -94,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
         currentCardInput.clearFocus();
 
         // Setup touch and gesture handlers
-        setupGestureDetectors();
+        setupSwipeHandlers();
 
         // Buttons
         Button menuButton = findViewById(R.id.menu_button);
@@ -166,33 +169,37 @@ public class MainActivity extends AppCompatActivity {
         updateFontSize();
     }
 
-    private void setupGestureDetectors() {
-        final View mainContent = findViewById(R.id.main_content_area);
-        final View footer = findViewById(R.id.card_footer);
-
-        final GestureDetector gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+    private void setupSwipeHandlers() {
+        cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
-            public boolean onDown(MotionEvent e) {
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        x1 = event.getX();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        x2 = event.getX();
+                        float deltaX = x2 - x1;
+    
+                        if (Math.abs(deltaX) > MIN_DISTANCE) {
+                            // Swipe da direita para esquerda
+                            if (deltaX < 0) {
+                                nextItem();
+                            }
+                            // Swipe da esquerda para direita
+                            else {
+                                prevItem();
+                            }
+                        } else {
+                            // Toque simples (não swipe)
+                            toggleAnswerVisibility();
+                        }
+                        break;
+                }
                 return true;
             }
-
-            @Override
-            public boolean onSingleTapConfirmed(MotionEvent e) {
-                int[] footerLocation = new int[2];
-                footer.getLocationOnScreen(footerLocation);
-                Rect footerRect = new Rect(
-                    footerLocation[0],
-                    footerLocation[1],
-                    footerLocation[0] + footer.getWidth(),
-                    footerLocation[1] + footer.getHeight()
-                );
-
-                if (!footerRect.contains((int)e.getRawX(), (int)e.getRawY())) {
-                    toggleAnswerVisibility();
-                    return true;
-                }
-                return false;
-            }
+        });
+    }
 
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
