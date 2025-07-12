@@ -343,50 +343,34 @@ public class MainActivity extends AppCompatActivity {
         isQAMode = !items.isEmpty() && items.get(0).isQA();
     }
     
-    private void parseTextContent(String text) {
-        if (text == null) return;
+private void parseTextContent(String text) {
+    if (text == null) return;
+    
+    // Remove todas as quebras de linha sem substituir por espaços
+    String cleanedText = text.replaceAll("\\r\\n|\\n|\\r", "");
+    
+    // Expressão regular para dividir em frases com no mínimo 75 caracteres
+    Pattern pattern = Pattern.compile("(.{75,}?[.!?…]+(?:\\s|$))");
+    Matcher matcher = pattern.matcher(cleanedText);
+    
+    List<QAItem> processedItems = new ArrayList<>();
+    
+    while (matcher.find()) {
+        String sentence = matcher.group(1).trim();
         
-        String cleanedText = text.replaceAll("(\\r\\n|\\n|\\r)(?<![.!?,;:])", " ");
-        cleanedText = cleanedText.replaceAll("\\s+", " ").trim();
-        
-        Pattern pattern = Pattern.compile("[^.!?]+[.!?…]+");
-        Matcher matcher = pattern.matcher(cleanedText);
-        List<String> sentences = new ArrayList<>();
-        while (matcher.find()) {
-            sentences.add(matcher.group().trim());
+        // Se a frase encontrada for muito curta, junta com a próxima
+        if (sentence.length() < 75 && matcher.find()) {
+            sentence += matcher.group(1).trim();
         }
         
-        List<QAItem> processedItems = new ArrayList<>();
-        StringBuilder currentChunk = new StringBuilder();
-        
-        for (int i = 0; i < sentences.size(); i++) {
-            String sentence = sentences.get(i);
-            
-            if (currentChunk.length() + sentence.length() < 75 && i < sentences.size() - 1) {
-                if (currentChunk.length() > 0) {
-                    currentChunk.append(" ");
-                }
-                currentChunk.append(sentence);
-                continue;
-            }
-            
-            if (currentChunk.length() > 0 || sentence.length() >= 75) {
-                processedItems.add(new QAItem(currentChunk.length() > 0 ? 
-                    currentChunk.toString() + " " + sentence : sentence));
-                currentChunk = new StringBuilder();
-            } else if (i == sentences.size() - 1 && !processedItems.isEmpty()) {
-                QAItem lastItem = processedItems.get(processedItems.size() - 1);
-                lastItem.setText(lastItem.getText() + " " + sentence);
-            } else {
-                processedItems.add(new QAItem(sentence));
-            }
-        }
-        
-        items = processedItems;
-        originalItems = new ArrayList<>(items);
-        currentIndex = 0;
-        isQAMode = false;
+        processedItems.add(new QAItem(sentence));
     }
+    
+    items = processedItems;
+    originalItems = new ArrayList<>(items);
+    currentIndex = 0;
+    isQAMode = false;
+}
     
     private void importTextFile() {
         toggleMenu();
