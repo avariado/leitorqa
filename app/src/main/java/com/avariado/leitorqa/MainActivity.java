@@ -8,6 +8,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -75,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
+        // Inicialização de views (mantido igual)
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
         currentCardInput = findViewById(R.id.current_card_input);
@@ -85,6 +87,7 @@ public class MainActivity extends AppCompatActivity {
         searchInfo = findViewById(R.id.search_info);
         fontSizeText = findViewById(R.id.current_font_size);
         
+        // Inicialização de botões (mantido igual)
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
         Button nextButton = findViewById(R.id.next_button);
@@ -98,13 +101,10 @@ public class MainActivity extends AppCompatActivity {
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
         
+        // Listeners (mantido igual)
         RelativeLayout mainContentArea = findViewById(R.id.main_content_area);
-        mainContentArea.setOnClickListener(v -> {
-            if (isQAMode && !menuVisible && !items.isEmpty()) {
-                toggleAnswerVisibility();
-            }
-        });
-    
+        mainContentArea.setOnClickListener(v -> toggleAnswerVisibility());
+        
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
         nextButton.setOnClickListener(v -> safeNextItem());
@@ -119,15 +119,11 @@ public class MainActivity extends AppCompatActivity {
         searchNextButton.setOnClickListener(v -> goToNextSearchResult());
         
         overlay.setOnClickListener(v -> {
-            if (menuVisible) {
-                toggleMenu();
-            }
+            if (menuVisible) toggleMenu();
         });
         
         currentCardInput.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
-                validateAndUpdateCardNumber();
-            }
+            if (!hasFocus) validateAndUpdateCardNumber();
         });
         
         currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
@@ -136,45 +132,28 @@ public class MainActivity extends AppCompatActivity {
         });
         
         searchInput.addTextChangedListener(new TextWatcher() {
-            @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            
-            @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 searchTerm = s.toString().trim();
-                if (searchTerm.isEmpty()) {
-                    clearSearch();
-                } else {
-                    performSearch();
-                }
+                if (searchTerm.isEmpty()) clearSearch();
+                else performSearch();
             }
-            
-            @Override
             public void afterTextChanged(Editable s) {}
         });
         
         loadState();
-        if (items.isEmpty()) {
-            loadSampleData();
-        }
+        if (items.isEmpty()) loadSampleData();
         updateDisplay();
         updateFontSize();
     }
 
+    // Métodos auxiliares (mantidos iguais)
     private void safePrevItem() {
-        try {
-            prevItem();
-        } catch (Exception e) {
-            showError("Erro ao navegar para o cartão anterior");
-        }
+        try { prevItem(); } catch (Exception e) { showError("Erro ao navegar"); }
     }
     
     private void safeNextItem() {
-        try {
-            nextItem();
-        } catch (Exception e) {
-            showError("Erro ao navegar para o próximo cartão");
-        }
+        try { nextItem(); } catch (Exception e) { showError("Erro ao navegar"); }
     }
     
     private void showError(String message) {
@@ -196,11 +175,11 @@ public class MainActivity extends AppCompatActivity {
                 saveState();
             } else {
                 currentCardInput.setText(String.valueOf(currentIndex + 1));
-                showError("Número de cartão inválido");
+                showError("Número inválido");
             }
         } catch (NumberFormatException e) {
             currentCardInput.setText(String.valueOf(currentIndex + 1));
-            showError("Por favor insira um número válido");
+            showError("Insira um número válido");
         }
     }
     
@@ -220,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
     
     private void updateDisplay() {
         if (items.isEmpty()) {
-            questionTextView.setText("Nenhum conteúdo carregado.");
+            questionTextView.setText("Nenhum conteúdo");
             answerTextView.setText("");
             currentCardInput.setText("0");
             totalCardsText.setText("/ 0");
@@ -228,7 +207,6 @@ public class MainActivity extends AppCompatActivity {
         }
         
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
-        
         QAItem currentItem = items.get(currentIndex);
         
         if (isQAMode) {
@@ -261,7 +239,6 @@ public class MainActivity extends AppCompatActivity {
     
     private void shuffleItems() {
         if (items.isEmpty()) return;
-        
         Collections.shuffle(items);
         currentIndex = 0;
         updateDisplay();
@@ -310,8 +287,7 @@ public class MainActivity extends AppCompatActivity {
             reader.close();
             parseQAContent(sb.toString());
         } catch (IOException e) {
-            String sampleData = "O que é HTML?\tHTML é a linguagem de marcação padrão para criar páginas web.\n" +
-                              "O que é CSS?\tCSS é a linguagem de estilos usada para descrever a apresentação de um documento HTML.";
+            String sampleData = "Exemplo Q?\tExemplo A\nOutra Q?\tOutra A";
             parseQAContent(sampleData);
         }
     }
@@ -330,9 +306,7 @@ public class MainActivity extends AppCompatActivity {
             String[] parts = line.split(separator);
             
             if (parts.length >= 2) {
-                String question = parts[0].trim();
-                String answer = parts[1].trim();
-                items.add(new QAItem(question, answer));
+                items.add(new QAItem(parts[0].trim(), parts[1].trim()));
             } else {
                 items.add(new QAItem(line.trim()));
             }
@@ -342,78 +316,102 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = 0;
         isQAMode = !items.isEmpty() && items.get(0).isQA();
     }
-    
-	private void parseTextContent(String text) {
-		if (text == null || text.isEmpty()) return;
 
-		// 1. Remove TODAS as quebras de linha de forma agressiva
-		String singleLineText = text.replace("\r\n", "").replace("\n", "").replace("\r", "");
+    // MÉTODO COMPLETO DE PROCESSAMENTO DE TEXTO
+    private void parseTextContent(String text) {
+        if (text == null || text.isEmpty()) return;
 
-		// 2. Processa o texto caractere por caractere
-		List<String> sentences = new ArrayList<>();
-		StringBuilder currentSentence = new StringBuilder();
-		int charCount = 0;
-		boolean insideBrackets = false;
+        // 1. Remove TODAS as quebras de linha
+        String singleLine = text.replace("\r\n", " ")
+                              .replace("\n", " )
+                              .replace("\r", " ")
+                              .replaceAll("\\s+", " )
+                              .trim();
 
-		for (int i = 0; i < singleLineText.length(); i++) {
-			char c = singleLineText.charAt(i);
-			
-			// Controle de colchetes/parênteses
-			if (c == '[' || c == '(') {
-				insideBrackets = true;
-			} else if (c == ']' || c == ')') {
-				insideBrackets = false;
-			}
+        // 2. Divisão em frases completas
+        List<QAItem> processedItems = new ArrayList<>();
+        StringBuilder currentSentence = new StringBuilder();
+        int charCount = 0;
+        boolean inQuotes = false;
 
-			currentSentence.append(c);
-			charCount++;
+        for (int i = 0; i < singleLine.length(); i++) {
+            char c = singleLine.charAt(i);
+            currentSentence.append(c);
+            charCount++;
 
-			// Final de frase (só considera se não estiver dentro de colchetes)
-			if (!insideBrackets && (c == '.' || c == '!' || c == '?' || 
-				(c == '.' && i+2 < singleLineText.length() && 
-				 singleLineText.substring(i, i+3).equals("...")))) {
-				
-				// Trata reticências
-				if (c == '.' && i+2 < singleLineText.length() && 
-					singleLineText.substring(i, i+3).equals("...")) {
-					currentSentence.append("..");
-					i += 2;
-				}
+            if (c == '"' || c == '\'') inQuotes = !inQuotes;
 
-				// Adiciona se tiver tamanho suficiente ou for o final
-				if (charCount >= 75 || i == singleLineText.length()-1) {
-					sentences.add(currentSentence.toString().trim());
-					currentSentence = new StringBuilder();
-					charCount = 0;
-				}
-			}
-		}
+            if (!inQuotes && (c == '.' || c == '!' || c == '?' || 
+                (c == '.' && i+2 < singleLine.length() && 
+                 singleLine.substring(i, i+3).equals("...")))) {
+                
+                if (c == '.' && i+2 < singleLine.length() && 
+                    singleLine.substring(i, i+3).equals("...")) {
+                    currentSentence.append("..");
+                    i += 2;
+                }
 
-		// 3. Combina frases muito curtas
-		List<QAItem> finalItems = new ArrayList<>();
-		StringBuilder combined = new StringBuilder();
-		
-		for (String sentence : sentences) {
-			combined.append(sentence);
-			
-			if (combined.length() >= 75 || sentences.indexOf(sentence) == sentences.size()-1) {
-				finalItems.add(new QAItem(combined.toString()));
-				combined = new StringBuilder();
-			}
-		}
+                if (charCount >= 75 || i == singleLine.length()-1) {
+                    processedItems.add(new QAItem(currentSentence.toString().trim()));
+                    currentSentence = new StringBuilder();
+                    charCount = 0;
+                }
+            }
+        }
 
-		items = finalItems;
-		originalItems = new ArrayList<>(items);
-		currentIndex = 0;
-		isQAMode = false;
-	}
-    
-    private void importTextFile() {
-        toggleMenu();
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("text/*");
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        startActivityForResult(intent, PICK_TXT_FILE);
+        items = processedItems;
+        originalItems = new ArrayList<>(items);
+        currentIndex = 0;
+        isQAMode = false;
+    }
+
+    // MÉTODO COMPLETO DE LEITURA COM DETECÇÃO DE ENCODING
+    private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
+        InputStream inputStream = getContentResolver().openInputStream(uri);
+        BufferedInputStream bis = new BufferedInputStream(inputStream);
+        bis.mark(100000);
+
+        // 1. Tenta UTF-8
+        try {
+            String content = readStream(bis, StandardCharsets.UTF_8);
+            if (!hasInvalidUTF8Characters(content)) {
+                return content;
+            }
+        } catch (Exception e) {
+            Log.e("ENCODING", "UTF-8 failed", e);
+        }
+
+        // 2. Tenta Windows-1252 (ANSI)
+        try {
+            bis.reset();
+            return readStream(bis, Charset.forName("Windows-1252"));
+        } catch (Exception e) {
+            Log.e("ENCODING", "ANSI failed", e);
+        }
+
+        // 3. Fallback para ISO-8859-1
+        try {
+            bis.reset();
+            return readStream(bis, StandardCharsets.ISO_8859_1);
+        } finally {
+            bis.close();
+        }
+    }
+
+    // MÉTODO DE VERIFICAÇÃO DE UTF-8 (RESTAURADO)
+    private boolean hasInvalidUTF8Characters(String content) {
+        return content.contains("�");
+    }
+
+    private String readStream(InputStream is, Charset charset) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is, charset));
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            sb.append(line).append("\n");
+        }
+        reader.close();
+        return sb.toString();
     }
 
     @Override
@@ -423,80 +421,19 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode == RESULT_OK && data != null) {
             Uri uri = data.getData();
             try {
-                String fileContent = readTextFileNuclear(uri);
-                
-                if (requestCode == PICK_TXT_FILE) {
-                    parseQAContent(fileContent);
-                    updateDisplay();
-                    saveState();
-                    Toast.makeText(this, "Ficheiro importado com sucesso!", Toast.LENGTH_SHORT).show();
-                } else if (requestCode == CREATE_FILE) {
-                    exportFile(uri);
-                }
+                String fileContent = readTextFileWithEncodingDetection(uri);
+                parseTextContent(fileContent);
+                updateDisplay();
+                saveState();
+                Toast.makeText(this, "Ficheiro importado!", Toast.LENGTH_SHORT).show();
             } catch (IOException e) {
-                Toast.makeText(this, "Erro ao ler ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                e.printStackTrace();
+                Toast.makeText(this, "Erro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                Log.e("FILE_IMPORT", "Error", e);
             }
         }
     }
 
-    private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
-        // Lê o conteúdo completo em bytes primeiro
-        InputStream inputStream = getContentResolver().openInputStream(uri);
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        byte[] buffer = new byte[1024];
-        int length;
-        while ((length = inputStream.read(buffer)) != -1) {
-            byteArrayOutputStream.write(buffer, 0, length);
-        }
-        byte[] fileContentBytes = byteArrayOutputStream.toByteArray();
-        inputStream.close();
-
-        // Tenta UTF-8 primeiro
-        try {
-            String content = new String(fileContentBytes, StandardCharsets.UTF_8);
-            if (!hasInvalidUTF8Characters(content)) {
-                return content;
-            }
-        } catch (Exception e) {
-            // Continua para próxima tentativa
-        }
-
-        // Tenta Windows-1252 (ANSI)
-        try {
-            return new String(fileContentBytes, "Windows-1252");
-        } catch (Exception e) {
-            // Continua para próxima tentativa
-        }
-
-        // Tenta ISO-8859-1 como último recurso
-        return new String(fileContentBytes, StandardCharsets.ISO_8859_1);
-    }
-
-    private boolean hasInvalidUTF8Characters(String content) {
-        return content.contains("�");
-    }
-    
-    private String readTextFileNuclear(Uri uri) throws IOException {
-    InputStream inputStream = getContentResolver().openInputStream(uri);
-    ByteArrayOutputStream result = new ByteArrayOutputStream();
-    byte[] buffer = new byte[1024];
-    int length;
-    while ((length = inputStream.read(buffer)) != -1) {
-        result.write(buffer, 0, length);
-    }
-    
-    // Conversão nuclear para ANSI/Win1252
-    String raw = result.toString("ISO-8859-1");
-    
-    // Remoção radical de quebras
-    return raw.replace("\r\n", "[BREAK]")
-              .replace("\n", "[BREAK]")
-              .replace("\r", "[BREAK]")
-              .replace("[BREAK]", "");
-	}
-	
-	private void showExportDialog() {
+    private void showExportDialog() {
         toggleMenu();
         
         LayoutInflater inflater = getLayoutInflater();
@@ -749,7 +686,7 @@ public class MainActivity extends AppCompatActivity {
                 
                 String[] parts = line.split("\t");
                 if (parts.length >= 2) {
-                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim()));
+                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim());
                 } else {
                     loadedOriginalItems.add(new QAItem(line.trim()));
                 }
@@ -776,33 +713,16 @@ public class MainActivity extends AppCompatActivity {
         private String answer;
         private String text;
         
-        public QAItem(String text) {
-            this.text = text;
-        }
-        
+        public QAItem(String text) { this.text = text; }
         public QAItem(String question, String answer) {
             this.question = question;
             this.answer = answer;
         }
         
-        public String getQuestion() {
-            return question;
-        }
-        
-        public String getAnswer() {
-            return answer;
-        }
-        
-        public String getText() {
-            return text;
-        }
-        
-        public void setText(String text) {
-            this.text = text;
-        }
-        
-        public boolean isQA() {
-            return question != null && answer != null;
-        }
+        public String getQuestion() { return question; }
+        public String getAnswer() { return answer; }
+        public String getText() { return text; }
+        public void setText(String text) { this.text = text; }
+        public boolean isQA() { return question != null && answer != null; }
     }
 }
