@@ -207,6 +207,16 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // Se estiver editando o número do cartão
+        if (currentCardInput.hasFocus()) {
+            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                finishEditing();
+                return true;
+            }
+            return super.onKeyDown(keyCode, event);
+        }
+        
+        // Comportamento normal quando não está editando
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 safePrevItem();
@@ -214,21 +224,13 @@ public class MainActivity extends AppCompatActivity {
             case KeyEvent.KEYCODE_DPAD_RIGHT:
                 safeNextItem();
                 return true;
-            case KeyEvent.KEYCODE_DPAD_UP:
-                textScrollView.smoothScrollBy(0, -50);
-                return true;
-            case KeyEvent.KEYCODE_DPAD_DOWN:
-                textScrollView.smoothScrollBy(0, 50);
-                return true;
             case KeyEvent.KEYCODE_ENTER:
             case KeyEvent.KEYCODE_NUMPAD_ENTER:
                 toggleAnswerVisibility();
                 return true;
-            case KeyEvent.KEYCODE_SPACE:
-                // Permite o comportamento padrão (abrir menu)
-                return false;
+            default:
+                return super.onKeyDown(keyCode, event);
         }
-        return super.onKeyDown(keyCode, event);
     }
 
     private void setupCardInputBehavior() {
