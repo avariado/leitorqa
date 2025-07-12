@@ -130,12 +130,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
-                
-                if (event.getAction() == MotionEvent.ACTION_UP) {
-                    if (!menuVisible) {
-                        toggleAnswerVisibility();
-                    }
-                }
                 return true;
             }
         });
@@ -144,13 +138,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
-                
-                if (event.getAction() == MotionEvent.ACTION_UP) {
-                    if (!menuVisible) {
-                        toggleAnswerVisibility();
-                    }
-                }
-                return false;
+                return false; // Permite que o ScrollView ainda funcione
             }
         });
         
@@ -307,24 +295,31 @@ public class MainActivity extends AppCompatActivity {
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-
+    
         @Override
         public boolean onDown(MotionEvent e) {
             return true;
         }
-
+    
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            // Toque simples - mostra/oculta respostas
+            toggleAnswerVisibility();
+            return true;
+        }
+    
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             float diffX = e2.getX() - e1.getX();
-            float diffY = e2.getY() - e1.getY();
             
-            if (Math.abs(diffX) > Math.abs(diffY) &&
-                Math.abs(diffX) > SWIPE_THRESHOLD && 
+            if (Math.abs(diffX) > SWIPE_THRESHOLD && 
                 Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                 
                 if (diffX > 0) {
+                    // Swipe para direita - cartão anterior
                     safePrevItem();
                 } else {
+                    // Swipe para esquerda - próximo cartão
                     safeNextItem();
                 }
                 return true;
