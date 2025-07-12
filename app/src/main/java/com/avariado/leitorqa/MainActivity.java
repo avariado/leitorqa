@@ -4,10 +4,14 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.Html;
+import android.text.Spanned;
 import android.text.TextWatcher;
+import android.text.method.LinkMovementMethod;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -38,6 +42,8 @@ import java.util.regex.Pattern;
 public class MainActivity extends AppCompatActivity {
     private static final int PICK_TXT_FILE = 1;
     private static final int CREATE_FILE = 2;
+    private static final String HIGHLIGHT_PATTERN = "(?i)(%s)";
+    private static final String HIGHLIGHT_COLOR = "#FF5722";
     
     private static final String PREFS_NAME = "AppPrefs";
     private static final String ITEMS_KEY = "items";
@@ -232,17 +238,29 @@ public class MainActivity extends AppCompatActivity {
         QAItem currentItem = items.get(currentIndex);
         
         if (isQAMode) {
-            questionTextView.setText(currentItem.getQuestion());
-            answerTextView.setText(currentItem.getAnswer());
+            questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
+            answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
             answerTextView.setVisibility(View.GONE);
         } else {
-            questionTextView.setText(currentItem.getText());
+            questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
             answerTextView.setText("");
             answerTextView.setVisibility(View.GONE);
         }
         
         currentCardInput.setText(String.valueOf(currentIndex + 1));
         totalCardsText.setText("/ " + items.size());
+    }
+
+    private Spanned highlightText(String text, String searchTerm) {
+        if (text == null || searchTerm == null || searchTerm.isEmpty()) {
+            return Html.fromHtml(text != null ? text : "");
+        }
+        
+        String highlighted = text.replaceAll(
+            String.format(HIGHLIGHT_PATTERN, Pattern.quote(searchTerm)),
+            "<font color='" + HIGHLIGHT_COLOR + "'>$1</font>"
+        );
+        return Html.fromHtml(highlighted);
     }
 
     private void prevItem() {
@@ -419,7 +437,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
-        // Lê o conteúdo completo em bytes primeiro
         InputStream inputStream = getContentResolver().openInputStream(uri);
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         byte[] buffer = new byte[1024];
@@ -452,7 +469,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean hasInvalidUTF8Characters(String content) {
-        return content.contains(" ");
+        return content.contains("�");
     }
     
     private void showExportDialog() {
@@ -621,6 +638,10 @@ public class MainActivity extends AppCompatActivity {
             currentSearchIndex = 0;
             currentIndex = searchResults.get(currentSearchIndex);
             updateSearchInfo();
+            // Mostra a resposta se estiver em modo Q&A
+            if (isQAMode) {
+                answerTextView.setVisibility(View.VISIBLE);
+            }
         }
         
         updateDisplay();
@@ -633,6 +654,10 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = searchResults.get(currentSearchIndex);
         updateDisplay();
         updateSearchInfo();
+        // Mostra a resposta se estiver em modo Q&A
+        if (isQAMode) {
+            answerTextView.setVisibility(View.VISIBLE);
+        }
     }
     
     private void goToNextSearchResult() {
@@ -642,6 +667,10 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = searchResults.get(currentSearchIndex);
         updateDisplay();
         updateSearchInfo();
+        // Mostra a resposta se estiver em modo Q&A
+        if (isQAMode) {
+            answerTextView.setVisibility(View.VISIBLE);
+        }
     }
     
     private void updateSearchInfo() {
