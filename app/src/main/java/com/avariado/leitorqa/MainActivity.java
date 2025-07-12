@@ -1,9 +1,11 @@
+java
 package com.avariado.leitorqa;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
@@ -21,7 +23,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-import android.graphics.Rect;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -60,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView searchInfo;
     private TextView fontSizeText;
     private CardView cardView;
+    private GestureDetector gestureDetector; // <--- ADICIONADO AQUI!
     
     // Data
     private List<QAItem> items = new ArrayList<>();
@@ -74,14 +76,12 @@ public class MainActivity extends AppCompatActivity {
     private int currentSearchIndex = -1;
     private String searchTerm = "";
 
-    // Gesture detection
-    private GestureDetector gestureDetector;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
+        // Inicializa views
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
         currentCardInput = findViewById(R.id.current_card_input);
@@ -92,6 +92,15 @@ public class MainActivity extends AppCompatActivity {
         searchInfo = findViewById(R.id.search_info);
         fontSizeText = findViewById(R.id.current_font_size);
         cardView = findViewById(R.id.card_view);
+        
+        // Configura o GestureDetector
+        gestureDetector = new GestureDetector(this, new MyGestureListener());
+        
+        // Configura o touch listener para o card
+        cardView.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            return true;
+        });
         
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
@@ -105,68 +114,7 @@ public class MainActivity extends AppCompatActivity {
         Button decreaseFontButton = findViewById(R.id.decrease_font_button);
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
-                
-        // Configuração do GestureDetector
-        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
-            private static final int SWIPE_THRESHOLD = 100;
-            private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-
-            @Override
-            public boolean onDown(MotionEvent e) {
-                return true;
-            }
-
-            @Override
-            public boolean onSingleTapUp(MotionEvent e) {
-                // Verifica se o toque foi dentro da área do card mas fora dos botões
-                View mainContentArea = findViewById(R.id.main_content_area);
-                Rect rect = new Rect();
-                mainContentArea.getGlobalVisibleRect(rect);
-                
-                // Coordenadas da área clicável (todo o card exceto o footer)
-                View footer = findViewById(R.id.card_footer);
-                int footerTop = rect.bottom - footer.getHeight();
-                
-                if (e.getY() < footerTop && isQAMode && !menuVisible && !items.isEmpty()) {
-                    toggleAnswerVisibility();
-                    return true;
-                }
-                return false;
-            }
-
-            @Override
-            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                boolean result = false;
-                try {
-                    float diffX = e2.getX() - e1.getX();
-                    if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                        if (diffX > 0) {
-                            // Swipe da direita para esquerda - anterior
-                            safePrevItem();
-                        } else {
-                            // Swipe da esquerda para direita - próximo
-                            safeNextItem();
-                        }
-                        result = true;
-                    }
-                } catch (Exception exception) {
-                    exception.printStackTrace();
-                }
-                return result;
-            }
-        });
-
-        // Configuração do touch listener para o card
-        cardView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                
-                // Importante: retornar true para consumir o evento
-                return true;
-            }
-        });
-    
+        
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
         nextButton.setOnClickListener(v -> safeNextItem());
@@ -221,6 +169,50 @@ public class MainActivity extends AppCompatActivity {
         }
         updateDisplay();
         updateFontSize();
+    }
+
+    private class MyGestureListener extends GestureDetector.SimpleOnGestureListener {
+        private static final int SWIPE_THRESHOLD = 100;
+        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            View mainContent = findViewById(R.id.main_content_area);
+            Rect rect = new Rect();
+            mainContent.getGlobalVisibleRect(rect);
+            
+            View footer = findViewById(R.id.card_footer);
+            int footerTop = rect.bottom - footer.getHeight();
+            
+            if (e.getY() < footerTop && isQAMode && !menuVisible && !items.isEmpty()) {
+                toggleAnswerVisibility();
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            try {
+                float diffX = e2.getX() - e1.getX();
+                if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                    if (diffX > 0) {
+                        safePrevItem(); // Swipe para a direita -> anterior
+                    } else {
+                        safeNextItem(); // Swipe para a esquerda -> próximo
+                    }
+                    return true;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return false;
+        }
     }
 
     private void safePrevItem() {
