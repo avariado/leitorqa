@@ -16,8 +16,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -60,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView searchInfo;
     private TextView fontSizeText;
     private CardView cardView;
-    private GestureDetector gestureDetector; // <--- ADICIONADO AQUI!
+    private GestureDetector gestureDetector;
     
     // Data
     private List<QAItem> items = new ArrayList<>();
@@ -80,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
-        // Inicializa views
+        // Initialize views
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
         currentCardInput = findViewById(R.id.current_card_input);
@@ -91,16 +89,18 @@ public class MainActivity extends AppCompatActivity {
         searchInfo = findViewById(R.id.search_info);
         fontSizeText = findViewById(R.id.current_font_size);
         cardView = findViewById(R.id.card_view);
-        
-        // Configura o GestureDetector
+
+        // Remove focus from input (cursor não pisca mais)
+        currentCardInput.clearFocus();
+
+        // Configure gestures
         gestureDetector = new GestureDetector(this, new MyGestureListener());
-        
-        // Configura o touch listener para o card
         cardView.setOnTouchListener((v, event) -> {
             gestureDetector.onTouchEvent(event);
             return true;
         });
-        
+
+        // Buttons
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
         Button nextButton = findViewById(R.id.next_button);
@@ -201,14 +201,14 @@ public class MainActivity extends AppCompatActivity {
                 float diffX = e2.getX() - e1.getX();
                 if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                     if (diffX > 0) {
-                        safePrevItem(); // Swipe para a direita -> anterior
+                        safePrevItem(); // Swipe para direita -> anterior
                     } else {
-                        safeNextItem(); // Swipe para a esquerda -> próximo
+                        safeNextItem(); // Swipe para esquerda -> próximo
                     }
                     return true;
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (Exception exception) {
+                exception.printStackTrace();
             }
             return false;
         }
