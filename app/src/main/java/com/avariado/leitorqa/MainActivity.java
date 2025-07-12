@@ -88,17 +88,27 @@ public class MainActivity extends AppCompatActivity {
     private String searchTerm = "";
 
     private final GestureDetector.SimpleOnGestureListener gestureListener = 
-    new GestureDetector.SimpleOnGestureListener() {
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            if (Math.abs(e1.getX() - e2.getX()) > 100) { // Detecta SWIPE
-                if (e1.getX() > e2.getX()) safeNextItem(); // Swipe esquerda
-                else safePrevItem(); // Swipe direita
-                return true;
+        new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onDown(MotionEvent e) {
+                return true; // 
             }
-            return false;
-        }
-    };
+    
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                // Aumente a sensibilidade se necessário (ajuste o valor 100)
+                if (Math.abs(e1.getX() - e2.getX()) > 100 && 
+                    Math.abs(velocityX) > 50) { // Velocidade mínima
+                    if (e1.getX() > e2.getX()) { 
+                        safeNextItem(); // Swipe para esquerda
+                    } else {
+                        safePrevItem(); // Swipe para direita
+                    }
+                    return true;
+                }
+                return false;
+            }
+        };
     
     // Gestures
     private GestureDetectorCompat gestureDetector;
@@ -107,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        gestureDetector = new GestureDetectorCompat(this, gestureListener);
         
         // Initialize views
         questionTextView = findViewById(R.id.question_text);
@@ -141,6 +152,7 @@ public class MainActivity extends AppCompatActivity {
         // Set up touch listeners for the main container and card view
         
         cardView.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
             if (event.getAction() == MotionEvent.ACTION_UP) {
                 if (!menuVisible) toggleAnswerVisibility(); // TOQUE SIMPLES
             }
