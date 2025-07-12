@@ -18,6 +18,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
@@ -65,7 +66,9 @@ public class MainActivity extends AppCompatActivity {
     private EditText searchInput;
     private TextView searchInfo;
     private TextView fontSizeText;
-    private RelativeLayout mainContentArea;
+    private FrameLayout mainContainer;
+    private CardView cardView;
+    private ScrollView textScrollView;
     
     // Data
     private List<QAItem> items = new ArrayList<>();
@@ -98,7 +101,9 @@ public class MainActivity extends AppCompatActivity {
         searchInput = findViewById(R.id.search_input);
         searchInfo = findViewById(R.id.search_info);
         fontSizeText = findViewById(R.id.current_font_size);
-        mainContentArea = findViewById(R.id.main_content_area);
+        mainContainer = findViewById(R.id.main_container);
+        cardView = findViewById(R.id.card_view);
+        textScrollView = findViewById(R.id.text_scroll_view);
         
         // Initialize gesture detector
         gestureDetector = new GestureDetectorCompat(this, new GestureListener());
@@ -116,8 +121,8 @@ public class MainActivity extends AppCompatActivity {
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
         
-        // Set up touch listener for the main content area
-        mainContentArea.setOnTouchListener(new View.OnTouchListener() {
+        // Set up touch listeners for the main container and card view
+        mainContainer.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
@@ -127,6 +132,28 @@ public class MainActivity extends AppCompatActivity {
                     toggleAnswerVisibility();
                 }
                 return true;
+            }
+        });
+        
+        cardView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                
+                // Handle simple tap to toggle answer visibility
+                if (event.getAction() == MotionEvent.ACTION_UP && !menuVisible && !items.isEmpty()) {
+                    toggleAnswerVisibility();
+                }
+                return true;
+            }
+        });
+        
+        // Prevent scroll view from intercepting touches
+        textScrollView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                return false; // Let the parent handle the touch
             }
         });
     
