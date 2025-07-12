@@ -293,8 +293,6 @@ public class MainActivity extends AppCompatActivity {
     private void updateFontSize() {
         questionTextView.setTextSize(baseFontSize);
         answerTextView.setTextSize(baseFontSize - 2);
-        currentCardInput.setTextSize(baseFontSize - 2);
-        totalCardsText.setTextSize(baseFontSize - 2);
         fontSizeText.setText(String.valueOf(baseFontSize));
     }
     
