@@ -477,7 +477,26 @@ public class MainActivity extends AppCompatActivity {
         return content.contains("�");
     }
     
-    private void showExportDialog() {
+    private String readTextFileNuclear(Uri uri) throws IOException {
+    InputStream inputStream = getContentResolver().openInputStream(uri);
+    ByteArrayOutputStream result = new ByteArrayOutputStream();
+    byte[] buffer = new byte[1024];
+    int length;
+    while ((length = inputStream.read(buffer)) != -1) {
+        result.write(buffer, 0, length);
+    }
+    
+    // Conversão nuclear para ANSI/Win1252
+    String raw = result.toString("ISO-8859-1");
+    
+    // Remoção radical de quebras
+    return raw.replace("\r\n", "[BREAK]")
+              .replace("\n", "[BREAK]")
+              .replace("\r", "[BREAK]")
+              .replace("[BREAK]", "");
+	}
+	
+	private void showExportDialog() {
         toggleMenu();
         
         LayoutInflater inflater = getLayoutInflater();
