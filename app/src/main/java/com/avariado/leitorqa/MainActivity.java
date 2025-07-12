@@ -19,11 +19,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -386,11 +391,11 @@ public class MainActivity extends AppCompatActivity {
     private void importTextFile() {
         toggleMenu();
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("text/plain");
+        intent.setType("text/*");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         startActivityForResult(intent, PICK_TXT_FILE);
     }
-    
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -398,17 +403,10 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode == RESULT_OK && data != null) {
             Uri uri = data.getData();
             try {
-                InputStream inputStream = getContentResolver().openInputStream(uri);
-                BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-                StringBuilder stringBuilder = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    stringBuilder.append(line).append("\n");
-                }
-                reader.close();
+                String fileContent = readTextFile(uri);
                 
                 if (requestCode == PICK_TXT_FILE) {
-                    parseQAContent(stringBuilder.toString());
+                    parseQAContent(fileContent);
                 } else if (requestCode == CREATE_FILE) {
                     exportFile(uri);
                 }
@@ -420,6 +418,40 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "Erro ao ler ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         }
+    }
+
+    private String readTextFile(Uri uri) throws IOException {
+        InputStream inputStream = getContentResolver().openInputStream(uri);
+        BufferedInputStream bis = new BufferedInputStream(inputStream);
+        bis.mark(100000); // Marca para poder resetar depois
+        
+        // Primeiro tenta UTF-8
+        try {
+            return readStream(bis, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            try {
+                bis.reset(); // Volta ao início do stream
+                // Tenta ISO-8859-1 (Latin-1) se UTF-8 falhar
+                return readStream(bis, StandardCharsets.ISO_8859_1);
+            } catch (Exception e2) {
+                bis.reset();
+                // Tenta Windows-1252 como último recurso
+                return readStream(bis, Charset.forName("Windows-1252"));
+            }
+        } finally {
+            bis.close();
+        }
+    }
+
+    private String readStream(InputStream inputStream, Charset charset) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, charset));
+        StringBuilder stringBuilder = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            stringBuilder.append(line).append("\n");
+        }
+        reader.close();
+        return stringBuilder.toString();
     }
     
     private void showExportDialog() {
