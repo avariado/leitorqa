@@ -344,65 +344,61 @@ public class MainActivity extends AppCompatActivity {
     }
     
 	private void parseTextContent(String text) {
-		if (text == null) return;
-		
-		// 1. Remove TODAS as quebras de linha sem substituir por espaços
-		String noLineBreaks = text.replaceAll("\\r\\n|\\n|\\r", "");
-		
-		// 2. Divide em frases completas mantendo pontuação
-		List<String> sentences = new ArrayList<>();
+		if (text == null || text.isEmpty()) return;
+
+		// 1. Primeiro remove TODAS as quebras de linha
+		String singleLineText = text.replaceAll("\\r\\n|\\n|\\r", "");
+
+		// 2. Divide em frases completas considerando pontuação
+		List<String> sentenceList = new ArrayList<>();
 		StringBuilder currentSentence = new StringBuilder();
-		int charCount = 0;
-		
-		for (int i = 0; i < noLineBreaks.length(); i++) {
-			char c = noLineBreaks.charAt(i);
+		int minLength = 75; // Mínimo de caracteres por frase
+		boolean hasEllipsis = false;
+
+		for (int i = 0; i < singleLineText.length(); i++) {
+			char c = singleLineText.charAt(i);
 			currentSentence.append(c);
-			charCount++;
-			
-			// Verifica se é um final de frase
-			if (c == '.' || c == '!' || c == '?' || 
-				(c == '.' && i+2 < noLineBreaks.length() && 
-				 noLineBreaks.charAt(i+1) == '.' && 
-				 noLineBreaks.charAt(i+2) == '.')) {
-				
-				// Para reticências
-				if (c == '.' && i+2 < noLineBreaks.length() && 
-					noLineBreaks.charAt(i+1) == '.' && 
-					noLineBreaks.charAt(i+2) == '.') {
-					currentSentence.append(".."); // Adiciona os outros dois pontos
-					i += 2; // Avança o índice
+
+			// Verifica pontuação final
+			if (c == '.' || c == '!' || c == '?') {
+				// Verifica reticências (...)
+				if (c == '.' && i + 2 < singleLineText.length() && 
+					singleLineText.charAt(i + 1) == '.' && 
+					singleLineText.charAt(i + 2) == '.') {
+					hasEllipsis = true;
+					currentSentence.append("..");
+					i += 2;
+					continue;
 				}
-				
-				// Se tiver pelo menos 75 caracteres ou for o final do texto
-				if (charCount >= 75 || i == noLineBreaks.length()-1) {
-					sentences.add(currentSentence.toString().trim());
+
+				// Se atingiu o tamanho mínimo ou é o final do texto
+				if (currentSentence.length() >= minLength || i == singleLineText.length() - 1) {
+					sentenceList.add(currentSentence.toString().trim());
 					currentSentence = new StringBuilder();
-					charCount = 0;
 				}
 			}
 		}
-		
-		// Adiciona o último pedaço se não foi adicionado
+
+		// Adiciona o último pedaço se existir
 		if (currentSentence.length() > 0) {
-			sentences.add(currentSentence.toString().trim());
+			sentenceList.add(currentSentence.toString().trim());
 		}
+
+		// 3. Combina frases muito curtas
+		List<QAItem> finalItems = new ArrayList<>();
+		StringBuilder combined = new StringBuilder();
 		
-		// 3. Processa as frases para garantir tamanho mínimo
-		List<QAItem> processedItems = new ArrayList<>();
-		StringBuilder combinedSentence = new StringBuilder();
-		
-		for (String sentence : sentences) {
-			combinedSentence.append(sentence);
+		for (String sentence : sentenceList) {
+			combined.append(sentence);
 			
-			// Se atingir o tamanho mínimo ou for a última frase
-			if (combinedSentence.length() >= 75 || 
-				sentences.indexOf(sentence) == sentences.size()-1) {
-				processedItems.add(new QAItem(combinedSentence.toString()));
-				combinedSentence = new StringBuilder();
+			if (combined.length() >= minLength || 
+				sentenceList.indexOf(sentence) == sentenceList.size() - 1) {
+				finalItems.add(new QAItem(combined.toString()));
+				combined = new StringBuilder();
 			}
 		}
-		
-		items = processedItems;
+
+		items = finalItems;
 		originalItems = new ArrayList<>(items);
 		currentIndex = 0;
 		isQAMode = false;
