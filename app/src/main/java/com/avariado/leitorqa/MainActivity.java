@@ -142,6 +142,21 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
+
+        currentCardInput.setOnClickListener(v -> {
+            currentCardInput.setFocusableInTouchMode(true);
+            currentCardInput.setFocusable(true);
+            currentCardInput.requestFocus();
+            currentCardInput.setCursorVisible(true); // Mostra cursor ao editar
+        });
+        
+        currentCardInput.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                validateAndUpdateCardNumber();
+                currentCardInput.setCursorVisible(false); // Esconde cursor novamente
+                currentCardInput.setFocusable(false); // Volta ao estado inicial
+            }
+        });
         
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
