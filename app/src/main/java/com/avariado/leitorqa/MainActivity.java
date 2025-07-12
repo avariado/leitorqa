@@ -9,7 +9,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.Spannable;
-import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.TextWatcher;
 import android.text.style.BackgroundColorSpan;
@@ -19,25 +18,18 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
@@ -51,7 +43,6 @@ public class MainActivity extends AppCompatActivity {
     private static final String IS_QA_MODE_KEY = "isQAMode";
     private static final String FONT_SIZE_KEY = "fontSize";
 
-    // Views
     private TextView questionTextView;
     private TextView answerTextView;
     private EditText currentCardInput;
@@ -62,7 +53,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView searchInfo;
     private TextView fontSizeText;
     
-    // Data
     private List<QAItem> items = new ArrayList<>();
     private List<QAItem> originalItems = new ArrayList<>();
     private int currentIndex = 0;
@@ -70,7 +60,6 @@ public class MainActivity extends AppCompatActivity {
     private boolean menuVisible = false;
     private int baseFontSize = 20;
     
-    // Search
     private List<Integer> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
     private String searchTerm = "";
@@ -83,10 +72,212 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
-        // ... (restante do código onCreate permanece o mesmo)
+        questionTextView = findViewById(R.id.question_text);
+        answerTextView = findViewById(R.id.answer_text);
+        currentCardInput = findViewById(R.id.current_card_input);
+        totalCardsText = findViewById(R.id.total_cards_text);
+        menuLayout = findViewById(R.id.menu_layout);
+        overlay = findViewById(R.id.overlay);
+        searchInput = findViewById(R.id.search_input);
+        searchInfo = findViewById(R.id.search_info);
+        fontSizeText = findViewById(R.id.current_font_size);
+        
+        Button menuButton = findViewById(R.id.menu_button);
+        Button prevButton = findViewById(R.id.prev_button);
+        Button nextButton = findViewById(R.id.next_button);
+        Button importButton = findViewById(R.id.import_button);
+        Button exportButton = findViewById(R.id.export_button);
+        Button editButton = findViewById(R.id.edit_button);
+        Button shuffleButton = findViewById(R.id.shuffle_button);
+        Button resetButton = findViewById(R.id.reset_button);
+        Button increaseFontButton = findViewById(R.id.increase_font_button);
+        Button decreaseFontButton = findViewById(R.id.decrease_font_button);
+        Button searchPrevButton = findViewById(R.id.search_prev_button);
+        Button searchNextButton = findViewById(R.id.search_next_button);
+        
+        RelativeLayout mainContentArea = findViewById(R.id.main_content_area);
+        mainContentArea.setOnClickListener(v -> {
+            if (isQAMode && !menuVisible && !items.isEmpty()) {
+                toggleAnswerVisibility();
+            }
+        });
+    
+        menuButton.setOnClickListener(v -> toggleMenu());
+        prevButton.setOnClickListener(v -> safePrevItem());
+        nextButton.setOnClickListener(v -> safeNextItem());
+        importButton.setOnClickListener(v -> importTextFile());
+        exportButton.setOnClickListener(v -> showExportDialog());
+        editButton.setOnClickListener(v -> showEditDialog());
+        shuffleButton.setOnClickListener(v -> shuffleItems());
+        resetButton.setOnClickListener(v -> resetOrder());
+        increaseFontButton.setOnClickListener(v -> increaseFontSize());
+        decreaseFontButton.setOnClickListener(v -> decreaseFontSize());
+        searchPrevButton.setOnClickListener(v -> goToPrevSearchResult());
+        searchNextButton.setOnClickListener(v -> goToNextSearchResult());
+        
+        overlay.setOnClickListener(v -> {
+            if (menuVisible) {
+                toggleMenu();
+            }
+        });
+        
+        currentCardInput.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                validateAndUpdateCardNumber();
+            }
+        });
+        
+        searchInput.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void afterTextChanged(Editable s) {}
+            
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                searchTerm = s.toString().trim();
+                if (searchTerm.isEmpty()) {
+                    clearSearch();
+                } else {
+                    performSearch();
+                }
+            }
+        });
+        
+        loadState();
+        if (items.isEmpty()) {
+            loadSampleData();
+        }
+        updateDisplay();
+        updateFontSize();
     }
 
-    // ... (outros métodos permanecem iguais até performSearch)
+    private void toggleMenu() {
+        menuVisible = !menuVisible;
+        menuLayout.setVisibility(menuVisible ? View.VISIBLE : View.GONE);
+        overlay.setVisibility(menuVisible ? View.VISIBLE : View.GONE);
+    }
+
+    private void toggleAnswerVisibility() {
+        if (answerTextView.getVisibility() == View.VISIBLE) {
+            answerTextView.setVisibility(View.GONE);
+        } else {
+            answerTextView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void updateDisplay() {
+        if (items.isEmpty()) {
+            questionTextView.setText("Nenhum conteúdo carregado.");
+            answerTextView.setText("");
+            currentCardInput.setText("0");
+            totalCardsText.setText("/ 0");
+            return;
+        }
+        
+        currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
+        QAItem currentItem = items.get(currentIndex);
+        
+        if (isQAMode) {
+            questionTextView.setText(currentItem.getQuestion());
+            answerTextView.setText(currentItem.getAnswer());
+            answerTextView.setVisibility(View.GONE);
+        } else {
+            questionTextView.setText(currentItem.getText());
+            answerTextView.setText("");
+            answerTextView.setVisibility(View.GONE);
+        }
+        
+        currentCardInput.setText(String.valueOf(currentIndex + 1));
+        totalCardsText.setText("/ " + items.size());
+    }
+
+    private void safePrevItem() {
+        try {
+            prevItem();
+        } catch (Exception e) {
+            showError("Erro ao navegar para o cartão anterior");
+        }
+    }
+    
+    private void safeNextItem() {
+        try {
+            nextItem();
+        } catch (Exception e) {
+            showError("Erro ao navegar para o próximo cartão");
+        }
+    }
+    
+    private void prevItem() {
+        if (items.isEmpty()) return;
+        currentIndex = (currentIndex - 1 + items.size()) % items.size();
+        updateDisplay();
+        saveState();
+    }
+    
+    private void nextItem() {
+        if (items.isEmpty()) return;
+        currentIndex = (currentIndex + 1) % items.size();
+        updateDisplay();
+        saveState();
+    }
+
+    private void validateAndUpdateCardNumber() {
+        try {
+            String input = currentCardInput.getText().toString().trim();
+            if (input.isEmpty()) {
+                currentCardInput.setText(String.valueOf(currentIndex + 1));
+                return;
+            }
+            
+            int num = Integer.parseInt(input);
+            if (num >= 1 && num <= items.size()) {
+                currentIndex = num - 1;
+                updateDisplay();
+                saveState();
+            } else {
+                currentCardInput.setText(String.valueOf(currentIndex + 1));
+                showError("Número de cartão inválido");
+            }
+        } catch (NumberFormatException e) {
+            currentCardInput.setText(String.valueOf(currentIndex + 1));
+            showError("Por favor insira um número válido");
+        }
+    }
+
+    private void shuffleItems() {
+        if (items.isEmpty()) return;
+        Collections.shuffle(items);
+        currentIndex = 0;
+        updateDisplay();
+        toggleMenu();
+        saveState();
+    }
+    
+    private void resetOrder() {
+        if (originalItems.isEmpty()) return;
+        items = new ArrayList<>(originalItems);
+        currentIndex = 0;
+        updateDisplay();
+        toggleMenu();
+        saveState();
+    }
+
+    private void increaseFontSize() {
+        baseFontSize = Math.min(baseFontSize + 2, 32);
+        updateFontSize();
+        saveState();
+    }
+    
+    private void decreaseFontSize() {
+        baseFontSize = Math.max(baseFontSize - 2, 12);
+        updateFontSize();
+        saveState();
+    }
+    
+    private void updateFontSize() {
+        questionTextView.setTextSize(baseFontSize);
+        answerTextView.setTextSize(baseFontSize - 2);
+        fontSizeText.setText(String.valueOf(baseFontSize));
+    }
 
     private void performSearch() {
         searchTerm = searchInput.getText().toString().trim();
@@ -135,7 +326,7 @@ public class MainActivity extends AppCompatActivity {
 
         QAItem currentItem = items.get(currentIndex);
         String textToHighlight = isQAMode ? 
-            currentItem.getQuestion() + " " + currentItem.getAnswer() : currentItem.getText();
+            currentItem.getQuestion() : currentItem.getText();
             
         // Remove previous highlights
         if (lastHighlightStart != -1 && lastHighlightEnd != -1 && spannable != null) {
@@ -155,25 +346,17 @@ public class MainActivity extends AppCompatActivity {
             index = lowerText.indexOf(lowerSearchTerm, index + searchTerm.length());
         }
 
-        // Apply to the appropriate TextView
-        if (isQAMode) {
-            questionTextView.setText(spannable);
-            answerTextView.setText(currentItem.getAnswer());
-        } else {
-            questionTextView.setText(spannable);
-        }
+        questionTextView.setText(spannable);
     }
 
     private void goToPrevSearchResult() {
         if (searchResults.isEmpty()) return;
-        
         int newIndex = (currentSearchIndex - 1 + searchResults.size()) % searchResults.size();
         goToSearchResult(newIndex);
     }
     
     private void goToNextSearchResult() {
         if (searchResults.isEmpty()) return;
-        
         int newIndex = (currentSearchIndex + 1) % searchResults.size();
         goToSearchResult(newIndex);
     }
@@ -191,15 +374,180 @@ public class MainActivity extends AppCompatActivity {
         searchResults.clear();
         currentSearchIndex = -1;
         searchInfo.setText("");
-        
-        // Remove highlights
-        if (spannable != null) {
-            spannable.removeSpan(new BackgroundColorSpan(Color.YELLOW));
-        }
-        
         updateDisplay();
     }
+
+    private void loadSampleData() {
+        String sampleData = "O que é HTML?\tHTML é a linguagem de marcação padrão para criar páginas web.\n" +
+                          "O que é CSS?\tCSS é a linguagem de estilos usada para descrever a apresentação de um documento HTML.";
+        parseQAContent(sampleData);
+    }
     
+    private void parseQAContent(String text) {
+        if (text == null) return;
+        
+        String[] lines = text.split("\n");
+        items.clear();
+        originalItems.clear();
+        
+        for (String line : lines) {
+            if (line.trim().isEmpty()) continue;
+            
+            String separator = line.contains("\t") ? "\t" : ";;";
+            String[] parts = line.split(separator);
+            
+            if (parts.length >= 2) {
+                String question = parts[0].trim();
+                String answer = parts[1].trim();
+                items.add(new QAItem(question, answer));
+            } else {
+                items.add(new QAItem(line.trim()));
+            }
+        }
+        
+        originalItems = new ArrayList<>(items);
+        currentIndex = 0;
+        isQAMode = !items.isEmpty() && items.get(0).isQA();
+    }
+
+    private void importTextFile() {
+        toggleMenu();
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("text/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        startActivityForResult(intent, PICK_TXT_FILE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        
+        if (resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getData();
+            try {
+                String fileContent = readTextFileWithEncodingDetection(uri);
+                
+                if (requestCode == PICK_TXT_FILE) {
+                    parseQAContent(fileContent);
+                    updateDisplay();
+                    saveState();
+                    Toast.makeText(this, "Ficheiro importado com sucesso!", Toast.LENGTH_SHORT).show();
+                } else if (requestCode == CREATE_FILE) {
+                    exportFile(uri);
+                }
+            } catch (IOException e) {
+                Toast.makeText(this, "Erro ao ler ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
+        InputStream inputStream = getContentResolver().openInputStream(uri);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int length;
+        while ((length = inputStream.read(buffer)) != -1) {
+            byteArrayOutputStream.write(buffer, 0, length);
+        }
+        byte[] fileContentBytes = byteArrayOutputStream.toByteArray();
+        inputStream.close();
+
+        try {
+            return new String(fileContentBytes, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return new String(fileContentBytes, StandardCharsets.ISO_8859_1);
+        }
+    }
+
+    private void showExportDialog() {
+        toggleMenu();
+        
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Exportar Ficheiro");
+        
+        final EditText input = new EditText(this);
+        input.setText(isQAMode ? "perguntas_respostas.txt" : "documento.txt");
+        builder.setView(input);
+        
+        builder.setPositiveButton("Exportar", (dialog, which) -> {
+            String filename = input.getText().toString().trim();
+            if (filename.isEmpty()) {
+                filename = isQAMode ? "perguntas_respostas.txt" : "documento.txt";
+            }
+            if (!filename.toLowerCase().endsWith(".txt")) {
+                filename += ".txt";
+            }
+            
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("text/plain");
+            intent.putExtra(Intent.EXTRA_TITLE, filename);
+            startActivityForResult(intent, CREATE_FILE);
+        });
+        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.cancel());
+        builder.show();
+    }
+    
+    private void exportFile(Uri uri) {
+        if (items.isEmpty()) return;
+        
+        StringBuilder content = new StringBuilder();
+        if (isQAMode) {
+            for (QAItem item : items) {
+                content.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
+            }
+        } else {
+            for (QAItem item : items) {
+                content.append(item.getText()).append("\n");
+            }
+        }
+        
+        try {
+            OutputStream fos = getContentResolver().openOutputStream(uri);
+            fos.write(content.toString().getBytes());
+            fos.close();
+            
+            Toast.makeText(this, "Ficheiro exportado com sucesso!", Toast.LENGTH_LONG).show();
+        } catch (IOException e) {
+            Toast.makeText(this, "Erro ao exportar ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void showEditDialog() {
+        toggleMenu();
+        
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Editar Conteúdo");
+        
+        final EditText input = new EditText(this);
+        StringBuilder content = new StringBuilder();
+        if (isQAMode) {
+            for (QAItem item : items) {
+                content.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
+            }
+        } else {
+            for (QAItem item : items) {
+                content.append(item.getText()).append("\n");
+            }
+        }
+        input.setText(content.toString());
+        builder.setView(input);
+        
+        builder.setPositiveButton("Guardar", (dialog, which) -> {
+            String text = input.getText().toString();
+            if (text.trim().isEmpty()) {
+                Toast.makeText(this, "O conteúdo não pode estar vazio!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            parseQAContent(text);
+            updateDisplay();
+            saveState();
+        });
+        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.cancel());
+        builder.show();
+    }
+
     private void saveState() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
@@ -248,7 +596,7 @@ public class MainActivity extends AppCompatActivity {
                 
                 String[] parts = line.split("\t");
                 if (parts.length >= 2) {
-                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim()));
+                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim());
                 } else {
                     loadedOriginalItems.add(new QAItem(line.trim()));
                 }
@@ -260,16 +608,11 @@ public class MainActivity extends AppCompatActivity {
         isQAMode = prefs.getBoolean(IS_QA_MODE_KEY, true);
         baseFontSize = prefs.getInt(FONT_SIZE_KEY, 20);
     }
-    
-    @Override
-    public void onBackPressed() {
-        if (menuVisible) {
-            toggleMenu();
-        } else {
-            super.onBackPressed();
-        }
+
+    private void showError(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
-    
+
     private static class QAItem {
         private String question;
         private String answer;
