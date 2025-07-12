@@ -17,7 +17,6 @@ import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -205,43 +204,31 @@ public class MainActivity extends AppCompatActivity {
         updateFontSize();
     }
 
-        @Override
-        public boolean onKeyDown(int keyCode, KeyEvent event) {
-            // Verificar se é um emulador
-            boolean isEmulator = android.os.Build.FINGERPRINT.startsWith("generic")
-                    || android.os.Build.FINGERPRINT.startsWith("unknown")
-                    || android.os.Build.MODEL.contains("google_sdk")
-                    || android.os.Build.MODEL.contains("Emulator")
-                    || android.os.Build.MODEL.contains("Android SDK built for x86")
-                    || android.os.Build.MANUFACTURER.contains("Genymotion")
-                    || (android.os.Build.BRAND.startsWith("generic") && android.os.Build.DEVICE.startsWith("generic"))
-                    || "google_sdk".equals(android.os.Build.PRODUCT);
-    
-            if (isEmulator) {
-                switch (keyCode) {
-                    case KeyEvent.KEYCODE_DPAD_LEFT:
-                        safePrevItem();
-                        return true;
-                    case KeyEvent.KEYCODE_DPAD_RIGHT:
-                        safeNextItem();
-                        return true;
-                    case KeyEvent.KEYCODE_DPAD_UP:
-                        textScrollView.smoothScrollBy(0, -50);
-                        return true;
-                    case KeyEvent.KEYCODE_DPAD_DOWN:
-                        textScrollView.smoothScrollBy(0, 50);
-                        return true;
-                    case KeyEvent.KEYCODE_ENTER:
-                    case KeyEvent.KEYCODE_NUMPAD_ENTER:
-                        toggleAnswerVisibility();
-                        return true;
-                    case KeyEvent.KEYCODE_SPACE:
-                        // Permite o comportamento padrão (abrir menu)
-                        return false;
-                }
-            }
-            return super.onKeyDown(keyCode, event);
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                safePrevItem();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                safeNextItem();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_UP:
+                textScrollView.smoothScrollBy(0, -50);
+                return true;
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                textScrollView.smoothScrollBy(0, 50);
+                return true;
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_NUMPAD_ENTER:
+                toggleAnswerVisibility();
+                return true;
+            case KeyEvent.KEYCODE_SPACE:
+                // Permite o comportamento padrão (abrir menu)
+                return false;
         }
+        return super.onKeyDown(keyCode, event);
+    }
 
     private void setupCardInputBehavior() {
         currentCardInput.setOnClickListener(v -> enableEditing());
