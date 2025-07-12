@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -58,7 +59,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView searchInfo;
     private TextView fontSizeText;
     private CardView cardView;
-    private GestureDetector gestureDetector;
     
     // Data
     private List<QAItem> items = new ArrayList<>();
@@ -90,15 +90,11 @@ public class MainActivity extends AppCompatActivity {
         fontSizeText = findViewById(R.id.current_font_size);
         cardView = findViewById(R.id.card_view);
 
-        // Remove focus from input (cursor não pisca mais)
+        // Remove focus from input
         currentCardInput.clearFocus();
 
-        // Configure gestures
-        gestureDetector = new GestureDetector(this, new MyGestureListener());
-        cardView.setOnTouchListener((v, event) -> {
-            gestureDetector.onTouchEvent(event);
-            return true;
-        });
+        // Setup touch and gesture handlers
+        setupGestureDetectors();
 
         // Buttons
         Button menuButton = findViewById(R.id.menu_button);
@@ -170,97 +166,76 @@ public class MainActivity extends AppCompatActivity {
         updateFontSize();
     }
 
-    private class MyGestureListener extends GestureDetector.SimpleOnGestureListener {
-        private static final int SWIPE_THRESHOLD = 100;
-        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+    private void setupGestureDetectors() {
+        final View mainContent = findViewById(R.id.main_content_area);
+        final View footer = findViewById(R.id.card_footer);
 
-        @Override
-        public boolean onDown(MotionEvent e) {
-            return true;
-        }
-
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            View mainContent = findViewById(R.id.main_content_area);
-            Rect rect = new Rect();
-            mainContent.getGlobalVisibleRect(rect);
-            
-            View footer = findViewById(R.id.card_footer);
-            int footerTop = rect.bottom - footer.getHeight();
-            
-            if (e.getY() < footerTop && isQAMode && !menuVisible && !items.isEmpty()) {
-                toggleAnswerVisibility();
+        final GestureDetector gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onDown(MotionEvent e) {
                 return true;
             }
-            return false;
-        }
 
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            try {
-                float diffX = e2.getX() - e1.getX();
-                if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                    if (diffX > 0) {
-                        safePrevItem(); // Swipe para direita -> anterior
-                    } else {
-                        safeNextItem(); // Swipe para esquerda -> próximo
-                    }
+            @Override
+            public boolean onSingleTapConfirmed(MotionEvent e) {
+                // Verifica se o toque foi fora do footer
+                int[] footerLocation = new int[2];
+                footer.getLocationOnScreen(footerLocation);
+                Rect footerRect = new Rect(
+                    footerLocation[0],
+                    footerLocation[1],
+                    footerLocation[0] + footer.getWidth(),
+                    footerLocation[1] + footer.getHeight()
+                );
+
+                if (!footerRect.contains((int)e.getRawX(), (int)e.getRawY())) {
+                    toggleAnswerVisibility();
                     return true;
                 }
-            } catch (Exception exception) {
-                exception.printStackTrace();
+                return false;
             }
-            return false;
-        }
-    }
 
-    private void safePrevItem() {
-        try {
-            prevItem();
-        } catch (Exception e) {
-            showError("Erro ao navegar para o cartão anterior");
-        }
-    }
-    
-    private void safeNextItem() {
-        try {
-            nextItem();
-        } catch (Exception e) {
-            showError("Erro ao navegar para o próximo cartão");
-        }
-    }
-    
-    private void showError(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-    }
-    
-    private void validateAndUpdateCardNumber() {
-        try {
-            String input = currentCardInput.getText().toString().trim();
-            if (input.isEmpty()) {
-                currentCardInput.setText(String.valueOf(currentIndex + 1));
-                return;
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                final int SWIPE_THRESHOLD = 100;
+                final int SWIPE_VELOCITY_THRESHOLD = 100;
+                
+                try {
+                    float diffX = e2.getX() - e1.getX();
+                    if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                        if (diffX > 0) {
+                            safePrevItem(); // Swipe para direita
+                        } else {
+                            safeNextItem(); // Swipe para esquerda
+                        }
+                        return true;
+                    }
+                } catch (Exception exception) {
+                    exception.printStackTrace();
+                }
+                return false;
             }
-            
-            int num = Integer.parseInt(input);
-            if (num >= 1 && num <= items.size()) {
-                currentIndex = num - 1;
-                updateDisplay();
-                saveState();
-            } else {
-                currentCardInput.setText(String.valueOf(currentIndex + 1));
-                showError("Número de cartão inválido");
+        });
+
+        mainContent.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                
+                // Adiciona feedback visual ao tocar
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        cardView.animate().scaleX(0.98f).scaleY(0.98f).setDuration(100).start();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        cardView.animate().scaleX(1f).scaleY(1f).setDuration(100).start();
+                        break;
+                }
+                
+                return true;
             }
-        } catch (NumberFormatException e) {
-            currentCardInput.setText(String.valueOf(currentIndex + 1));
-            showError("Por favor insira um número válido");
-        }
-    }
-    
-    private void toggleMenu() {
-        menuVisible = !menuVisible;
-        menuLayout.setVisibility(menuVisible ? View.VISIBLE : View.GONE);
-        overlay.setVisibility(menuVisible ? View.VISIBLE : View.GONE);
+        });
     }
     
     private void toggleAnswerVisibility() {
