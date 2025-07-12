@@ -178,7 +178,6 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean onSingleTapConfirmed(MotionEvent e) {
-                // Verifica se o toque foi fora do footer
                 int[] footerLocation = new int[2];
                 footer.getLocationOnScreen(footerLocation);
                 Rect footerRect = new Rect(
@@ -204,9 +203,9 @@ public class MainActivity extends AppCompatActivity {
                     float diffX = e2.getX() - e1.getX();
                     if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                         if (diffX > 0) {
-                            safePrevItem(); // Swipe para direita
+                            safePrevItem();
                         } else {
-                            safeNextItem(); // Swipe para esquerda
+                            safeNextItem();
                         }
                         return true;
                     }
@@ -222,7 +221,6 @@ public class MainActivity extends AppCompatActivity {
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
                 
-                // Adiciona feedback visual ao tocar
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         cardView.animate().scaleX(0.98f).scaleY(0.98f).setDuration(100).start();
@@ -237,7 +235,66 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+    private void toggleMenu() {
+        menuVisible = !menuVisible;
+        menuLayout.setVisibility(menuVisible ? View.VISIBLE : View.GONE);
+        overlay.setVisibility(menuVisible ? View.VISIBLE : View.GONE);
+    }
+
+    private void safePrevItem() {
+        try {
+            prevItem();
+        } catch (Exception e) {
+            showError("Erro ao navegar para o cartão anterior");
+        }
+    }
     
+    private void safeNextItem() {
+        try {
+            nextItem();
+        } catch (Exception e) {
+            showError("Erro ao navegar para o próximo cartão");
+        }
+    }
+
+    private void prevItem() {
+        if (items.isEmpty()) return;
+        currentIndex = (currentIndex - 1 + items.size()) % items.size();
+        updateDisplay();
+        saveState();
+    }
+    
+    private void nextItem() {
+        if (items.isEmpty()) return;
+        currentIndex = (currentIndex + 1) % items.size();
+        updateDisplay();
+        saveState();
+    }
+
+    private void validateAndUpdateCardNumber() {
+        try {
+            String input = currentCardInput.getText().toString().trim();
+            if (input.isEmpty()) {
+                currentCardInput.setText(String.valueOf(currentIndex + 1));
+                return;
+            }
+            
+            int num = Integer.parseInt(input);
+            if (num >= 1 && num <= items.size()) {
+                currentIndex = num - 1;
+                updateDisplay();
+                saveState();
+            } else {
+                currentCardInput.setText(String.valueOf(currentIndex + 1));
+                showError("Número de cartão inválido");
+            }
+        } catch (NumberFormatException e) {
+            currentCardInput.setText(String.valueOf(currentIndex + 1));
+            showError("Por favor insira um número válido");
+        }
+    }
+
     private void toggleAnswerVisibility() {
         if (answerTextView.getVisibility() == View.VISIBLE) {
             answerTextView.setVisibility(View.GONE);
@@ -245,7 +302,7 @@ public class MainActivity extends AppCompatActivity {
             answerTextView.setVisibility(View.VISIBLE);
         }
     }
-    
+
     private void updateDisplay() {
         if (items.isEmpty()) {
             questionTextView.setText("Nenhum conteúdo carregado.");
@@ -256,7 +313,6 @@ public class MainActivity extends AppCompatActivity {
         }
         
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
-        
         QAItem currentItem = items.get(currentIndex);
         
         if (isQAMode) {
@@ -273,23 +329,12 @@ public class MainActivity extends AppCompatActivity {
         totalCardsText.setText("/ " + items.size());
     }
 
-    private void prevItem() {
-        if (items.isEmpty()) return;
-        currentIndex = (currentIndex - 1 + items.size()) % items.size();
-        updateDisplay();
-        saveState();
+    private void showError(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
-    
-    private void nextItem() {
-        if (items.isEmpty()) return;
-        currentIndex = (currentIndex + 1) % items.size();
-        updateDisplay();
-        saveState();
-    }
-    
+
     private void shuffleItems() {
         if (items.isEmpty()) return;
-        
         Collections.shuffle(items);
         currentIndex = 0;
         updateDisplay();
@@ -305,7 +350,7 @@ public class MainActivity extends AppCompatActivity {
         toggleMenu();
         saveState();
     }
-    
+
     private void increaseFontSize() {
         baseFontSize = Math.min(baseFontSize + 2, 32);
         updateFontSize();
@@ -325,7 +370,7 @@ public class MainActivity extends AppCompatActivity {
         totalCardsText.setTextSize(baseFontSize - 2);
         fontSizeText.setText(String.valueOf(baseFontSize));
     }
-    
+
     private void loadSampleData() {
         try {
             InputStream is = getAssets().open("sample_qa.txt");
@@ -449,7 +494,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
-        // Lê o conteúdo completo em bytes primeiro
         InputStream inputStream = getContentResolver().openInputStream(uri);
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         byte[] buffer = new byte[1024];
@@ -460,24 +504,17 @@ public class MainActivity extends AppCompatActivity {
         byte[] fileContentBytes = byteArrayOutputStream.toByteArray();
         inputStream.close();
 
-        // Tenta UTF-8 primeiro
         try {
             String content = new String(fileContentBytes, StandardCharsets.UTF_8);
             if (!hasInvalidUTF8Characters(content)) {
                 return content;
             }
-        } catch (Exception e) {
-            // Continua para próxima tentativa
-        }
+        } catch (Exception e) {}
 
-        // Tenta Windows-1252 (ANSI)
         try {
             return new String(fileContentBytes, "Windows-1252");
-        } catch (Exception e) {
-            // Continua para próxima tentativa
-        }
+        } catch (Exception e) {}
 
-        // Tenta ISO-8859-1 como último recurso
         return new String(fileContentBytes, StandardCharsets.ISO_8859_1);
     }
 
