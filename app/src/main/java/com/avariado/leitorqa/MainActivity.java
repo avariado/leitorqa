@@ -596,7 +596,7 @@ public class MainActivity extends AppCompatActivity {
                 
                 String[] parts = line.split("\t");
                 if (parts.length >= 2) {
-                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim());
+                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim()));
                 } else {
                     loadedOriginalItems.add(new QAItem(line.trim()));
                 }
