@@ -80,36 +80,9 @@ public class MainActivity extends AppCompatActivity {
     
     // Search
     private List<Integer> searchResults = new ArrayList<>();
-    private boolean isSwipe = false;
-    private float startX = 0;
-    private float startY = 0;
-    private static final int TOUCH_SLOP = 20;
     private int currentSearchIndex = -1;
     private String searchTerm = "";
 
-    private final GestureDetector.SimpleOnGestureListener gestureListener = 
-        new GestureDetector.SimpleOnGestureListener() {
-            @Override
-            public boolean onDown(MotionEvent e) {
-                return true; // 
-            }
-    
-            @Override
-            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                // Aumente a sensibilidade se necessário (ajuste o valor 100)
-                if (Math.abs(e1.getX() - e2.getX()) > 100 && 
-                    Math.abs(velocityX) > 50) { // Velocidade mínima
-                    if (e1.getX() > e2.getX()) { 
-                        safeNextItem(); // Swipe para esquerda
-                    } else {
-                        safePrevItem(); // Swipe para direita
-                    }
-                    return true;
-                }
-                return false;
-            }
-        };
-    
     // Gestures
     private GestureDetectorCompat gestureDetector;
 
@@ -117,7 +90,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        gestureDetector = new GestureDetectorCompat(this, gestureListener);
         
         // Initialize views
         questionTextView = findViewById(R.id.question_text);
@@ -134,7 +106,7 @@ public class MainActivity extends AppCompatActivity {
         textScrollView = findViewById(R.id.text_scroll_view);
         
         // Initialize gesture detector
-        gestureDetector = new GestureDetectorCompat(this, new GestureListener());
+        gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
         
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
@@ -149,24 +121,34 @@ public class MainActivity extends AppCompatActivity {
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
         
-        // Set up touch listeners for the main container and card view
-        
-        cardView.setOnTouchListener((v, event) -> {
-            gestureDetector.onTouchEvent(event);
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (!menuVisible) toggleAnswerVisibility(); // TOQUE SIMPLES
+        // Set up touch listeners
+        cardView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    if (!menuVisible) {
+                        toggleAnswerVisibility();
+                    }
+                }
+                return true;
             }
-            return true;
         });
         
-        textScrollView.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (!menuVisible) toggleAnswerVisibility(); // TOQUE no texto
+        textScrollView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    if (!menuVisible) {
+                        toggleAnswerVisibility();
+                    }
+                }
+                return false;
             }
-            return false; // Permite rolagem
         });
-        
-        new GestureDetectorCompat(this, gestureListener); // Inicializa detector de swipe
         
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
@@ -224,23 +206,29 @@ public class MainActivity extends AppCompatActivity {
         updateFontSize();
     }
 
-    private class GestureListener extends GestureDetector.SimpleOnGestureListener {
+    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
+        private static final int SWIPE_THRESHOLD = 100;
+        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+
         @Override
         public boolean onDown(MotionEvent e) {
             return true;
         }
-    
+
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            final int SWIPE_THRESHOLD = 100;
-            final int SWIPE_VELOCITY_THRESHOLD = 100;
-            
             float diffX = e2.getX() - e1.getX();
-            if (Math.abs(diffX) > SWIPE_THRESHOLD && 
+            float diffY = e2.getY() - e1.getY();
+            
+            if (Math.abs(diffX) > Math.abs(diffY) &&
+                Math.abs(diffX) > SWIPE_THRESHOLD && 
                 Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                
                 if (diffX > 0) {
+                    // Swipe right to left - previous
                     safePrevItem();
                 } else {
+                    // Swipe left to right - next
                     safeNextItem();
                 }
                 return true;
@@ -720,7 +708,6 @@ public class MainActivity extends AppCompatActivity {
             currentSearchIndex = 0;
             currentIndex = searchResults.get(currentSearchIndex);
             updateSearchInfo();
-            // Mostra a resposta se estiver em modo Q&A
             if (isQAMode) {
                 answerTextView.setVisibility(View.VISIBLE);
             }
@@ -736,7 +723,6 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = searchResults.get(currentSearchIndex);
         updateDisplay();
         updateSearchInfo();
-        // Mostra a resposta se estiver em modo Q&A
         if (isQAMode) {
             answerTextView.setVisibility(View.VISIBLE);
         }
@@ -749,7 +735,6 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = searchResults.get(currentSearchIndex);
         updateDisplay();
         updateSearchInfo();
-        // Mostra a resposta se estiver em modo Q&A
         if (isQAMode) {
             answerTextView.setVisibility(View.VISIBLE);
         }
@@ -839,6 +824,12 @@ public class MainActivity extends AppCompatActivity {
         } else {
             super.onBackPressed();
         }
+    }
+    
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        gestureDetector.onTouchEvent(event);
+        return super.onTouchEvent(event);
     }
     
     private static class QAItem {
