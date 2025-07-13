@@ -32,7 +32,7 @@ jobs:
         name: app-debug.apk
         path: app/build/outputs/apk/debug/app-debug.apk
 
-    - name: Generate Debug Keystore
+    - name: Generate and Place Keystore
       if: github.ref == 'refs/heads/main'
       run: |
         rm -f debug.keystore || true
@@ -46,12 +46,13 @@ jobs:
           -keysize 2048 \
           -validity 10000 \
           -dname "CN=Android Debug, O=Android, C=US"
-        ls -la debug.keystore
+        mkdir -p app
+        mv debug.keystore app/
 
     - name: Build Release APK
       if: github.ref == 'refs/heads/main'
       env:
-        KEYSTORE_FILE: debug.keystore
+        KEYSTORE_FILE: app/debug.keystore
         KEYSTORE_PASSWORD: android
         KEY_ALIAS: androiddebugkey
         KEY_PASSWORD: android
