@@ -17,7 +17,6 @@ import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -137,8 +136,12 @@ public class MainActivity extends AppCompatActivity {
         textScrollView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
+                // Permite apenas a rolagem vertical
+                if (event.getAction() == MotionEvent.ACTION_MOVE) {
+                    return false; // Permite que o ScrollView processe o movimento
+                }
                 gestureDetector.onTouchEvent(event);
-                return false; // Permite que o ScrollView ainda funcione
+                return false;
             }
         });
         
@@ -311,6 +314,11 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             float diffX = e2.getX() - e1.getX();
+            
+            // Ignora movimentos verticais - permite rolagem normal do texto
+            if (Math.abs(e2.getY() - e1.getY()) > SWIPE_THRESHOLD) {
+                return false;
+            }
             
             if (Math.abs(diffX) > SWIPE_THRESHOLD && 
                 Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
