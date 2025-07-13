@@ -4,20 +4,49 @@ plugins {
 
 android {
     namespace 'com.avariado.leitorqa'
-    compileSdk 33
+    compileSdk 34
+    buildToolsVersion "34.0.0"
 
     defaultConfig {
         applicationId "com.avariado.leitorqa"
         minSdk 21
-        targetSdk 33
+        targetSdk 34
         versionCode 1
         versionName "1.0"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file(System.getenv("KEYSTORE_FILE") ?: "debug.keystore")
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
+			keyAlias System.getenv("KEY_ALIAS") ?: "androiddebugkey"
+			keyPassword System.getenv("KEY_PASSWORD") ?: ""
+            enableV1Signing true
+            enableV2Signing true
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
+            shrinkResources false
+            zipAlignEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+
+    packagingOptions {
+        resources {
+            excludes += [
+                'META-INF/*.version',
+                'META-INF/com/android/build/gradle/app-metadata.properties',
+                'META-INF/services/**'
+            ]
+            pickFirsts += [
+                '**/resources.arsc',
+                'AndroidManifest.xml'
+            ]
         }
     }
 
