@@ -60,6 +60,11 @@ public class MainActivity extends AppCompatActivity {
     private static final String IS_QA_MODE_KEY = "isQAMode";
     private static final String FONT_SIZE_KEY = "fontSize";
 
+    private static final float QA_LINE_SPACING_EXTRA = 8f; // Espaçamento para modo Q&A
+    private static final float TEXT_LINE_SPACING_EXTRA = 4f; // Espaçamento para modo texto
+    private static final float QA_LINE_SPACING_MULTIPLIER = 1.2f;
+    private static final float TEXT_LINE_SPACING_MULTIPLIER = 1.1f;
+
     private TextView questionTextView;
     private TextView answerTextView;
     private EditText currentCardInput;
@@ -403,11 +408,18 @@ public class MainActivity extends AppCompatActivity {
             totalCardsText.setText("/ 0");
             return;
         }
-        
+    
+        // Ajusta o espaçamento conforme o modo atual
+        if (isQAMode) {
+            questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
+            answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
+        } else {
+            questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
+        }
+    
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
-        
         QAItem currentItem = items.get(currentIndex);
-        
+    
         if (isQAMode) {
             questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
             answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
@@ -417,7 +429,7 @@ public class MainActivity extends AppCompatActivity {
             answerTextView.setText("");
             answerTextView.setVisibility(View.GONE);
         }
-        
+    
         currentCardInput.setText(String.valueOf(currentIndex + 1));
         totalCardsText.setText("/ " + items.size());
     }
