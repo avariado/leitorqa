@@ -60,10 +60,10 @@ public class MainActivity extends AppCompatActivity {
     private static final String IS_QA_MODE_KEY = "isQAMode";
     private static final String FONT_SIZE_KEY = "fontSize";
 
-    private static final float QA_LINE_SPACING_EXTRA = 8f; // Espaçamento para modo Q&A
-    private static final float TEXT_LINE_SPACING_EXTRA = 4f; // Espaçamento para modo texto
-    private static final float QA_LINE_SPACING_MULTIPLIER = 1.2f;
-    private static final float TEXT_LINE_SPACING_MULTIPLIER = 1.1f;
+    private static final float QA_LINE_SPACING_EXTRA = 12f;   // Espaçamento maior para Q&A  
+    private static final float TEXT_LINE_SPACING_EXTRA = 8f;  // Espaçamento maior para texto  
+    private static final float QA_LINE_SPACING_MULTIPLIER = 1.4f;  
+    private static final float TEXT_LINE_SPACING_MULTIPLIER = 1.3f;
 
     private TextView questionTextView;
     private TextView answerTextView;
