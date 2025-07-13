@@ -35,18 +35,23 @@ jobs:
     - name: Generate Debug Keystore
       if: github.ref == 'refs/heads/main'
       run: |
-        rm -f debug.keystore || true  # Limpa resíduos anteriores
-        keytool -genkey -v -keystore ./debug.keystore \
-        -storepass android -alias androiddebugkey -keypass android \
-        -keyalg RSA -keysize 2048 -validity 10000 \
-        -dname "CN=Android Debug,O=Android,C=US"
-        # Mover para o diretório raiz do projeto (não para /app/)
-        mv debug.keystore ./
+        rm -f debug.keystore || true
+        keytool -genkeypair \
+          -v \
+          -keystore debug.keystore \
+          -storepass android \
+          -alias androiddebugkey \
+          -keypass android \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -dname "CN=Android Debug, O=Android, C=US"
+        ls -la debug.keystore
 
     - name: Build Release APK
       if: github.ref == 'refs/heads/main'
       env:
-        KEYSTORE_FILE: debug.keystore  # Agora no diretório raiz
+        KEYSTORE_FILE: debug.keystore
         KEYSTORE_PASSWORD: android
         KEY_ALIAS: androiddebugkey
         KEY_PASSWORD: android
