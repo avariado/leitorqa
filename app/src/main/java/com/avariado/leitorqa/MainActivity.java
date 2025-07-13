@@ -17,6 +17,7 @@ import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -227,7 +228,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     
-    // Adicione também este método para garantir que o evento seja tratado antes
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
