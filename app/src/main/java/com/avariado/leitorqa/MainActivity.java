@@ -137,12 +137,8 @@ public class MainActivity extends AppCompatActivity {
         textScrollView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                // Permite apenas a rolagem vertical
-                if (event.getAction() == MotionEvent.ACTION_MOVE) {
-                    return false; // Permite que o ScrollView processe o movimento
-                }
                 gestureDetector.onTouchEvent(event);
-                return false;
+                return false; // Permite que o ScrollView ainda funcione
             }
         });
         
@@ -228,6 +224,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     
+    // Adicione também este método para garantir que o evento seja tratado antes
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
@@ -298,6 +295,7 @@ public class MainActivity extends AppCompatActivity {
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+        private static final float SWIPE_ANGLE_THRESHOLD = 30; // degrees
     
         @Override
         public boolean onDown(MotionEvent e) {
@@ -314,23 +312,27 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             float diffX = e2.getX() - e1.getX();
+            float diffY = e2.getY() - e1.getY();
             
-            // Ignora movimentos verticais - permite rolagem normal do texto
-            if (Math.abs(e2.getY() - e1.getY()) > SWIPE_THRESHOLD) {
-                return false;
-            }
+            // Calculate the angle of the swipe (in degrees)
+            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
             
-            if (Math.abs(diffX) > SWIPE_THRESHOLD && 
-                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+            // Only consider horizontal swipes (ignore vertical swipes)
+            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
+                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
                 
-                if (diffX > 0) {
-                    // Swipe para direita - cartão anterior
-                    safePrevItem();
-                } else {
-                    // Swipe para esquerda - próximo cartão
-                    safeNextItem();
+                if (Math.abs(diffX) > SWIPE_THRESHOLD && 
+                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                    
+                    if (diffX > 0) {
+                        // Swipe para direita - cartão anterior
+                        safePrevItem();
+                    } else {
+                        // Swipe para esquerda - próximo cartão
+                        safeNextItem();
+                    }
+                    return true;
                 }
-                return true;
             }
             return false;
         }
