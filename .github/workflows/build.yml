@@ -23,25 +23,34 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x ./gradlew
 
-    - name: Build with Gradle
+    - name: Build Debug APK
       run: ./gradlew assembleDebug
 
-    - name: Upload APK
+    - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
         name: app-debug.apk
         path: app/build/outputs/apk/debug/app-debug.apk
 
-    - name: Build Release APK (optional)
+    - name: Generate Debug Keystore (for release builds)
+      if: github.ref == 'refs/heads/main'
+      run: |
+        keytool -genkey -v -keystore debug.keystore \
+        -storepass android -alias androiddebugkey -keypass android \
+        -keyalg RSA -keysize 2048 -validity 10000 \
+        -dname "CN=Android Debug,O=Android,C=US"
+        mv debug.keystore app/
+
+    - name: Build Release APK
       if: github.ref == 'refs/heads/main'
       env:
-        KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        KEYSTORE_FILE: app/debug.keystore
+        KEYSTORE_PASSWORD: android
+        KEY_ALIAS: androiddebugkey
+        KEY_PASSWORD: android
       run: ./gradlew assembleRelease
 
-    - name: Upload Release APK (optional)
+    - name: Upload Release APK
       if: github.ref == 'refs/heads/main'
       uses: actions/upload-artifact@v4
       with:
