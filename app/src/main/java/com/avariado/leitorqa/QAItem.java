@@ -3,120 +3,61 @@ package com.avariado.leitorqa;
 import java.util.regex.Pattern;
 
 public class QAItem {
-    private String rawLine;          // Linha original exatamente como foi importada
-    private String question;         // Pergunta (sem trim para preservar espaços)
-    private String answer;           // Resposta (sem trim para preservar espaços)
-    private String text;             // Texto normal (para modo não Q&A)
-    private String separator;        // Delimitador original (;;, ::, \t)
-    private boolean isSpaceBefore;   // Flag para espaço antes do delimitador
-    private boolean isSpaceAfter;    // Flag para espaço depois do delimitador
+    private final String rawLine;    // Linha original EXATA do arquivo
+    private String question;         // Pergunta (com espaços preservados)
+    private String answer;           // Resposta (com espaços preservados) 
+    private String text;             // Para modo não-Q&A
+    private final String separator;  // Delimitador original (;;, ::, \t)
+    private final boolean spaceBefore; // Espaço antes do separador?
+    private final boolean spaceAfter;  // Espaço depois do separador?
 
-    // Construtor para itens Q&A (com preservação de espaços)
+    // Construtor para Q&A (PRESERVA FORMATAÇÃO)
     public QAItem(String rawLine, String separator) {
         this.rawLine = rawLine;
         this.separator = separator;
         
-        // Detecta espaços ao redor do delimitador
-        String regex = "(.*?)(\\s*)" + Pattern.quote(separator) + "(\\s*)(.*)";
-        if (rawLine.matches(regex)) {
-            String[] parts = rawLine.split(regex);
-            this.isSpaceBefore = !parts[2].isEmpty();
-            this.isSpaceAfter = !parts[3].isEmpty();
-            
-            // Preserva os espaços originais
-            this.question = parts[1] + parts[2];
-            this.answer = parts[3] + parts[4];
-        } else {
-            // Fallback se o regex falhar
-            String[] parts = rawLine.split(Pattern.quote(separator));
-            this.question = parts.length > 0 ? parts[0] : "";
-            this.answer = parts.length > 1 ? parts[1] : "";
+        // Detecta espaços ao redor do separador
+        String[] parts = rawLine.split("\\s*" + Pattern.quote(separator) + "\\s*");
+        this.spaceBefore = rawLine.substring(0, rawLine.indexOf(separator)).matches(".*\\s$");
+        this.spaceAfter = rawLine.substring(rawLine.indexOf(separator) + separator.length()).matches("^\\s.*");
+        
+        if (parts.length >= 2) {
+            this.question = parts[0].trim();
+            this.answer = parts[1].trim();
         }
     }
 
     // Construtor para texto normal
     public QAItem(String text) {
-        this.text = text;
         this.rawLine = text;
+        this.text = text;
+        this.separator = null;
+        this.spaceBefore = false;
+        this.spaceAfter = false;
     }
 
-    // Método para reconstruir a linha exatamente como foi importada
+    // GETTERS (NUNCA FAZEM TRIM!)
+    public String getQuestion() { return question; }
+    public String getAnswer() { return answer; }
+    public String getText() { return text; }
+    public String getSeparator() { return separator; }
+    
+    // Retorna a linha ORIGINAL com espaços preservados
     public String getOriginalFormat() {
-        if (isQA()) {
-            StringBuilder sb = new StringBuilder();
-            sb.append(question != null ? question : "");
-            
-            if (isSpaceBefore) sb.append(" ");
-            sb.append(separator);
-            if (isSpaceAfter) sb.append(" ");
-            
-            sb.append(answer != null ? answer : "");
-            return sb.toString();
-        }
-        return rawLine != null ? rawLine : text;
+        return rawLine;
     }
 
-    // Getters
-    public String getQuestion() { 
-        return question != null ? question : ""; 
-    }
-    
-    public String getAnswer() { 
-        return answer != null ? answer : ""; 
-    }
-    
-    public String getText() { 
-        return text != null ? text : ""; 
-    }
-    
-    public String getSeparator() { 
-        return separator != null ? separator : ""; 
-    }
-    
-    public boolean hasSpaceBeforeSeparator() {
-        return isSpaceBefore;
-    }
-    
-    public boolean hasSpaceAfterSeparator() {
-        return isSpaceAfter;
-    }
-
-    // Verifica se é um item Q&A
+    // Verifica se é Q&A
     public boolean isQA() {
-        return question != null && answer != null && separator != null;
+        return question != null && answer != null;
     }
 
-    // Setters (com preservação de espaços)
-    public void setQuestion(String question) {
-        this.question = question;
-        updateRawLine();
-    }
-    
-    public void setAnswer(String answer) {
-        this.answer = answer;
-        updateRawLine();
-    }
-    
-    public void setSeparator(String separator) {
-        this.separator = separator;
-        updateRawLine();
-    }
-    
-    public void setText(String text) {
-        this.text = text;
-        this.rawLine = text;
-    }
-
-    // Atualiza a linha raw quando os dados mudam
-    private void updateRawLine() {
-        if (isQA()) {
-            this.rawLine = getOriginalFormat();
-        }
-    }
-
+    // DEBUG
     @Override
     public String toString() {
-        return isQA() ? "QAItem[" + getOriginalFormat() + "]" 
-                     : "TextItem[" + rawLine + "]";
+        return isQA() ? 
+            String.format("Q: '%s' %s '%s' (Original: '%s')", 
+                question, separator, answer, rawLine) :
+            "TEXT: '" + text + "'";
     }
 }
