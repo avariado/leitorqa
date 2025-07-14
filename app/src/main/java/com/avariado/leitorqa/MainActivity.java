@@ -952,10 +952,9 @@ private void exportFile(Uri uri) {
                 
                 String[] parts = line.split("\t");
                 if (parts.length >= 2) {
-                    // Usa o construtor de 2 parâmetros (backward compatibility)
                     loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim(), "\t", line));
                 } else {
-                    items.add(new QAItem(question, answer, "\n", question + "\n" + answer));
+                    loadedOriginalItems.add(new QAItem(line));
                 }
             }
             originalItems = loadedOriginalItems;
@@ -986,15 +985,23 @@ private void exportFile(Uri uri) {
         private String answer;
         private String text;
         private String separator;
+        private String originalLine;
         
         public QAItem(String text) {
             this.text = text;
+            this.originalLine = text;
         }
         
-        public QAItem(String question, String answer, String separator) {
+        public QAItem(String question, String answer, String separator, String originalLine) {
             this.question = question;
             this.answer = answer;
             this.separator = separator;
+            this.originalLine = originalLine;
+        }
+
+        public String getOriginalFormat() {
+            return originalLine != null ? originalLine : 
+            isQA() ? question + separator + answer : text;
         }
         
         public String getQuestion() {
