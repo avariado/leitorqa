@@ -522,16 +522,38 @@ public class MainActivity extends AppCompatActivity {
         items.clear();
         originalItems.clear();
         
+        // Check if this is a valid Q&A file (each line has exactly one sentence)
+        boolean isValidQAFile = true;
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
             
-            String separator = line.contains("\t") ? "\t" : ";;";
+            // Count sentence-ending punctuation marks
+            int punctuationCount = line.replaceAll("[^.!?]", "").length();
+            if (punctuationCount != 1) {
+                isValidQAFile = false;
+                break;
+            }
+        }
+        
+        if (!isValidQAFile) {
+            parseTextContent(text);
+            return;
+        }
+        
+        for (String line : lines) {
+            if (line.trim().isEmpty()) continue;
+            
+            // Preserve the original delimiter
+            String separator = line.contains("\t") ? "\t" : 
+                             line.contains(";;") ? ";;" : 
+                             line.contains("::") ? "::" : "\t";
+            
             String[] parts = line.split(separator);
             
             if (parts.length >= 2) {
                 String question = parts[0].trim();
                 String answer = parts[1].trim();
-                items.add(new QAItem(question, answer));
+                items.add(new QAItem(question, answer, separator));
             } else {
                 items.add(new QAItem(line.trim()));
             }
@@ -599,7 +621,8 @@ public class MainActivity extends AppCompatActivity {
                 String fileContent = readTextFileWithEncodingDetection(uri);
                 
                 if (requestCode == PICK_TXT_FILE) {
-                    if (fileContent.contains("\t") || fileContent.contains(";;")) {
+                    // First try to parse as Q&A if it contains any known delimiters
+                    if (fileContent.contains("\t") || fileContent.contains(";;") || fileContent.contains("::")) {
                         parseQAContent(fileContent);
                     } else {
                         parseTextContent(fileContent);
@@ -684,7 +707,9 @@ public class MainActivity extends AppCompatActivity {
         StringBuilder content = new StringBuilder();
         if (isQAMode) {
             for (QAItem item : items) {
-                content.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
+                // Use the original separator
+                String separator = item.getSeparator() != null ? item.getSeparator() : "\t";
+                content.append(item.getQuestion()).append(separator).append(item.getAnswer()).append("\n");
             }
         } else {
             for (QAItem item : items) {
@@ -713,7 +738,9 @@ public class MainActivity extends AppCompatActivity {
         StringBuilder content = new StringBuilder();
         if (isQAMode) {
             for (QAItem item : items) {
-                content.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
+                // Use the original separator
+                String separator = item.getSeparator() != null ? item.getSeparator() : "\t";
+                content.append(item.getQuestion()).append(separator).append(item.getAnswer()).append("\n");
             }
         } else {
             for (QAItem item : items) {
@@ -942,14 +969,16 @@ public class MainActivity extends AppCompatActivity {
         private String question;
         private String answer;
         private String text;
+        private String separator;
         
         public QAItem(String text) {
             this.text = text;
         }
         
-        public QAItem(String question, String answer) {
+        public QAItem(String question, String answer, String separator) {
             this.question = question;
             this.answer = answer;
+            this.separator = separator;
         }
         
         public String getQuestion() {
@@ -958,6 +987,10 @@ public class MainActivity extends AppCompatActivity {
         
         public String getAnswer() {
             return answer;
+        }
+
+        public String getSeparator() {
+        return separator;
         }
         
         public String getText() {
