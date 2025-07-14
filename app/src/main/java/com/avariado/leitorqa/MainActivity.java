@@ -525,24 +525,15 @@ public class MainActivity extends AppCompatActivity {
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
             
-            // Identifica o separador
-            String separator = line.contains("\t") ? "\t" : 
-                             line.contains(";;") ? ";;" : 
-                             line.contains("::") ? "::" : "\t";
-            
-            // Divide a linha
-            String[] parts = line.split(Pattern.quote(separator));
+            String separator = line.contains("\t") ? "\t" : ";;";
+            String[] parts = line.split(separator);
             
             if (parts.length >= 2) {
-                // Cria o item preservando a linha original
-                items.add(new QAItem(
-                    parts[0].trim(), 
-                    parts[1].trim(), 
-                    separator,
-                    line // Guarda a linha original
-                ));
+                String question = parts[0].trim();
+                String answer = parts[1].trim();
+                items.add(new QAItem(question, answer));
             } else {
-                items.add(new QAItem(line));
+                items.add(new QAItem(line.trim()));
             }
         }
         
@@ -608,10 +599,8 @@ public class MainActivity extends AppCompatActivity {
                 String fileContent = readTextFileWithEncodingDetection(uri);
                 
                 if (requestCode == PICK_TXT_FILE) {
-                    if (fileContent.contains("\t") || fileContent.contains(";;") || fileContent.contains("::")) {
+                    if (fileContent.contains("\t") || fileContent.contains(";;")) {
                         parseQAContent(fileContent);
-                    } else if (checkSingleSentences(fileContent)) {
-                        parseAlternatingLinesContent(fileContent);
                     } else {
                         parseTextContent(fileContent);
                     }
@@ -689,38 +678,31 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
     
-private void exportFile(Uri uri) {
-    if (items.isEmpty()) {
-        Toast.makeText(this, "Nenhum conteúdo para exportar!", Toast.LENGTH_SHORT).show();
-        return;
-    }
-    
-    StringBuilder content = new StringBuilder();
-    try {
-        OutputStream fos = getContentResolver().openOutputStream(uri);
+    private void exportFile(Uri uri) {
+        if (items.isEmpty()) return;
         
-        // Escreve UTF-8 BOM para garantir compatibilidade
-        fos.write(0xEF);
-        fos.write(0xBB);
-        fos.write(0xBF);
-        
-        for (QAItem item : items) {
-            // Linha formatada exatamente como originalmente
-            String line = item.getOriginalFormat();
-            
-            // Remove quaisquer quebras de linha existentes e adiciona uma padrão
-            line = line.replace("\n", "").replace("\r", "") + "\n";
-            
-            fos.write(line.getBytes(StandardCharsets.UTF_8));
+        StringBuilder content = new StringBuilder();
+        if (isQAMode) {
+            for (QAItem item : items) {
+                content.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
+            }
+        } else {
+            for (QAItem item : items) {
+                content.append(item.getText()).append("\n");
+            }
         }
         
-        fos.close();
-        Toast.makeText(this, "Ficheiro exportado com sucesso!", Toast.LENGTH_LONG).show();
-    } catch (IOException e) {
-        Toast.makeText(this, "Erro ao exportar: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        try {
+            OutputStream fos = getContentResolver().openOutputStream(uri);
+            fos.write(content.toString().getBytes());
+            fos.close();
+            
+            Toast.makeText(this, "Ficheiro exportado com sucesso!", Toast.LENGTH_LONG).show();
+        } catch (IOException e) {
+            Toast.makeText(this, "Erro ao exportar ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
-}
-
+    
     private void showEditDialog() {
         toggleMenu();
         
@@ -729,68 +711,44 @@ private void exportFile(Uri uri) {
         EditText contentEditor = dialogView.findViewById(R.id.content_editor);
         
         StringBuilder content = new StringBuilder();
-        for (QAItem item : items) {
-            content.append(item.getOriginalFormat()).append("\n");
+        if (isQAMode) {
+            for (QAItem item : items) {
+                content.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
+            }
+        } else {
+            for (QAItem item : items) {
+                content.append(item.getText()).append("\n");
+            }
         }
         contentEditor.setText(content.toString());
         
-        new AlertDialog.Builder(this)
-            .setView(dialogView)
-            .setTitle("Editar Conteúdo")
-            .setPositiveButton("Guardar", (dialog, which) -> {
-                String newContent = contentEditor.getText().toString();
-                if (!newContent.trim().isEmpty()) {
-                    processEditedContent(newContent);
-                    saveState();
-                } else {
-                    Toast.makeText(this, "Conteúdo não pode estar vazio", Toast.LENGTH_SHORT).show();
-                }
-            })
-            .setNegativeButton("Cancelar", null)
-            .show();
-    }
-    
-    private void processEditedContent(String content) {
-        if (content.trim().isEmpty()) {
-            Toast.makeText(this, "Conteúdo vazio!", Toast.LENGTH_SHORT).show();
-            return;
-        }
-    
-        // Verifica se o conteúdo editado mantém o formato Q&A
-        boolean hasQaFormat = content.contains("\t") || content.contains(";;") || content.contains("::");
-        
-        if (hasQaFormat) {
-            parseQAContent(content);
-        } else if (checkSingleSentences(content)) {
-            parseAlternatingLinesContent(content);
-        } else {
-            parseTextContent(content);
-        }
-        
-        updateDisplay();
-        saveState();
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        builder.setTitle("Editar Conteúdo");
+        builder.setPositiveButton("Guardar", (dialog, which) -> {
+            String text = contentEditor.getText().toString();
+            if (text.trim().isEmpty()) {
+                Toast.makeText(this, "O conteúdo não pode estar vazio!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            boolean hasTabs = text.contains("\t");
+            boolean hasDoubleSemicolon = text.contains(";;");
+            boolean isAlternatingLines = checkAlternatingLinesFormat(text);
+            
+            if (hasTabs || hasDoubleSemicolon) {
+                parseQAContent(text);
+            } else if (isAlternatingLines) {
+                parseAlternatingLinesContent(text);
+            } else {
+                parseTextContent(text);
+            }
+            
+            updateDisplay();
+            saveState();
         });
         builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
         builder.show();
-    }
-
-        private boolean checkSingleSentences(String text) {
-        String[] lines = text.split("\n");
-        int sentenceCount = 0;
-        
-        for (String line : lines) {
-            if (line.trim().isEmpty()) continue;
-            
-            // Verifica se a linha termina com pontuação de frase
-            if (line.matches(".*[.!?]\\s*$")) {
-                sentenceCount++;
-            } else {
-                return false; // Não é uma frase completa
-            }
-        }
-        
-        // Se todas as linhas são frases completas e número par, trata como Q&A
-        return (sentenceCount >= 2 && sentenceCount % 2 == 0);
     }
     
     private boolean checkAlternatingLinesFormat(String text) {
@@ -822,7 +780,7 @@ private void exportFile(Uri uri) {
         for (int i = 0; i < lines.length - 1; i += 2) {
             String question = lines[i].trim();
             String answer = lines[i + 1].trim();
-            items.add(new QAItem(question, answer, "\n"));
+            items.add(new QAItem(question, answer));
         }
         
         originalItems = new ArrayList<>(items);
@@ -952,9 +910,9 @@ private void exportFile(Uri uri) {
                 
                 String[] parts = line.split("\t");
                 if (parts.length >= 2) {
-                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim(), "\t", line));
+                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim()));
                 } else {
-                    loadedOriginalItems.add(new QAItem(line));
+                    loadedOriginalItems.add(new QAItem(line.trim()));
                 }
             }
             originalItems = loadedOriginalItems;
@@ -984,24 +942,14 @@ private void exportFile(Uri uri) {
         private String question;
         private String answer;
         private String text;
-        private String separator;
-        private String originalLine;
         
         public QAItem(String text) {
             this.text = text;
-            this.originalLine = text;
         }
         
-        public QAItem(String question, String answer, String separator, String originalLine) {
+        public QAItem(String question, String answer) {
             this.question = question;
             this.answer = answer;
-            this.separator = separator;
-            this.originalLine = originalLine;
-        }
-
-        public String getOriginalFormat() {
-            return originalLine != null ? originalLine : 
-            isQA() ? question + separator + answer : text;
         }
         
         public String getQuestion() {
@@ -1010,10 +958,6 @@ private void exportFile(Uri uri) {
         
         public String getAnswer() {
             return answer;
-        }
-
-        public String getSeparator() {
-        return separator;
         }
         
         public String getText() {
