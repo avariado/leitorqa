@@ -525,18 +525,20 @@ public class MainActivity extends AppCompatActivity {
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
             
-            // Determina o separador mantendo os espaços originais
+            // Identifica o separador mantendo a formatação original
             String separator = line.contains("\t") ? "\t" : 
                              line.contains(";;") ? ";;" : 
                              line.contains("::") ? "::" : "\t";
             
-            String[] parts = line.split(separator);
+            String[] parts = line.split(separator.equals("\t") ? "\t" : Pattern.quote(separator));
             
             if (parts.length >= 2) {
-                String question = parts[0].trim();
-                String answer = parts[1].trim();
-                // Usa o construtor com 3 parâmetros incluindo o separador
-                items.add(new QAItem(question, answer, separator));
+                // Usa SEMPRE o construtor de 3 parâmetros
+                items.add(new QAItem(
+                    parts[0].trim(), 
+                    parts[1].trim(), 
+                    separator // Preserva o separador original
+                ));
             } else {
                 items.add(new QAItem(line.trim()));
             }
@@ -920,7 +922,7 @@ public class MainActivity extends AppCompatActivity {
                 
                 String[] parts = line.split("\t");
                 if (parts.length >= 2) {
-                    // Usa o construtor com 2 parâmetros (separador padrão)
+                    // Usa o construtor de 2 parâmetros (backward compatibility)
                     loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim()));
                 } else {
                     loadedOriginalItems.add(new QAItem(line.trim()));
