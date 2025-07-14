@@ -525,16 +525,19 @@ public class MainActivity extends AppCompatActivity {
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
             
-            // Check which delimiter exists in the line
+            // Armazenar a linha original
+            String originalLine = line;
+            
+            // Determinar o separador
             String separator = line.contains("\t") ? "\t" : ";;";
             String[] parts = line.split(separator);
             
             if (parts.length >= 2) {
                 String question = parts[0].trim();
                 String answer = parts[1].trim();
-                items.add(new QAItem(question, answer));
+                items.add(new QAItem(question, answer, originalLine));
             } else {
-                items.add(new QAItem(line.trim()));
+                items.add(new QAItem(line.trim(), originalLine));
             }
         }
         
@@ -545,6 +548,9 @@ public class MainActivity extends AppCompatActivity {
     
     private void parseTextContent(String text) {
         if (text == null) return;
+        
+        // Armazenar o texto original completo
+        String originalText = text;
         
         String singleLine = text.replaceAll("[\\r\\n]+", " ")
                               .replaceAll("\\s+", " ")
@@ -567,16 +573,20 @@ public class MainActivity extends AppCompatActivity {
             } else if (currentSentence.length() + sentence.length() < 75) {
                 currentSentence.append(" ").append(sentence);
             } else {
-                processedItems.add(new QAItem(currentSentence.toString()));
+                processedItems.add(new QAItem(currentSentence.toString(), currentSentence.toString()));
                 currentSentence = new StringBuilder(sentence);
             }
         }
         
         if (currentSentence.length() > 0) {
-            processedItems.add(new QAItem(currentSentence.toString()));
+            processedItems.add(new QAItem(currentSentence.toString(), currentSentence.toString()));
         }
         
         items = processedItems;
+        // Para texto simples, armazenamos o conteúdo original completo
+        if (!processedItems.isEmpty()) {
+            processedItems.get(0).setOriginalLine(originalText);
+        }
         originalItems = new ArrayList<>(items);
         currentIndex = 0;
         isQAMode = false;
@@ -737,24 +747,24 @@ public class MainActivity extends AppCompatActivity {
         EditText contentEditor = dialogView.findViewById(R.id.content_editor);
         
         StringBuilder content = new StringBuilder();
+        
         if (isQAMode) {
-            // Find the original delimiter used in the first item
-            String delimiter = "\t"; // default
-            if (!originalItems.isEmpty() && originalItems.get(0).isQA()) {
-                String firstLine = originalItems.get(0).getQuestion() + originalItems.get(0).getAnswer();
-                if (firstLine.contains(";;")) {
-                    delimiter = ";;";
+            // Para modo Q&A, usamos as linhas originais
+            for (QAItem item : originalItems) {
+                if (item.isQA()) {
+                    content.append(item.getOriginalLine()).append("\n");
+                } else {
+                    content.append(item.getText()).append("\n");
                 }
             }
-            
-            for (QAItem item : items) {
-                content.append(item.getQuestion()).append(delimiter).append(item.getAnswer()).append("\n");
-            }
         } else {
-            for (QAItem item : items) {
-                content.append(item.getText()).append("\n");
+            // Para modo texto, juntamos tudo mantendo as quebras de linha originais
+            for (QAItem item : originalItems) {
+                content.append(item.getOriginalLine() != null ? 
+                              item.getOriginalLine() : item.getText()).append("\n");
             }
         }
+        
         contentEditor.setText(content.toString());
         
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -767,6 +777,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             
+            // Verificar o formato do conteúdo editado
             boolean hasTabs = text.contains("\t");
             boolean hasDoubleSemicolon = text.contains(";;");
             boolean isAlternatingLines = checkAlternatingLinesFormat(text);
@@ -815,7 +826,9 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < lines.length - 1; i += 2) {
             String question = lines[i].trim();
             String answer = lines[i + 1].trim();
-            items.add(new QAItem(question, answer));
+            // Armazenamos ambas as linhas originais juntas
+            String originalLines = lines[i] + "\n" + lines[i+1];
+            items.add(new QAItem(question, answer, originalLines));
         }
         
         originalItems = new ArrayList<>(items);
