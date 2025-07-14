@@ -729,27 +729,25 @@ private void exportFile(Uri uri) {
         EditText contentEditor = dialogView.findViewById(R.id.content_editor);
         
         StringBuilder content = new StringBuilder();
-        if (isQAMode) {
-            for (QAItem item : items) {
-                content.append(item.getOriginalFormat()).append("\n");
-            }
-        } else {
-            for (QAItem item : items) {
-                content.append(item.getOriginalFormat()).append("\n");
-            }
+        for (QAItem item : items) {
+            content.append(item.getOriginalFormat()).append("\n");
         }
         contentEditor.setText(content.toString());
         
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setView(dialogView)
-               .setTitle("Editar Conteúdo")
-               .setPositiveButton("Guardar", (dialog, which) -> {
-                   String newContent = contentEditor.getText().toString();
-                   processEditedContent(newContent);
-                   saveState();
-               })
-               .setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss())
-               .show();
+        new AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setTitle("Editar Conteúdo")
+            .setPositiveButton("Guardar", (dialog, which) -> {
+                String newContent = contentEditor.getText().toString();
+                if (!newContent.trim().isEmpty()) {
+                    processEditedContent(newContent);
+                    saveState();
+                } else {
+                    Toast.makeText(this, "Conteúdo não pode estar vazio", Toast.LENGTH_SHORT).show();
+                }
+            })
+            .setNegativeButton("Cancelar", null)
+            .show();
     }
     
     private void processEditedContent(String content) {
