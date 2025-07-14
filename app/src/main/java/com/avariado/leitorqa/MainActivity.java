@@ -525,19 +525,30 @@ public class MainActivity extends AppCompatActivity {
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
             
-            // Identifica o separador mantendo a formatação original
-            String separator = line.contains("\t") ? "\t" : 
-                             line.contains(";;") ? ";;" : 
-                             line.contains("::") ? "::" : "\t";
+            // Identifica o delimitador mantendo a formatação original
+            String separator;
+            if (line.contains("\t")) {
+                separator = "\t";
+            } else if (line.contains(";;")) {
+                // Encontra a posição exata do delimitador
+                int idx = line.indexOf(";;");
+                separator = line.substring(idx, idx+2); // Pega ";;" com espaços se existirem
+            } else if (line.contains("::")) {
+                int idx = line.indexOf("::");
+                separator = line.substring(idx, idx+2); // Pega "::" com espaços se existirem
+            } else {
+                separator = "\t";
+            }
             
+            // Divide mantendo os espaços originais
             String[] parts = line.split(separator.equals("\t") ? "\t" : Pattern.quote(separator));
             
             if (parts.length >= 2) {
-                // Usa SEMPRE o construtor de 3 parâmetros
+                // Preserva os espaços originais no delimitador
                 items.add(new QAItem(
                     parts[0].trim(), 
                     parts[1].trim(), 
-                    separator // Preserva o separador original
+                    separator // Mantém o delimitador exatamente como está no arquivo
                 ));
             } else {
                 items.add(new QAItem(line.trim()));
@@ -606,9 +617,10 @@ public class MainActivity extends AppCompatActivity {
                 String fileContent = readTextFileWithEncodingDetection(uri);
                 
                 if (requestCode == PICK_TXT_FILE) {
-                    // First try to parse as Q&A if it contains any known delimiters
                     if (fileContent.contains("\t") || fileContent.contains(";;") || fileContent.contains("::")) {
                         parseQAContent(fileContent);
+                    } else if (checkSingleSentences(fileContent)) {
+                        parseAlternatingLinesContent(fileContent);
                     } else {
                         parseTextContent(fileContent);
                     }
@@ -692,9 +704,12 @@ public class MainActivity extends AppCompatActivity {
         StringBuilder content = new StringBuilder();
         if (isQAMode) {
             for (QAItem item : items) {
-                // Usa o separador original ou tab por padrão
+                // Usa o separador original exatamente como foi importado
                 String separator = item.getSeparator() != null ? item.getSeparator() : "\t";
-                content.append(item.getQuestion()).append(separator).append(item.getAnswer()).append("\n");
+                content.append(item.getQuestion())
+                      .append(separator) // Mantém a formatação original
+                      .append(item.getAnswer())
+                      .append("\n");
             }
         } else {
             for (QAItem item : items) {
@@ -723,9 +738,12 @@ public class MainActivity extends AppCompatActivity {
         StringBuilder content = new StringBuilder();
         if (isQAMode) {
             for (QAItem item : items) {
-                // Use the original separator
+                // Usa o separador original com formatação preservada
                 String separator = item.getSeparator() != null ? item.getSeparator() : "\t";
-                content.append(item.getQuestion()).append(separator).append(item.getAnswer()).append("\n");
+                content.append(item.getQuestion())
+                      .append(separator) // Mantém espaços se existirem
+                      .append(item.getAnswer())
+                      .append("\n");
             }
         } else {
             for (QAItem item : items) {
@@ -761,6 +779,25 @@ public class MainActivity extends AppCompatActivity {
         });
         builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
         builder.show();
+    }
+
+        private boolean checkSingleSentences(String text) {
+        String[] lines = text.split("\n");
+        int sentenceCount = 0;
+        
+        for (String line : lines) {
+            if (line.trim().isEmpty()) continue;
+            
+            // Verifica se a linha termina com pontuação de frase
+            if (line.matches(".*[.!?]\\s*$")) {
+                sentenceCount++;
+            } else {
+                return false; // Não é uma frase completa
+            }
+        }
+        
+        // Se todas as linhas são frases completas e número par, trata como Q&A
+        return (sentenceCount >= 2 && sentenceCount % 2 == 0);
     }
     
     private boolean checkAlternatingLinesFormat(String text) {
