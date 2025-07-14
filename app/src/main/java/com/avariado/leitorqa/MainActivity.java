@@ -60,8 +60,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String IS_QA_MODE_KEY = "isQAMode";
     private static final String FONT_SIZE_KEY = "fontSize";
 
-    private static final float QA_LINE_SPACING_EXTRA = 10f;    // Espaçamento para Q&A
-    private static final float TEXT_LINE_SPACING_EXTRA = 6f;   // Espaçamento para texto
+    private static final float QA_LINE_SPACING_EXTRA = 10f;
+    private static final float TEXT_LINE_SPACING_EXTRA = 6f;
     private static final float QA_LINE_SPACING_MULTIPLIER = 1.3f;
     private static final float TEXT_LINE_SPACING_MULTIPLIER = 1.2f;
 
@@ -124,7 +124,6 @@ public class MainActivity extends AppCompatActivity {
         Button searchPrevButton = findViewById(R.id.search_prev_button);
         Button searchNextButton = findViewById(R.id.search_next_button);
         
-        // Configuração do input do cartão
         currentCardInput.setFocusable(false);
         currentCardInput.setFocusableInTouchMode(false);
         currentCardInput.setCursorVisible(false);
@@ -143,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
-                return false; // Permite que o ScrollView ainda funcione
+                return false;
             }
         });
         
@@ -200,7 +199,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        // Se estiver editando o número do cartão
         if (currentCardInput.hasFocus()) {
             if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
                 finishEditing();
@@ -209,7 +207,6 @@ public class MainActivity extends AppCompatActivity {
             return super.onKeyDown(keyCode, event);
         }
     
-        // Comportamento quando não está editando
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 safePrevItem();
@@ -220,16 +217,15 @@ public class MainActivity extends AppCompatActivity {
             case KeyEvent.KEYCODE_ENTER:
             case KeyEvent.KEYCODE_NUMPAD_ENTER:
                 toggleAnswerVisibility();
-                return true; // Consome o evento
+                return true;
             case KeyEvent.KEYCODE_SPACE:
                 toggleMenu();
-                return true; // Consome o evento
+                return true;
             default:
                 return super.onKeyDown(keyCode, event);
         }
     }
     
-    // Adicione também este método para garantir que o evento seja tratado antes
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
@@ -300,7 +296,7 @@ public class MainActivity extends AppCompatActivity {
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-        private static final float SWIPE_ANGLE_THRESHOLD = 30; // degrees
+        private static final float SWIPE_ANGLE_THRESHOLD = 30;
     
         @Override
         public boolean onDown(MotionEvent e) {
@@ -309,7 +305,6 @@ public class MainActivity extends AppCompatActivity {
     
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
-            // Toque simples - mostra/oculta respostas
             toggleAnswerVisibility();
             return true;
         }
@@ -319,10 +314,8 @@ public class MainActivity extends AppCompatActivity {
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
             
-            // Calculate the angle of the swipe (in degrees)
             float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
             
-            // Only consider horizontal swipes (ignore vertical swipes)
             if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
                 Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
                 
@@ -330,10 +323,8 @@ public class MainActivity extends AppCompatActivity {
                     Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                     
                     if (diffX > 0) {
-                        // Swipe para direita - cartão anterior
                         safePrevItem();
                     } else {
-                        // Swipe para esquerda - próximo cartão
                         safeNextItem();
                     }
                     return true;
@@ -409,7 +400,6 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
     
-        // Ajusta o espaçamento conforme o modo atual
         if (isQAMode) {
             questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
             answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
@@ -525,19 +515,15 @@ public class MainActivity extends AppCompatActivity {
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
             
-            // Armazenar a linha original
-            String originalLine = line;
-            
-            // Determinar o separador
             String separator = line.contains("\t") ? "\t" : ";;";
             String[] parts = line.split(separator);
             
             if (parts.length >= 2) {
                 String question = parts[0].trim();
                 String answer = parts[1].trim();
-                items.add(new QAItem(question, answer, originalLine));
+                items.add(new QAItem(question, answer, line));
             } else {
-                items.add(new QAItem(line.trim(), originalLine));
+                items.add(new QAItem(line.trim(), line));
             }
         }
         
@@ -546,10 +532,18 @@ public class MainActivity extends AppCompatActivity {
         isQAMode = !items.isEmpty() && items.get(0).isQA();
     }
     
+    private boolean isSingleSentence(String line) {
+        if (line == null || line.trim().isEmpty()) return false;
+        
+        int punctuationCount = line.replaceAll("[^.!?]", "").length();
+        
+        return punctuationCount == 1 && 
+               (line.endsWith(".") || line.endsWith("!") || line.endsWith("?"));
+    }
+    
     private void parseTextContent(String text) {
         if (text == null) return;
         
-        // Armazenar o texto original completo
         String originalText = text;
         
         String singleLine = text.replaceAll("[\\r\\n]+", " ")
@@ -583,7 +577,6 @@ public class MainActivity extends AppCompatActivity {
         }
         
         items = processedItems;
-        // Para texto simples, armazenamos o conteúdo original completo
         if (!processedItems.isEmpty()) {
             processedItems.get(0).setOriginalLine(originalText);
         }
@@ -610,7 +603,6 @@ public class MainActivity extends AppCompatActivity {
                 String fileContent = readTextFileWithEncodingDetection(uri);
                 
                 if (requestCode == PICK_TXT_FILE) {
-                    // Check if file is in alternating Q&A format (single sentences)
                     boolean isAlternatingQa = true;
                     String[] lines = fileContent.split("\n");
                     for (int i = 0; i < lines.length; i++) {
@@ -672,17 +664,6 @@ public class MainActivity extends AppCompatActivity {
     private boolean hasInvalidUTF8Characters(String content) {
         return content.contains("�");
     }
-
-    private boolean isSingleSentence(String line) {
-    if (line == null || line.trim().isEmpty()) return false;
-    
-    // Count sentence-ending punctuation marks
-    int punctuationCount = line.replaceAll("[^.!?]", "").length();
-    
-    // If there's exactly one punctuation mark at the end, it's a single sentence
-    return punctuationCount == 1 && 
-           (line.endsWith(".") || line.endsWith("!") || line.endsWith("?"));
-    }
     
     private void showExportDialog() {
         toggleMenu();
@@ -720,11 +701,11 @@ public class MainActivity extends AppCompatActivity {
         StringBuilder content = new StringBuilder();
         if (isQAMode) {
             for (QAItem item : items) {
-                content.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
+                content.append(item.getOriginalLine()).append("\n");
             }
         } else {
             for (QAItem item : items) {
-                content.append(item.getText()).append("\n");
+                content.append(item.getOriginalLine() != null ? item.getOriginalLine() : item.getText()).append("\n");
             }
         }
         
@@ -749,7 +730,6 @@ public class MainActivity extends AppCompatActivity {
         StringBuilder content = new StringBuilder();
         
         if (isQAMode) {
-            // Para modo Q&A, usamos as linhas originais
             for (QAItem item : originalItems) {
                 if (item.isQA()) {
                     content.append(item.getOriginalLine()).append("\n");
@@ -758,7 +738,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         } else {
-            // Para modo texto, juntamos tudo mantendo as quebras de linha originais
             for (QAItem item : originalItems) {
                 content.append(item.getOriginalLine() != null ? 
                               item.getOriginalLine() : item.getText()).append("\n");
@@ -777,7 +756,6 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             
-            // Verificar o formato do conteúdo editado
             boolean hasTabs = text.contains("\t");
             boolean hasDoubleSemicolon = text.contains(";;");
             boolean isAlternatingLines = checkAlternatingLinesFormat(text);
@@ -826,7 +804,6 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < lines.length - 1; i += 2) {
             String question = lines[i].trim();
             String answer = lines[i + 1].trim();
-            // Armazenamos ambas as linhas originais juntas
             String originalLines = lines[i] + "\n" + lines[i+1];
             items.add(new QAItem(question, answer, originalLines));
         }
@@ -958,9 +935,9 @@ public class MainActivity extends AppCompatActivity {
                 
                 String[] parts = line.split("\t");
                 if (parts.length >= 2) {
-                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim()));
+                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim(), line));
                 } else {
-                    loadedOriginalItems.add(new QAItem(line.trim()));
+                    loadedOriginalItems.add(new QAItem(line.trim(), line));
                 }
             }
             originalItems = loadedOriginalItems;
@@ -984,40 +961,5 @@ public class MainActivity extends AppCompatActivity {
     public boolean onTouchEvent(MotionEvent event) {
         gestureDetector.onTouchEvent(event);
         return super.onTouchEvent(event);
-    }
-    
-    private static class QAItem {
-        private String question;
-        private String answer;
-        private String text;
-        
-        public QAItem(String text) {
-            this.text = text;
-        }
-        
-        public QAItem(String question, String answer) {
-            this.question = question;
-            this.answer = answer;
-        }
-        
-        public String getQuestion() {
-            return question;
-        }
-        
-        public String getAnswer() {
-            return answer;
-        }
-        
-        public String getText() {
-            return text;
-        }
-        
-        public void setText(String text) {
-            this.text = text;
-        }
-        
-        public boolean isQA() {
-            return question != null && answer != null;
-        }
     }
 }
