@@ -525,20 +525,25 @@ public class MainActivity extends AppCompatActivity {
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
             
-            // Identifica o separador mantendo a formatação
-            String separator;
-            if (line.contains("\t")) {
-                separator = "\t";
-            } else if (line.contains(";;")) {
-                separator = ";;";
-            } else if (line.contains("::")) {
-                separator = "::";
-            } else {
-                separator = "\t";
-            }
+            // Identifica o separador
+            String separator = line.contains("\t") ? "\t" : 
+                             line.contains(";;") ? ";;" : 
+                             line.contains("::") ? "::" : "\t";
             
-            // Cria o item preservando a linha original
-            items.add(new QAItem(line, separator));
+            // Divide a linha
+            String[] parts = line.split(Pattern.quote(separator));
+            
+            if (parts.length >= 2) {
+                // Cria o item preservando a linha original
+                items.add(new QAItem(
+                    parts[0].trim(), 
+                    parts[1].trim(), 
+                    separator,
+                    line // Guarda a linha original
+                ));
+            } else {
+                items.add(new QAItem(line));
+            }
         }
         
         originalItems = new ArrayList<>(items);
@@ -685,31 +690,37 @@ public class MainActivity extends AppCompatActivity {
     }
     
 private void exportFile(Uri uri) {
-    if (items.isEmpty()) return;
+    if (items.isEmpty()) {
+        Toast.makeText(this, "Nenhum conteúdo para exportar!", Toast.LENGTH_SHORT).show();
+        return;
+    }
     
     StringBuilder content = new StringBuilder();
-    if (isQAMode) {
-        for (QAItem item : items) {
-            // Usa a formatação original
-            content.append(item.getOriginalFormat()).append("\n");
-        }
-    } else {
-        for (QAItem item : items) {
-            content.append(item.getOriginalFormat()).append("\n");
-        }
-    }
-    
     try {
         OutputStream fos = getContentResolver().openOutputStream(uri);
-        fos.write(content.toString().getBytes());
-        fos.close();
         
+        // Escreve UTF-8 BOM para garantir compatibilidade
+        fos.write(0xEF);
+        fos.write(0xBB);
+        fos.write(0xBF);
+        
+        for (QAItem item : items) {
+            // Linha formatada exatamente como originalmente
+            String line = item.getOriginalFormat();
+            
+            // Remove quaisquer quebras de linha existentes e adiciona uma padrão
+            line = line.replace("\n", "").replace("\r", "") + "\n";
+            
+            fos.write(line.getBytes(StandardCharsets.UTF_8));
+        }
+        
+        fos.close();
         Toast.makeText(this, "Ficheiro exportado com sucesso!", Toast.LENGTH_LONG).show();
     } catch (IOException e) {
-        Toast.makeText(this, "Erro ao exportar ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Erro ao exportar: " + e.getMessage(), Toast.LENGTH_LONG).show();
     }
 }
-    
+
     private void showEditDialog() {
         toggleMenu();
         
@@ -718,42 +729,47 @@ private void exportFile(Uri uri) {
         EditText contentEditor = dialogView.findViewById(R.id.content_editor);
         
         StringBuilder content = new StringBuilder();
-        if (isQAMode) {
-            for (QAItem item : items) {
-                // Usa a formatação original
-                content.append(item.getOriginalFormat()).append("\n");
-            }
-        } else {
-            for (QAItem item : items) {
-                content.append(item.getOriginalFormat()).append("\n");
-            }
+        for (QAItem item : items) {
+            // Preserva exatamente a formatação original
+            String line = item.getOriginalFormat();
+            
+            // Garante que cada item está em sua própria linha
+            content.append(line.trim()).append("\n");
         }
+        
         contentEditor.setText(content.toString());
         
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setView(dialogView);
-        builder.setTitle("Editar Conteúdo");
-        builder.setPositiveButton("Guardar", (dialog, which) -> {
-            String text = contentEditor.getText().toString();
-            if (text.trim().isEmpty()) {
-                Toast.makeText(this, "O conteúdo não pode estar vazio!", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            
-            boolean hasTabs = text.contains("\t");
-            boolean hasDoubleSemicolon = text.contains(";;");
-            boolean isAlternatingLines = checkAlternatingLinesFormat(text);
-            
-            if (hasTabs || hasDoubleSemicolon) {
-                parseQAContent(text);
-            } else if (isAlternatingLines) {
-                parseAlternatingLinesContent(text);
-            } else {
-                parseTextContent(text);
-            }
-            
-            updateDisplay();
-            saveState();
+        builder.setView(dialogView)
+               .setTitle("Editar Conteúdo")
+               .setPositiveButton("Guardar", (dialog, which) -> {
+                   String newContent = contentEditor.getText().toString();
+                   // Processa o conteúdo editado
+                   processEditedContent(newContent);
+               })
+               .setNegativeButton("Cancelar", null)
+               .show();
+    }
+    
+    private void processEditedContent(String content) {
+        if (content.trim().isEmpty()) {
+            Toast.makeText(this, "Conteúdo vazio!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+    
+        // Verifica se o conteúdo editado mantém o formato Q&A
+        boolean hasQaFormat = content.contains("\t") || content.contains(";;") || content.contains("::");
+        
+        if (hasQaFormat) {
+            parseQAContent(content);
+        } else if (checkSingleSentences(content)) {
+            parseAlternatingLinesContent(content);
+        } else {
+            parseTextContent(content);
+        }
+        
+        updateDisplay();
+        saveState();
         });
         builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
         builder.show();
@@ -938,9 +954,9 @@ private void exportFile(Uri uri) {
                 String[] parts = line.split("\t");
                 if (parts.length >= 2) {
                     // Usa o construtor de 2 parâmetros (backward compatibility)
-                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim(), "\t"));
+                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim(), "\t", line));
                 } else {
-                    loadedOriginalItems.add(new QAItem(line.trim()));
+                    items.add(new QAItem(question, answer, "\n", question + "\n" + answer));
                 }
             }
             originalItems = loadedOriginalItems;
