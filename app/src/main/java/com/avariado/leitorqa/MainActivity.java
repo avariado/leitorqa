@@ -525,6 +525,7 @@ public class MainActivity extends AppCompatActivity {
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
             
+            // Check which delimiter exists in the line
             String separator = line.contains("\t") ? "\t" : ";;";
             String[] parts = line.split(separator);
             
@@ -599,11 +600,25 @@ public class MainActivity extends AppCompatActivity {
                 String fileContent = readTextFileWithEncodingDetection(uri);
                 
                 if (requestCode == PICK_TXT_FILE) {
-                    if (fileContent.contains("\t") || fileContent.contains(";;")) {
+                    // Check if file is in alternating Q&A format (single sentences)
+                    boolean isAlternatingQa = true;
+                    String[] lines = fileContent.split("\n");
+                    for (int i = 0; i < lines.length; i++) {
+                        String line = lines[i].trim();
+                        if (!line.isEmpty() && !isSingleSentence(line)) {
+                            isAlternatingQa = false;
+                            break;
+                        }
+                    }
+                    
+                    if (isAlternatingQa && lines.length >= 2 && lines.length % 2 == 0) {
+                        parseAlternatingLinesContent(fileContent);
+                    } else if (fileContent.contains("\t") || fileContent.contains(";;")) {
                         parseQAContent(fileContent);
                     } else {
                         parseTextContent(fileContent);
                     }
+                    
                     updateDisplay();
                     saveState();
                     Toast.makeText(this, "Ficheiro importado com sucesso!", Toast.LENGTH_SHORT).show();
@@ -646,6 +661,17 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean hasInvalidUTF8Characters(String content) {
         return content.contains("�");
+    }
+
+    private boolean isSingleSentence(String line) {
+    if (line == null || line.trim().isEmpty()) return false;
+    
+    // Count sentence-ending punctuation marks
+    int punctuationCount = line.replaceAll("[^.!?]", "").length();
+    
+    // If there's exactly one punctuation mark at the end, it's a single sentence
+    return punctuationCount == 1 && 
+           (line.endsWith(".") || line.endsWith("!") || line.endsWith("?"));
     }
     
     private void showExportDialog() {
@@ -712,8 +738,17 @@ public class MainActivity extends AppCompatActivity {
         
         StringBuilder content = new StringBuilder();
         if (isQAMode) {
+            // Find the original delimiter used in the first item
+            String delimiter = "\t"; // default
+            if (!originalItems.isEmpty() && originalItems.get(0).isQA()) {
+                String firstLine = originalItems.get(0).getQuestion() + originalItems.get(0).getAnswer();
+                if (firstLine.contains(";;")) {
+                    delimiter = ";;";
+                }
+            }
+            
             for (QAItem item : items) {
-                content.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
+                content.append(item.getQuestion()).append(delimiter).append(item.getAnswer()).append("\n");
             }
         } else {
             for (QAItem item : items) {
