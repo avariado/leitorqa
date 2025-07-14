@@ -525,34 +525,20 @@ public class MainActivity extends AppCompatActivity {
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
             
-            // Identifica o delimitador mantendo a formatação original
+            // Identifica o separador mantendo a formatação
             String separator;
             if (line.contains("\t")) {
                 separator = "\t";
             } else if (line.contains(";;")) {
-                // Encontra a posição exata do delimitador
-                int idx = line.indexOf(";;");
-                separator = line.substring(idx, idx+2); // Pega ";;" com espaços se existirem
+                separator = ";;";
             } else if (line.contains("::")) {
-                int idx = line.indexOf("::");
-                separator = line.substring(idx, idx+2); // Pega "::" com espaços se existirem
+                separator = "::";
             } else {
                 separator = "\t";
             }
             
-            // Divide mantendo os espaços originais
-            String[] parts = line.split(separator.equals("\t") ? "\t" : Pattern.quote(separator));
-            
-            if (parts.length >= 2) {
-                // Preserva os espaços originais no delimitador
-                items.add(new QAItem(
-                    parts[0].trim(), 
-                    parts[1].trim(), 
-                    separator // Mantém o delimitador exatamente como está no arquivo
-                ));
-            } else {
-                items.add(new QAItem(line.trim()));
-            }
+            // Cria o item preservando a linha original
+            items.add(new QAItem(line, separator));
         }
         
         originalItems = new ArrayList<>(items);
@@ -698,35 +684,31 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
     
-    private void exportFile(Uri uri) {
-        if (items.isEmpty()) return;
-        
-        StringBuilder content = new StringBuilder();
-        if (isQAMode) {
-            for (QAItem item : items) {
-                // Usa o separador original exatamente como foi importado
-                String separator = item.getSeparator() != null ? item.getSeparator() : "\t";
-                content.append(item.getQuestion())
-                      .append(separator) // Mantém a formatação original
-                      .append(item.getAnswer())
-                      .append("\n");
-            }
-        } else {
-            for (QAItem item : items) {
-                content.append(item.getText()).append("\n");
-            }
+private void exportFile(Uri uri) {
+    if (items.isEmpty()) return;
+    
+    StringBuilder content = new StringBuilder();
+    if (isQAMode) {
+        for (QAItem item : items) {
+            // Usa a formatação original
+            content.append(item.getOriginalFormat()).append("\n");
         }
-        
-        try {
-            OutputStream fos = getContentResolver().openOutputStream(uri);
-            fos.write(content.toString().getBytes());
-            fos.close();
-            
-            Toast.makeText(this, "Ficheiro exportado com sucesso!", Toast.LENGTH_LONG).show();
-        } catch (IOException e) {
-            Toast.makeText(this, "Erro ao exportar ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+    } else {
+        for (QAItem item : items) {
+            content.append(item.getOriginalFormat()).append("\n");
         }
     }
+    
+    try {
+        OutputStream fos = getContentResolver().openOutputStream(uri);
+        fos.write(content.toString().getBytes());
+        fos.close();
+        
+        Toast.makeText(this, "Ficheiro exportado com sucesso!", Toast.LENGTH_LONG).show();
+    } catch (IOException e) {
+        Toast.makeText(this, "Erro ao exportar ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+    }
+}
     
     private void showEditDialog() {
         toggleMenu();
@@ -738,16 +720,12 @@ public class MainActivity extends AppCompatActivity {
         StringBuilder content = new StringBuilder();
         if (isQAMode) {
             for (QAItem item : items) {
-                // Usa o separador original com formatação preservada
-                String separator = item.getSeparator() != null ? item.getSeparator() : "\t";
-                content.append(item.getQuestion())
-                      .append(separator) // Mantém espaços se existirem
-                      .append(item.getAnswer())
-                      .append("\n");
+                // Usa a formatação original
+                content.append(item.getOriginalFormat()).append("\n");
             }
         } else {
             for (QAItem item : items) {
-                content.append(item.getText()).append("\n");
+                content.append(item.getOriginalFormat()).append("\n");
             }
         }
         contentEditor.setText(content.toString());
