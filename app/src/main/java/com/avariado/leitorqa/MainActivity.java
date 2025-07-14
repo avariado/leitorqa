@@ -522,28 +522,10 @@ public class MainActivity extends AppCompatActivity {
         items.clear();
         originalItems.clear();
         
-        // Check if this is a valid Q&A file (each line has exactly one sentence)
-        boolean isValidQAFile = true;
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
             
-            // Count sentence-ending punctuation marks
-            int punctuationCount = line.replaceAll("[^.!?]", "").length();
-            if (punctuationCount != 1) {
-                isValidQAFile = false;
-                break;
-            }
-        }
-        
-        if (!isValidQAFile) {
-            parseTextContent(text);
-            return;
-        }
-        
-        for (String line : lines) {
-            if (line.trim().isEmpty()) continue;
-            
-            // Preserve the original delimiter
+            // Determina o separador mantendo os espaços originais
             String separator = line.contains("\t") ? "\t" : 
                              line.contains(";;") ? ";;" : 
                              line.contains("::") ? "::" : "\t";
@@ -553,6 +535,7 @@ public class MainActivity extends AppCompatActivity {
             if (parts.length >= 2) {
                 String question = parts[0].trim();
                 String answer = parts[1].trim();
+                // Usa o construtor com 3 parâmetros incluindo o separador
                 items.add(new QAItem(question, answer, separator));
             } else {
                 items.add(new QAItem(line.trim()));
@@ -707,7 +690,7 @@ public class MainActivity extends AppCompatActivity {
         StringBuilder content = new StringBuilder();
         if (isQAMode) {
             for (QAItem item : items) {
-                // Use the original separator
+                // Usa o separador original ou tab por padrão
                 String separator = item.getSeparator() != null ? item.getSeparator() : "\t";
                 content.append(item.getQuestion()).append(separator).append(item.getAnswer()).append("\n");
             }
@@ -937,6 +920,7 @@ public class MainActivity extends AppCompatActivity {
                 
                 String[] parts = line.split("\t");
                 if (parts.length >= 2) {
+                    // Usa o construtor com 2 parâmetros (separador padrão)
                     loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim()));
                 } else {
                     loadedOriginalItems.add(new QAItem(line.trim()));
