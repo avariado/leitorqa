@@ -4,18 +4,18 @@ public class QAItem {
     private String question;
     private String answer;
     private String text;
-    private String separator;  // Guarda o delimitador original
+    private String separator;
     
-    // Construtor para perguntas e respostas (com delimitador)
+    // Construtor para Q&A com separador
     public QAItem(String question, String answer, String separator) {
         this.question = question;
         this.answer = answer;
         this.separator = separator;
     }
     
-    // Construtor para perguntas e respostas (delimitador padrão: tab)
+    // Construtor para Q&A com separador padrão (tab)
     public QAItem(String question, String answer) {
-        this(question, answer, "\t");  // Chama o construtor principal
+        this(question, answer, "\t");
     }
     
     // Construtor para texto normal
