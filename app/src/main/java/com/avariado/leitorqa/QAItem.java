@@ -45,6 +45,10 @@ public class QAItem {
     public void setText(String text) {
         this.text = text;
     }
+
+    public void setOriginalLine(String originalLine) {
+    this.originalLine = originalLine;
+    }
     
     public boolean isQA() {
         return question != null && answer != null;
