@@ -729,14 +729,15 @@ private void exportFile(Uri uri) {
         EditText contentEditor = dialogView.findViewById(R.id.content_editor);
         
         StringBuilder content = new StringBuilder();
-        for (QAItem item : items) {
-            // Preserva exatamente a formatação original
-            String line = item.getOriginalFormat();
-            
-            // Garante que cada item está em sua própria linha
-            content.append(line.trim()).append("\n");
+        if (isQAMode) {
+            for (QAItem item : items) {
+                content.append(item.getOriginalFormat()).append("\n");
+            }
+        } else {
+            for (QAItem item : items) {
+                content.append(item.getOriginalFormat()).append("\n");
+            }
         }
-        
         contentEditor.setText(content.toString());
         
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -744,10 +745,10 @@ private void exportFile(Uri uri) {
                .setTitle("Editar Conteúdo")
                .setPositiveButton("Guardar", (dialog, which) -> {
                    String newContent = contentEditor.getText().toString();
-                   // Processa o conteúdo editado
                    processEditedContent(newContent);
+                   saveState();
                })
-               .setNegativeButton("Cancelar", null)
+               .setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss())
                .show();
     }
     
