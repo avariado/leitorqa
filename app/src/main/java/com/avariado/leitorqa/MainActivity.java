@@ -792,7 +792,7 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < lines.length - 1; i += 2) {
             String question = lines[i].trim();
             String answer = lines[i + 1].trim();
-            items.add(new QAItem(question, answer));
+            items.add(new QAItem(question, answer, "\n"));
         }
         
         originalItems = new ArrayList<>(items);
@@ -923,7 +923,7 @@ public class MainActivity extends AppCompatActivity {
                 String[] parts = line.split("\t");
                 if (parts.length >= 2) {
                     // Usa o construtor de 2 parâmetros (backward compatibility)
-                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim()));
+                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim(), "\t"));
                 } else {
                     loadedOriginalItems.add(new QAItem(line.trim()));
                 }
