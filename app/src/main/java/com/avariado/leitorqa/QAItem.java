@@ -4,6 +4,18 @@ public class QAItem {
     private String question;
     private String answer;
     private String text;
+    private String originalLine;
+
+    public QAItem(String question, String answer, String originalLine) {
+    this.question = question;
+    this.answer = answer;
+    this.originalLine = originalLine;
+    }
+    
+    public QAItem(String text, String originalLine) {
+        this.text = text;
+        this.originalLine = originalLine;
+    }
     
     public QAItem(String question, String answer) {
         this.question = question;
@@ -12,6 +24,10 @@ public class QAItem {
     
     public QAItem(String text) {
         this.text = text;
+    }
+
+    public String getOriginalLine() {
+        return originalLine;
     }
     
     public String getQuestion() {
