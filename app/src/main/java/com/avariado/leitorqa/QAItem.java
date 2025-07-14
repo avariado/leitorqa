@@ -5,29 +5,18 @@ public class QAItem {
     private String answer;
     private String text;
     private String originalLine;
-
-    public QAItem(String question, String answer, String originalLine) {
-    this.question = question;
-    this.answer = answer;
-    this.originalLine = originalLine;
-    }
     
-    public QAItem(String text, String originalLine) {
-        this.text = text;
+    // Construtor para itens Q&A
+    public QAItem(String question, String answer, String originalLine) {
+        this.question = question;
+        this.answer = answer;
         this.originalLine = originalLine;
     }
     
-    public QAItem(String question, String answer) {
-        this.question = question;
-        this.answer = answer;
-    }
-    
-    public QAItem(String text) {
+    // Construtor para texto simples
+    public QAItem(String text, String originalLine) {
         this.text = text;
-    }
-
-    public String getOriginalLine() {
-        return originalLine;
+        this.originalLine = originalLine;
     }
     
     public String getQuestion() {
@@ -42,12 +31,12 @@ public class QAItem {
         return text;
     }
     
-    public void setText(String text) {
-        this.text = text;
+    public String getOriginalLine() {
+        return originalLine;
     }
-
+    
     public void setOriginalLine(String originalLine) {
-    this.originalLine = originalLine;
+        this.originalLine = originalLine;
     }
     
     public boolean isQA() {
