@@ -765,35 +765,37 @@ public class MainActivity extends AppCompatActivity {
         return content.contains("�");
     }
 
-    private String extractTextFromPdf(Uri uri) throws IOException {
-        InputStream inputStream = getContentResolver().openInputStream(uri);
-        
+    private String extractTextFromPdf(Uri uri) {
+        InputStream inputStream = null;
+        PDDocument document = null;
         try {
-            PDDocument document = PDDocument.load(inputStream);
-            
-            // Check if the PDF contains text
-            if (document.getNumberOfPages() == 0) {
-                document.close();
-                return null;
+            // 1. Abrir o PDF em modo "safe load"
+            inputStream = getContentResolver().openInputStream(uri);
+            document = PDDocument.load(inputStream);
+    
+            // 2. Verificar se o PDF contém texto
+            if (document.getDocumentCatalog().getAcroForm() == null && 
+                document.getNumberOfPages() == 0) {
+                throw new IOException("PDF não contém texto ou está vazio");
             }
-            
-            // Try to extract text
-            PDFTextStripper pdfStripper = new PDFTextStripper();
-            String text = pdfStripper.getText(document);
-            document.close();
-            
-            // Check if we got any text
-            if (text == null || text.trim().isEmpty()) {
-                return null;
-            }
-            
-            return text;
-        } catch (IOException e) {
-            // This usually happens if the PDF is image-based
-            throw new IOException("O PDF não contém texto legível (pode ser apenas imagens)");
+    
+            // 3. Extrair texto com configurações otimizadas
+            PDFTextStripper stripper = new PDFTextStripper();
+            stripper.setSortByPosition(true); // Melhora a ordenação do texto
+            return stripper.getText(document);
+    
+        } catch (Exception e) {
+            Log.e("PDF_ERROR", "Falha ao extrair texto: " + e.getMessage());
+            runOnUiThread(() -> 
+                Toast.makeText(this, "Erro: " + e.getMessage(), Toast.LENGTH_LONG).show()
+            );
+            return null;
         } finally {
-            if (inputStream != null) {
-                inputStream.close();
+            try {
+                if (document != null) document.close();
+                if (inputStream != null) inputStream.close();
+            } catch (IOException e) {
+                Log.e("PDF_ERROR", "Erro ao fechar recursos: " + e.getMessage());
             }
         }
     }
