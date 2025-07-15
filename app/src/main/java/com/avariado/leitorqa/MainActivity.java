@@ -50,6 +50,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 import com.tom_roush.pdfbox.text.PDFTextStripper;
+import android.app.ProgressDialog;
 import android.util.Log;
 
 public class MainActivity extends AppCompatActivity {
@@ -658,6 +659,58 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         builder.show();
+    }
+
+        private void processImportedText(String text, boolean isPdf) {
+        runOnUiThread(() -> {
+            try {
+                // Verificar se o texto parece ser QA (pergunta/resposta)
+                boolean isAlternatingQa = true;
+                String[] lines = text.split("\n");
+                
+                // PDFs tendem a ter formatação diferente, então ajustamos a verificação
+                if (isPdf) {
+                    // Juntar linhas que podem ter sido quebradas erroneamente
+                    StringBuilder normalizedText = new StringBuilder();
+                    for (String line : lines) {
+                        String trimmed = line.trim();
+                        if (trimmed.isEmpty()) continue;
+                        
+                        // Se a linha termina com pontuação, assumir que é uma frase completa
+                        if (trimmed.matches(".*[.!?]\""?\\s*$")) {
+                            normalizedText.append(trimmed).append("\n");
+                        } else {
+                            normalizedText.append(trimmed).append(" ");
+                        }
+                    }
+                    text = normalizedText.toString();
+                    lines = text.split("\n");
+                }
+                
+                // Verificar padrão QA
+                for (int i = 0; i < lines.length; i++) {
+                    String line = lines[i].trim();
+                    if (!line.isEmpty() && !isSingleSentence(line)) {
+                        isAlternatingQa = false;
+                        break;
+                    }
+                }
+    
+                if (isAlternatingQa && lines.length >= 2 && lines.length % 2 == 0) {
+                    parseAlternatingLinesContent(text);
+                } else if (text.contains("\t") || text.contains(";;")) {
+                    parseQAContent(text);
+                } else {
+                    parseTextContent(text);
+                }
+                
+                updateDisplay();
+                saveState();
+            } catch (Exception e) {
+                Toast.makeText(this, "Erro ao processar conteúdo: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                Log.e("PROCESS_TEXT", "Erro ao processar texto importado", e);
+            }
+        });
     }
 
     @Override
