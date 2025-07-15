@@ -109,6 +109,17 @@ public class MainActivity extends AppCompatActivity {
         mainContainer = findViewById(R.id.main_container);
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
+
+        // Pré-medida do menu
+        menuLayout.setVisibility(View.VISIBLE);
+        menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                menuLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                menuLayout.setX(-menuLayout.getWidth());
+                menuLayout.setVisibility(View.GONE);
+            }
+        });
         
         gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
         
@@ -378,33 +389,36 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     
-private void toggleMenu() {
-    menuVisible = !menuVisible;
-    
-    if (menuVisible) {
-        // Garante que o layout seja medido antes da animação
-        menuLayout.post(() -> {
-            // Configura a posição inicial fora da tela à esquerda
+    private void toggleMenu() {
+        menuVisible = !menuVisible;
+        
+        if (menuVisible) {
+            // Garante que o menu tenha dimensões válidas
+            if (menuLayout.getWidth() == 0 || menuLayout.getHeight() == 0) {
+                menuLayout.measure(
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                );
+                menuLayout.layout(0, 0, menuLayout.getMeasuredWidth(), menuLayout.getMeasuredHeight());
+            }
+            
             menuLayout.setX(-menuLayout.getWidth());
             menuLayout.setVisibility(View.VISIBLE);
             overlay.setVisibility(View.VISIBLE);
             
-            // Animação para deslizar da esquerda para a direita
             menuLayout.animate()
                 .translationX(0)
                 .setDuration(300)
                 .start();
-        });
-    } else {
-        // Animação para deslizar da direita para a esquerda
-        menuLayout.animate()
-            .translationX(-menuLayout.getWidth())
-            .setDuration(300)
-            .withEndAction(() -> {
-                menuLayout.setVisibility(View.GONE);
-                overlay.setVisibility(View.GONE);
-            })
-            .start();
+        } else {
+            menuLayout.animate()
+                .translationX(-menuLayout.getWidth())
+                .setDuration(300)
+                .withEndAction(() -> {
+                    menuLayout.setVisibility(View.GONE);
+                    overlay.setVisibility(View.GONE);
+                })
+                .start();
         }
     }
     
