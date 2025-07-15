@@ -413,4 +413,17 @@
             </LinearLayout>
         </ScrollView>
     </LinearLayout>
+
+    <!-- Mensagem de processamento (adicionada aqui) -->
+    <TextView
+        android:id="@+id/processing_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:background="#80000000"
+        android:elevation="10dp"
+        android:padding="15dp"
+        android:textColor="#FFFFFF"
+        android:visibility="gone"
+        tools:text="Processando PDF..." />
 </RelativeLayout>
