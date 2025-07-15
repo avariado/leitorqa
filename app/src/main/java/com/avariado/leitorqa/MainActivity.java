@@ -844,7 +844,7 @@ public class MainActivity extends AppCompatActivity {
                     
                     new Thread(() -> {
                         try {
-                            String pdfText = processPdfFile(uri);
+                            processPdfFile(uri);
                             
                             runOnUiThread(() -> {
                                 progressDialog.dismiss();
