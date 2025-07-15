@@ -378,10 +378,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     
-    private void toggleMenu() {
-        menuVisible = !menuVisible;
-        
-        if (menuVisible) {
+private void toggleMenu() {
+    menuVisible = !menuVisible;
+    
+    if (menuVisible) {
+        // Garante que o layout seja medido antes da animação
+        menuLayout.post(() -> {
             // Configura a posição inicial fora da tela à esquerda
             menuLayout.setX(-menuLayout.getWidth());
             menuLayout.setVisibility(View.VISIBLE);
@@ -392,16 +394,17 @@ public class MainActivity extends AppCompatActivity {
                 .translationX(0)
                 .setDuration(300)
                 .start();
-        } else {
-            // Animação para deslizar da direita para a esquerda
-            menuLayout.animate()
-                .translationX(-menuLayout.getWidth())
-                .setDuration(300)
-                .withEndAction(() -> {
-                    menuLayout.setVisibility(View.GONE);
-                    overlay.setVisibility(View.GONE);
-                })
-                .start();
+        });
+    } else {
+        // Animação para deslizar da direita para a esquerda
+        menuLayout.animate()
+            .translationX(-menuLayout.getWidth())
+            .setDuration(300)
+            .withEndAction(() -> {
+                menuLayout.setVisibility(View.GONE);
+                overlay.setVisibility(View.GONE);
+            })
+            .start();
         }
     }
     
