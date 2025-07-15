@@ -14,7 +14,6 @@ import android.text.Spanned;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
 import android.view.GestureDetector;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -34,6 +33,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.view.GestureDetectorCompat;
 
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
+import com.tom_roush.pdfbox.pdmodel.PDDocument;
+import com.tom_roush.pdfbox.text.PDFTextStripper;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -50,7 +53,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
-    private static final int PICK_TXT_FILE = 1;
+    private static final int PICK_FILE = 1;
     private static final int CREATE_FILE = 2;
     private static final String HIGHLIGHT_PATTERN = "(?i)(%s)";
     private static final String HIGHLIGHT_COLOR = "#FF5722";
@@ -79,6 +82,7 @@ public class MainActivity extends AppCompatActivity {
     private FrameLayout mainContainer;
     private CardView cardView;
     private ScrollView textScrollView;
+    private TextView processingMessage;
     
     private List<QAItem> items = new ArrayList<>();
     private List<QAItem> originalItems = new ArrayList<>();
@@ -98,6 +102,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
+        // Inicializa o PDFBox
+        PDFBoxResourceLoader.init(getApplicationContext());
+        
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
         currentCardInput = findViewById(R.id.current_card_input);
@@ -110,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
         mainContainer = findViewById(R.id.main_container);
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
+        processingMessage = findViewById(R.id.processing_message);
 
         // Pré-medida do menu (versão corrigida)
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -635,9 +643,11 @@ public class MainActivity extends AppCompatActivity {
     private void importTextFile() {
         toggleMenu();
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("text/*");
+        intent.setType("*/*"); // Aceita qualquer tipo de arquivo
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        startActivityForResult(intent, PICK_TXT_FILE);
+        String[] mimeTypes = {"text/*", "application/pdf"};
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+        startActivityForResult(intent, PICK_FILE);
     }
 
     @Override
@@ -647,30 +657,15 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode == RESULT_OK && data != null) {
             Uri uri = data.getData();
             try {
-                String fileContent = readTextFileWithEncodingDetection(uri);
-                
-                if (requestCode == PICK_TXT_FILE) {
-                    boolean isAlternatingQa = true;
-                    String[] lines = fileContent.split("\n");
-                    for (int i = 0; i < lines.length; i++) {
-                        String line = lines[i].trim();
-                        if (!line.isEmpty() && !isSingleSentence(line)) {
-                            isAlternatingQa = false;
-                            break;
-                        }
-                    }
+                if (requestCode == PICK_FILE) {
+                    String mimeType = getContentResolver().getType(uri);
                     
-                    if (isAlternatingQa && lines.length >= 2 && lines.length % 2 == 0) {
-                        parseAlternatingLinesContent(fileContent);
-                    } else if (fileContent.contains("\t") || fileContent.contains(";;")) {
-                        parseQAContent(fileContent);
+                    if (mimeType != null && mimeType.equals("application/pdf")) {
+                        processPDFFile(uri);
                     } else {
-                        parseTextContent(fileContent);
+                        String fileContent = readTextFileWithEncodingDetection(uri);
+                        processTextContent(fileContent, uri);
                     }
-                    
-                    updateDisplay();
-                    saveState();
-                    Toast.makeText(this, "Ficheiro importado com sucesso!", Toast.LENGTH_SHORT).show();
                 } else if (requestCode == CREATE_FILE) {
                     exportFile(uri);
                 }
@@ -679,6 +674,86 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
+    }
+
+        private void processTextContent(String fileContent, Uri uri) throws IOException {
+        boolean isAlternatingQa = true;
+        String[] lines = fileContent.split("\n");
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].trim();
+            if (!line.isEmpty() && !isSingleSentence(line)) {
+                isAlternatingQa = false;
+                break;
+            }
+        }
+        
+        if (isAlternatingQa && lines.length >= 2 && lines.length % 2 == 0) {
+            parseAlternatingLinesContent(fileContent);
+        } else if (fileContent.contains("\t") || fileContent.contains(";;")) {
+            parseQAContent(fileContent);
+        } else {
+            parseTextContent(fileContent);
+        }
+        
+        updateDisplay();
+        saveState();
+        Toast.makeText(this, "Ficheiro importado com sucesso!", Toast.LENGTH_SHORT).show();
+    }
+
+    private void processPDFFile(Uri uri) {
+        processingMessage.setVisibility(View.VISIBLE);
+        processingMessage.setText("Processando PDF...");
+        
+        new Thread(() -> {
+            try {
+                InputStream inputStream = getContentResolver().openInputStream(uri);
+                PDDocument document = PDDocument.load(inputStream);
+                PDFTextStripper pdfStripper = new PDFTextStripper();
+                
+                StringBuilder fullText = new StringBuilder();
+                for (int i = 1; i <= document.getNumberOfPages(); i++) {
+                    pdfStripper.setStartPage(i);
+                    pdfStripper.setEndPage(i);
+                    String pageText = pdfStripper.getText(document);
+                    fullText.append(pageText).append("\n\n");
+                }
+                
+                document.close();
+                inputStream.close();
+                
+                // Analisar o conteúdo do PDF
+                String pdfContent = fullText.toString();
+                int questionCount = (pdfContent.replaceAll("[^?]", "").length());
+                int lineCount = pdfContent.split("\n").length;
+                
+                runOnUiThread(() -> {
+                    if (questionCount > 0 && questionCount / (float) lineCount > 0.1) {
+                        parseQAContent(pdfContent);
+                    } else {
+                        parseTextContent(pdfContent);
+                    }
+                    
+                    updateDisplay();
+                    saveState();
+                    processingMessage.setVisibility(View.GONE);
+                    Toast.makeText(this, "PDF importado com sucesso!", Toast.LENGTH_SHORT).show();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    processingMessage.setVisibility(View.GONE);
+                    Toast.makeText(this, "Erro ao processar PDF: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    e.printStackTrace();
+                    
+                    // Fallback: tentar como texto simples
+                    try {
+                        String fileContent = readTextFileWithEncodingDetection(uri);
+                        processTextContent(fileContent, uri);
+                    } catch (IOException ex) {
+                        Toast.makeText(this, "Erro ao ler ficheiro: " + ex.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        }).start();
     }
 
     private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
