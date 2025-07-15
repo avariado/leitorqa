@@ -50,7 +50,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 import com.tom_roush.pdfbox.text.PDFTextStripper;
-import com.tom_roush.pdfbox.util.PDFBoxResourceLoader;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PICK_TXT_FILE = 1;
@@ -766,9 +765,8 @@ public class MainActivity extends AppCompatActivity {
         return content.contains("�");
     }
 
-        private String extractTextFromPdf(Uri uri) throws IOException {
+    private String extractTextFromPdf(Uri uri) throws IOException {
         InputStream inputStream = getContentResolver().openInputStream(uri);
-        PDFBoxResourceLoader.init(getApplicationContext());
         
         try {
             PDDocument document = PDDocument.load(inputStream);
@@ -793,6 +791,10 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             // This usually happens if the PDF is image-based
             throw new IOException("O PDF não contém texto legível (pode ser apenas imagens)");
+        } finally {
+            if (inputStream != null) {
+                inputStream.close();
+            }
         }
     }
     
