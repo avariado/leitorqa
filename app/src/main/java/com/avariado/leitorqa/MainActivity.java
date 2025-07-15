@@ -715,31 +715,18 @@ public class MainActivity extends AppCompatActivity {
     private void showExportDialog() {
         toggleMenu();
         
-        LayoutInflater inflater = getLayoutInflater();
-        View dialogView = inflater.inflate(R.layout.export_dialog, null);
-        EditText filenameInput = dialogView.findViewById(R.id.export_filename);
-        filenameInput.setText(isQAMode ? "perguntas_respostas.txt" : "documento.txt");
+        if (items.isEmpty()) {
+            Toast.makeText(this, "Nenhum conteúdo para exportar", Toast.LENGTH_SHORT).show();
+            return;
+        }
         
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setView(dialogView);
-        builder.setTitle("Exportar Ficheiro");
-        builder.setPositiveButton("Exportar", (dialog, which) -> {
-            String filename = filenameInput.getText().toString().trim();
-            if (filename.isEmpty()) {
-                filename = isQAMode ? "perguntas_respostas.txt" : "documento.txt";
-            }
-            if (!filename.toLowerCase().endsWith(".txt")) {
-                filename += ".txt";
-            }
-            
-            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("text/plain");
-            intent.putExtra(Intent.EXTRA_TITLE, filename);
-            startActivityForResult(intent, CREATE_FILE);
-        });
-        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
-        builder.show();
+        String filename = isQAMode ? "perguntas_respostas.txt" : "documento.txt";
+        
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("text/plain");
+        intent.putExtra(Intent.EXTRA_TITLE, filename);
+        startActivityForResult(intent, CREATE_FILE);
     }
     
     private void exportFile(Uri uri) {
