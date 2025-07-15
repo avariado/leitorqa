@@ -711,7 +711,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void processPDFFile(Uri uri) {
         processingMessage.setVisibility(View.VISIBLE);
-        processingMessage.setText("Processando PDF...");
+        processingMessage.setText("Processando PDF, aguarde...");
         
         new Thread(() -> {
             try {
