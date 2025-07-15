@@ -589,12 +589,13 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private boolean isSingleSentence(String line) {
-        if (line == null || line.trim().isEmpty()) return false;
+    if (line == null || line.trim().isEmpty()) return false;
         
         int punctuationCount = line.replaceAll("[^.!?]", "").length();
         
-        return punctuationCount == 1 && 
-               (line.endsWith(".") || line.endsWith("!") || line.endsWith("?"));
+        return (punctuationCount == 0) || 
+               (punctuationCount == 1 && 
+                (line.endsWith(".") || line.endsWith("!") || line.endsWith("?")));
     }
     
     private void parseTextContent(String text) {
@@ -677,18 +678,25 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-        private void processTextContent(String fileContent, Uri uri) throws IOException {
-        boolean isAlternatingQa = true;
+    private void processTextContent(String fileContent, Uri uri) throws IOException {
         String[] lines = fileContent.split("\n");
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i].trim();
-            if (!line.isEmpty() && !isSingleSentence(line)) {
+        boolean isAlternatingQa = true;
+        
+        // Check if all non-empty lines could be considered single sentences
+        for (String line : lines) {
+            String trimmedLine = line.trim();
+            if (!trimmedLine.isEmpty() && !isSingleSentence(trimmedLine)) {
                 isAlternatingQa = false;
                 break;
             }
         }
         
-        if (isAlternatingQa && lines.length >= 2 && lines.length % 2 == 0) {
+        if (isAlternatingQa && lines.length >= 2) {
+            if (lines.length % 2 != 0) {
+                Toast.makeText(this, 
+                    "Aviso: O número de linhas não é par. A última linha será ignorada.", 
+                    Toast.LENGTH_LONG).show();
+            }
             parseAlternatingLinesContent(fileContent);
         } else if (fileContent.contains("\t") || fileContent.contains(";;")) {
             parseQAContent(fileContent);
@@ -722,13 +730,27 @@ public class MainActivity extends AppCompatActivity {
                 document.close();
                 inputStream.close();
                 
-                // Analisar o conteúdo do PDF
                 String pdfContent = fullText.toString();
-                int questionCount = (pdfContent.replaceAll("[^?]", "").length());
-                int lineCount = pdfContent.split("\n").length;
+                String[] lines = pdfContent.split("\n");
+                boolean isAlternatingQa = true;
+                
+                for (String line : lines) {
+                    String trimmedLine = line.trim();
+                    if (!trimmedLine.isEmpty() && !isSingleSentence(trimmedLine)) {
+                        isAlternatingQa = false;
+                        break;
+                    }
+                }
                 
                 runOnUiThread(() -> {
-                    if (questionCount > 0 && questionCount / (float) lineCount > 0.1) {
+                    if (isAlternatingQa && lines.length >= 2) {
+                        if (lines.length % 2 != 0) {
+                            Toast.makeText(this, 
+                                "Aviso: O número de linhas não é par. A última linha será ignorada.", 
+                                Toast.LENGTH_LONG).show();
+                        }
+                        parseAlternatingLinesContent(pdfContent);
+                    } else if (pdfContent.contains("\t") || pdfContent.contains(";;")) {
                         parseQAContent(pdfContent);
                     } else {
                         parseTextContent(pdfContent);
@@ -745,7 +767,6 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "Erro ao processar PDF: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     e.printStackTrace();
                     
-                    // Fallback: tentar como texto simples
                     try {
                         String fileContent = readTextFileWithEncodingDetection(uri);
                         processTextContent(fileContent, uri);
