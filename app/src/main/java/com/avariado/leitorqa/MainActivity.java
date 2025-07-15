@@ -870,7 +870,7 @@ public class MainActivity extends AppCompatActivity {
             System.setProperty("org.apache.pdfbox.baseParser.pushBackSize", "1000000");
             
             // Carrega o documento com configurações de memória otimizadas
-            document = PDDocument.load(inputStream, (String)null);
+            document = PDDocument.load(inputStream);
             
             // Verifica se o PDF está criptografado
             if (document.isEncrypted()) {
@@ -881,21 +881,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
     
-            // Configura o extrator de texto com tratamento especial para PDFs complexos
-            PDFTextStripper stripper = new PDFTextStripper() {
-                @Override
-                protected void startPage(PDPage page) throws IOException {
-                    startArticle();
-                    startParagraph();
-                }
-                
-                @Override
-                protected void endPage(PDPage page) throws IOException {
-                    endParagraph();
-                    endArticle();
-                }
-            };
-            
+            // Configura o extrator de texto simplificado
+            PDFTextStripper stripper = new PDFTextStripper();
             stripper.setSortByPosition(true);
             stripper.setLineSeparator("\n");
             stripper.setWordSeparator(" ");
