@@ -18,6 +18,7 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -110,16 +111,23 @@ public class MainActivity extends AppCompatActivity {
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
 
-        // Pré-medida do menu
-        menuLayout.setVisibility(View.VISIBLE);
+        // Pré-medida do menu (versão corrigida)
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
+                // Remove o listener para não ser chamado novamente
                 menuLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                
+                // Configura a posição inicial fora da tela
                 menuLayout.setX(-menuLayout.getWidth());
+                
+                // Esconde o menu após a pré-medida
                 menuLayout.setVisibility(View.GONE);
             }
         });
+        
+        // Força o layout a ser medido
+        menuLayout.setVisibility(View.VISIBLE);
         
         gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
         
@@ -393,8 +401,8 @@ public class MainActivity extends AppCompatActivity {
         menuVisible = !menuVisible;
         
         if (menuVisible) {
-            // Garante que o menu tenha dimensões válidas
-            if (menuLayout.getWidth() == 0 || menuLayout.getHeight() == 0) {
+            // Se ainda não foi medido (improvável após a pré-medida)
+            if (menuLayout.getWidth() <= 0) {
                 menuLayout.measure(
                     View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
                     View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
