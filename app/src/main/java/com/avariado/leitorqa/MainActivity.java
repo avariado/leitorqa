@@ -662,50 +662,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void processImportedText(String text, boolean isPdf) {
+        // Criar uma cópia final do texto para processamento
+        final String textToProcess = isPdf ? normalizePdfText(text) : text;
+        
         runOnUiThread(() -> {
             try {
-                // Criar cópias finais das variáveis para usar no lambda
-                final String finalText = text;
-                final boolean finalIsPdf = isPdf;
-                
-                // Verificar se o texto parece ser QA (pergunta/resposta)
-                boolean isAlternatingQa = true;
-                String[] lines = finalText.split("\n");
-                
-                // PDFs tendem a ter formatação diferente, então ajustamos a verificação
-                if (finalIsPdf) {
-                    // Juntar linhas que podem ter sido quebradas erroneamente
-                    StringBuilder normalizedText = new StringBuilder();
-                    for (String line : lines) {
-                        String trimmed = line.trim();
-                        if (trimmed.isEmpty()) continue;
-                        
-                        // Corrigido: Expressão regular simplificada e correta
-                        if (trimmed.matches(".*[.!?][\"']?\\s*$")) {
-                            normalizedText.append(trimmed).append("\n");
-                        } else {
-                            normalizedText.append(trimmed).append(" ");
-                        }
-                    }
-                    text = normalizedText.toString();
-                    lines = text.split("\n");
-                }
-                
-                // Verificar padrão QA
-                for (int i = 0; i < lines.length; i++) {
-                    String line = lines[i].trim();
-                    if (!line.isEmpty() && !isSingleSentence(line)) {
-                        isAlternatingQa = false;
-                        break;
-                    }
-                }
+                // Usar apenas a cópia final dentro do lambda
+                String[] lines = textToProcess.split("\n");
+                boolean isAlternatingQa = checkIfAlternatingQa(lines);
     
                 if (isAlternatingQa && lines.length >= 2 && lines.length % 2 == 0) {
-                    parseAlternatingLinesContent(text);
-                } else if (text.contains("\t") || text.contains(";;")) {
-                    parseQAContent(text);
+                    parseAlternatingLinesContent(textToProcess);
+                } else if (textToProcess.contains("\t") || textToProcess.contains(";;")) {
+                    parseQAContent(textToProcess);
                 } else {
-                    parseTextContent(text);
+                    parseTextContent(textToProcess);
                 }
                 
                 updateDisplay();
@@ -715,6 +686,36 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("PROCESS_TEXT", "Erro ao processar texto importado", e);
             }
         });
+    }
+    
+    // Método auxiliar para normalizar texto PDF
+    private String normalizePdfText(String text) {
+        StringBuilder normalizedText = new StringBuilder();
+        String[] lines = text.split("\n");
+        
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty()) continue;
+            
+            if (trimmed.matches(".*[.!?][\"']?\\s*$")) {
+                normalizedText.append(trimmed).append("\n");
+            } else {
+                normalizedText.append(trimmed).append(" ");
+            }
+        }
+        
+        return normalizedText.toString();
+    }
+    
+    // Método auxiliar para verificar formato QA alternado
+    private boolean checkIfAlternatingQa(String[] lines) {
+        for (String line : lines) {
+            String trimmedLine = line.trim();
+            if (!trimmedLine.isEmpty() && !isSingleSentence(trimmedLine)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
