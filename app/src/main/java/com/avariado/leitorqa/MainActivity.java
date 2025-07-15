@@ -664,12 +664,16 @@ public class MainActivity extends AppCompatActivity {
     private void processImportedText(String text, boolean isPdf) {
         runOnUiThread(() -> {
             try {
+                // Criar cópias finais das variáveis para usar no lambda
+                final String finalText = text;
+                final boolean finalIsPdf = isPdf;
+                
                 // Verificar se o texto parece ser QA (pergunta/resposta)
                 boolean isAlternatingQa = true;
-                String[] lines = text.split("\n");
+                String[] lines = finalText.split("\n");
                 
                 // PDFs tendem a ter formatação diferente, então ajustamos a verificação
-                if (isPdf) {
+                if (finalIsPdf) {
                     // Juntar linhas que podem ter sido quebradas erroneamente
                     StringBuilder normalizedText = new StringBuilder();
                     for (String line : lines) {
