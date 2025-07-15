@@ -668,10 +668,9 @@ public class MainActivity extends AppCompatActivity {
             Uri uri = data.getData();
             try {
                 if (requestCode == PICK_PDF_FILE) {
-                    // Handle PDF file
                     String pdfText = extractTextFromPdf(uri);
                     if (pdfText == null || pdfText.trim().isEmpty()) {
-                        Toast.makeText(this, "O PDF não contém texto ou não pôde ser lido", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "Não foi possível extrair texto do PDF", Toast.LENGTH_LONG).show();
                         return;
                     }
                     
@@ -685,7 +684,7 @@ public class MainActivity extends AppCompatActivity {
                             break;
                         }
                     }
-                    
+
                     if (isAlternatingQa && lines.length >= 2 && lines.length % 2 == 0) {
                         parseAlternatingLinesContent(pdfText);
                     } else if (pdfText.contains("\t") || pdfText.contains(";;")) {
@@ -770,33 +769,40 @@ public class MainActivity extends AppCompatActivity {
         InputStream inputStream = null;
         PDDocument document = null;
         try {
-            // 1. Abrir o PDF em modo "safe load"
             inputStream = getContentResolver().openInputStream(uri);
-            document = PDDocument.load(inputStream);
-    
-            // 2. Verificar se o PDF contém texto
-            if (document.getDocumentCatalog().getAcroForm() == null && 
-                document.getNumberOfPages() == 0) {
-                throw new IOException("PDF não contém texto ou está vazio");
+            if (inputStream == null) {
+                throw new IOException("Não foi possível abrir o fluxo de entrada do PDF");
             }
     
-            // 3. Extrair texto com configurações otimizadas
+            // Usar um BufferedInputStream para melhor desempenho
+            BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
+            document = PDDocument.load(bufferedInputStream);
+    
+            if (document.isEncrypted()) {
+                throw new IOException("PDF criptografado não é suportado");
+            }
+    
             PDFTextStripper stripper = new PDFTextStripper();
-            stripper.setSortByPosition(true); // Melhora a ordenação do texto
+            stripper.setSortByPosition(true);
             return stripper.getText(document);
     
         } catch (Exception e) {
-            Log.e("PDF_ERROR", "Falha ao extrair texto: " + e.getMessage());
-            runOnUiThread(() -> 
-                Toast.makeText(this, "Erro: " + e.getMessage(), Toast.LENGTH_LONG).show()
-            );
+            runOnUiThread(() -> Toast.makeText(
+                this, 
+                "Erro ao ler PDF: " + e.getMessage(), 
+                Toast.LENGTH_LONG
+            ).show());
             return null;
         } finally {
             try {
-                if (document != null) document.close();
-                if (inputStream != null) inputStream.close();
+                if (document != null) {
+                    document.close();
+                }
+                if (inputStream != null) {
+                    inputStream.close();
+                }
             } catch (IOException e) {
-                Log.e("PDF_ERROR", "Erro ao fechar recursos: " + e.getMessage());
+                // Ignorar erros ao fechar
             }
         }
     }
