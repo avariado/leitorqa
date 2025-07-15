@@ -963,6 +963,17 @@ public class MainActivity extends AppCompatActivity {
     private boolean hasInvalidUTF8Characters(String content) {
         return content.contains("�");
     }
+
+    private String processPdfFile(Uri uri) {
+    PdfProcessingTask task = new PdfProcessingTask();
+    task.execute(uri);
+    try {
+        return task.get(); // Isso vai esperar a conclusão da task e retornar o resultado
+    } catch (Exception e) {
+        e.printStackTrace();
+        return null;
+    }
+}
     
     private void showExportDialog() {
         toggleMenu();
