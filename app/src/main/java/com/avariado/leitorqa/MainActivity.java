@@ -51,6 +51,7 @@ import java.util.regex.Pattern;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 import com.tom_roush.pdfbox.text.PDFTextStripper;
 import com.tom_roush.pdfbox.pdmodel.PDPage;
+import android.os.AsyncTask;
 import android.app.ProgressDialog;
 import android.util.Log;
 
@@ -638,6 +639,108 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = 0;
         isQAMode = false;
     }
+
+        private void processPdfFile(Uri uri) {
+        new PdfProcessingTask().execute(uri);
+    }
+    
+    private class PdfProcessingTask extends AsyncTask<Uri, Void, String> {
+        private ProgressDialog progressDialog;
+    
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            // Mostrar diálogo de progresso na thread UI
+            progressDialog = new ProgressDialog(MainActivity.this);
+            progressDialog.setMessage("Processando PDF...");
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+        }
+    
+        @Override
+        protected String doInBackground(Uri... uris) {
+            Uri uri = uris[0];
+            InputStream inputStream = null;
+            PDDocument document = null;
+            
+            try {
+                inputStream = getContentResolver().openInputStream(uri);
+                if (inputStream == null) {
+                    return null;
+                }
+    
+                // Configurações para otimizar memória
+                System.setProperty("org.apache.pdfbox.baseParser.pushBackSize", "1000000");
+                
+                // Usar BufferedInputStream para melhor performance
+                document = PDDocument.load(new BufferedInputStream(inputStream, 8192));
+    
+                if (document.isEncrypted()) {
+                    try {
+                        document.setAllSecurityToBeRemoved(true);
+                    } catch (Exception e) {
+                        return "PDF criptografado não suportado";
+                    }
+                }
+    
+                PDFTextStripper stripper = new PDFTextStripper();
+                stripper.setSortByPosition(true);
+                
+                // Limitar a 20 páginas para evitar estouro de memória
+                if (document.getNumberOfPages() > 20) {
+                    stripper.setEndPage(20);
+                }
+    
+                return stripper.getText(document);
+    
+            } catch (OutOfMemoryError e) {
+                return "ERRO: PDF muito grande para a memória disponível";
+            } catch (Exception e) {
+                Log.e("PDF_ERROR", "Erro no processamento", e);
+                return "ERRO: " + e.getMessage();
+            } finally {
+                try {
+                    if (document != null) {
+                        document.close();
+                    }
+                    if (inputStream != null) {
+                        inputStream.close();
+                    }
+                } catch (IOException e) {
+                    Log.e("PDF_CLOSE", "Erro ao fechar recursos", e);
+                }
+            }
+        }
+    
+        @Override
+        protected void onPostExecute(String result) {
+            progressDialog.dismiss();
+            
+            if (result == null) {
+                Toast.makeText(MainActivity.this, 
+                    "Falha ao ler o arquivo PDF", 
+                    Toast.LENGTH_LONG).show();
+                return;
+            }
+    
+            if (result.startsWith("ERRO:")) {
+                Toast.makeText(MainActivity.this, 
+                    result, 
+                    Toast.LENGTH_LONG).show();
+                return;
+            }
+    
+            if (result.startsWith("PDF criptografado")) {
+                Toast.makeText(MainActivity.this, 
+                    result, 
+                    Toast.LENGTH_LONG).show();
+                return;
+            }
+    
+            // Processar o texto extraído
+            processImportedText(result, true);
+        }
+    }
     
     private void importTextFile() {
         toggleMenu();
@@ -719,12 +822,16 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        
-        if (resultCode == RESULT_OK && data != null) {
-            Uri uri = data.getData();
+        @Override
+        protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+            super.onActivityResult(requestCode, resultCode, data);
+            
+            if (resultCode == RESULT_OK && data != null) {
+                Uri uri = data.getData();
+                
+                if (requestCode == PICK_PDF_FILE) {
+                    processPdfFile(uri);
+                }
             
             // Diálogo de progresso que será usado para ambos PDF e TXT
             ProgressDialog progressDialog = new ProgressDialog(this);
@@ -737,7 +844,7 @@ public class MainActivity extends AppCompatActivity {
                     
                     new Thread(() -> {
                         try {
-                            String pdfText = extractTextFromPdf(uri);
+                            String pdfText = processPdfFile(uri);
                             
                             runOnUiThread(() -> {
                                 progressDialog.dismiss();
@@ -855,85 +962,6 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean hasInvalidUTF8Characters(String content) {
         return content.contains("�");
-    }
-
-    private String extractTextFromPdf(Uri uri) {
-        // Mostrar diálogo de progresso
-        ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Processando PDF...");
-        progressDialog.setCancelable(false);
-        progressDialog.show();
-    
-        try {
-            InputStream inputStream = getContentResolver().openInputStream(uri);
-            if (inputStream == null) {
-                throw new IOException("Não foi possível abrir o arquivo PDF");
-            }
-    
-            // Configurações de memória para PDFBox
-            System.setProperty("org.apache.pdfbox.baseParser.pushBackSize", "1000000");
-            System.setProperty("org.apache.pdfbox.baseParser.maxMainValueStackSize", "500000");
-    
-            // Carregar documento com tamanho de buffer otimizado
-            PDDocument document = PDDocument.load(new BufferedInputStream(inputStream, 8192));
-    
-            // Verificar se o PDF está criptografado
-            if (document.isEncrypted()) {
-                try {
-                    document.setAllSecurityToBeRemoved(true);
-                } catch (Exception e) {
-                    document.close();
-                    throw new IOException("PDF criptografado não é suportado");
-                }
-            }
-    
-            // Configurar extrator de texto com tratamento de memória
-            PDFTextStripper stripper = new PDFTextStripper();
-            stripper.setSortByPosition(true);
-            stripper.setLineSeparator("\n");
-            stripper.setWordSeparator(" ");
-    
-            // Limitar número de páginas para evitar estouro de memória
-            int pageLimit = Math.min(document.getNumberOfPages(), 20);
-            if (pageLimit < document.getNumberOfPages()) {
-                stripper.setEndPage(pageLimit);
-                runOnUiThread(() -> Toast.makeText(
-                    this,
-                    "Processando apenas as primeiras " + pageLimit + " páginas",
-                    Toast.LENGTH_LONG
-                ).show());
-            }
-    
-            String text = stripper.getText(document);
-            document.close();
-            inputStream.close();
-    
-            return text;
-    
-        } catch (OutOfMemoryError e) {
-            runOnUiThread(() -> {
-                Toast.makeText(
-                    this,
-                    "PDF muito grande - memória insuficiente",
-                    Toast.LENGTH_LONG
-                ).show();
-                progressDialog.dismiss();
-            });
-            return null;
-        } catch (Exception e) {
-            Log.e("PDF_ERROR", "Erro ao processar PDF", e);
-            runOnUiThread(() -> {
-                Toast.makeText(
-                    this,
-                    "Erro ao processar PDF: " + e.getMessage(),
-                    Toast.LENGTH_LONG
-                ).show();
-                progressDialog.dismiss();
-            });
-            return null;
-        } finally {
-            progressDialog.dismiss();
-        }
     }
     
     private void showExportDialog() {
