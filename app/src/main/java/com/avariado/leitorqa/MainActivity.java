@@ -48,6 +48,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import com.tom_roush.pdfbox.pdmodel.PDDocument;
+import com.tom_roush.pdfbox.text.PDFTextStripper;
+import com.tom_roush.pdfbox.util.PDFBoxResourceLoader;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PICK_TXT_FILE = 1;
@@ -61,6 +64,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String CURRENT_INDEX_KEY = "currentIndex";
     private static final String IS_QA_MODE_KEY = "isQAMode";
     private static final String FONT_SIZE_KEY = "fontSize";
+
+    private static final int PICK_PDF_FILE = 3;
 
     private static final float QA_LINE_SPACING_EXTRA = 10f;
     private static final float TEXT_LINE_SPACING_EXTRA = 6f;
@@ -634,10 +639,25 @@ public class MainActivity extends AppCompatActivity {
     
     private void importTextFile() {
         toggleMenu();
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("text/*");
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        startActivityForResult(intent, PICK_TXT_FILE);
+        
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Selecionar tipo de ficheiro");
+        builder.setItems(new String[]{"Texto (TXT)", "PDF com texto"}, (dialog, which) -> {
+            if (which == 0) {
+                // TXT file
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("text/*");
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                startActivityForResult(intent, PICK_TXT_FILE);
+            } else {
+                // PDF file
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("application/pdf");
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                startActivityForResult(intent, PICK_PDF_FILE);
+            }
+        });
+        builder.show();
     }
 
     @Override
@@ -647,9 +667,40 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode == RESULT_OK && data != null) {
             Uri uri = data.getData();
             try {
-                String fileContent = readTextFileWithEncodingDetection(uri);
-                
-                if (requestCode == PICK_TXT_FILE) {
+                if (requestCode == PICK_PDF_FILE) {
+                    // Handle PDF file
+                    String pdfText = extractTextFromPdf(uri);
+                    if (pdfText == null || pdfText.trim().isEmpty()) {
+                        Toast.makeText(this, "O PDF não contém texto ou não pôde ser lido", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    
+                    // Process the extracted text
+                    boolean isAlternatingQa = true;
+                    String[] lines = pdfText.split("\n");
+                    for (int i = 0; i < lines.length; i++) {
+                        String line = lines[i].trim();
+                        if (!line.isEmpty() && !isSingleSentence(line)) {
+                            isAlternatingQa = false;
+                            break;
+                        }
+                    }
+                    
+                    if (isAlternatingQa && lines.length >= 2 && lines.length % 2 == 0) {
+                        parseAlternatingLinesContent(pdfText);
+                    } else if (pdfText.contains("\t") || pdfText.contains(";;")) {
+                        parseQAContent(pdfText);
+                    } else {
+                        parseTextContent(pdfText);
+                    }
+                    
+                    updateDisplay();
+                    saveState();
+                    Toast.makeText(this, "PDF importado com sucesso!", Toast.LENGTH_SHORT).show();
+                } else if (requestCode == PICK_TXT_FILE) {
+                    // Existing TXT file handling...
+                    String fileContent = readTextFileWithEncodingDetection(uri);
+                    
                     boolean isAlternatingQa = true;
                     String[] lines = fileContent.split("\n");
                     for (int i = 0; i < lines.length; i++) {
@@ -676,6 +727,9 @@ public class MainActivity extends AppCompatActivity {
                 }
             } catch (IOException e) {
                 Toast.makeText(this, "Erro ao ler ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                e.printStackTrace();
+            } catch (Exception e) {
+                Toast.makeText(this, "Erro ao processar ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 e.printStackTrace();
             }
         }
@@ -710,6 +764,36 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean hasInvalidUTF8Characters(String content) {
         return content.contains("�");
+    }
+
+        private String extractTextFromPdf(Uri uri) throws IOException {
+        InputStream inputStream = getContentResolver().openInputStream(uri);
+        PDFBoxResourceLoader.init(getApplicationContext());
+        
+        try {
+            PDDocument document = PDDocument.load(inputStream);
+            
+            // Check if the PDF contains text
+            if (document.getNumberOfPages() == 0) {
+                document.close();
+                return null;
+            }
+            
+            // Try to extract text
+            PDFTextStripper pdfStripper = new PDFTextStripper();
+            String text = pdfStripper.getText(document);
+            document.close();
+            
+            // Check if we got any text
+            if (text == null || text.trim().isEmpty()) {
+                return null;
+            }
+            
+            return text;
+        } catch (IOException e) {
+            // This usually happens if the PDF is image-based
+            throw new IOException("O PDF não contém texto legível (pode ser apenas imagens)");
+        }
     }
     
     private void showExportDialog() {
