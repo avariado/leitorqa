@@ -666,71 +666,104 @@ public class MainActivity extends AppCompatActivity {
         
         if (resultCode == RESULT_OK && data != null) {
             Uri uri = data.getData();
+            
+            // Diálogo de progresso que será usado para ambos PDF e TXT
+            ProgressDialog progressDialog = new ProgressDialog(this);
+            progressDialog.setCancelable(false);
+            
             try {
                 if (requestCode == PICK_PDF_FILE) {
-                    String pdfText = extractTextFromPdf(uri);
-                    if (pdfText == null || pdfText.trim().isEmpty()) {
-                        Toast.makeText(this, "Não foi possível extrair texto do PDF", Toast.LENGTH_LONG).show();
-                        return;
-                    }
+                    progressDialog.setMessage("Processando PDF...");
+                    progressDialog.show();
                     
-                    // Process the extracted text
-                    boolean isAlternatingQa = true;
-                    String[] lines = pdfText.split("\n");
-                    for (int i = 0; i < lines.length; i++) {
-                        String line = lines[i].trim();
-                        if (!line.isEmpty() && !isSingleSentence(line)) {
-                            isAlternatingQa = false;
-                            break;
+                    new Thread(() -> {
+                        try {
+                            String pdfText = extractTextFromPdf(uri);
+                            
+                            runOnUiThread(() -> {
+                                progressDialog.dismiss();
+                                
+                                if (pdfText == null || pdfText.trim().isEmpty()) {
+                                    Toast.makeText(this, "Não foi possível extrair texto do PDF", Toast.LENGTH_LONG).show();
+                                    return;
+                                }
+                                
+                                // Processar o texto extraído
+                                processImportedText(pdfText, true);
+                                Toast.makeText(this, "PDF importado com sucesso!", Toast.LENGTH_SHORT).show();
+                            });
+                        } catch (Exception e) {
+                            runOnUiThread(() -> {
+                                progressDialog.dismiss();
+                                Toast.makeText(this, "Erro ao processar PDF: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                Log.e("PDF_IMPORT", "Erro ao processar PDF", e);
+                            });
                         }
-                    }
-
-                    if (isAlternatingQa && lines.length >= 2 && lines.length % 2 == 0) {
-                        parseAlternatingLinesContent(pdfText);
-                    } else if (pdfText.contains("\t") || pdfText.contains(";;")) {
-                        parseQAContent(pdfText);
-                    } else {
-                        parseTextContent(pdfText);
-                    }
+                    }).start();
                     
-                    updateDisplay();
-                    saveState();
-                    Toast.makeText(this, "PDF importado com sucesso!", Toast.LENGTH_SHORT).show();
                 } else if (requestCode == PICK_TXT_FILE) {
-                    // Existing TXT file handling...
-                    String fileContent = readTextFileWithEncodingDetection(uri);
+                    progressDialog.setMessage("Lendo arquivo de texto...");
+                    progressDialog.show();
                     
-                    boolean isAlternatingQa = true;
-                    String[] lines = fileContent.split("\n");
-                    for (int i = 0; i < lines.length; i++) {
-                        String line = lines[i].trim();
-                        if (!line.isEmpty() && !isSingleSentence(line)) {
-                            isAlternatingQa = false;
-                            break;
+                    new Thread(() -> {
+                        try {
+                            String fileContent = readTextFileWithEncodingDetection(uri);
+                            
+                            runOnUiThread(() -> {
+                                progressDialog.dismiss();
+                                
+                                if (fileContent == null || fileContent.trim().isEmpty()) {
+                                    Toast.makeText(this, "O arquivo está vazio ou não pôde ser lido", Toast.LENGTH_LONG).show();
+                                    return;
+                                }
+                                
+                                // Processar o conteúdo do arquivo de texto
+                                processImportedText(fileContent, false);
+                                Toast.makeText(this, "Arquivo importado com sucesso!", Toast.LENGTH_SHORT).show();
+                            });
+                        } catch (Exception e) {
+                            runOnUiThread(() -> {
+                                progressDialog.dismiss();
+                                Toast.makeText(this, "Erro ao ler arquivo: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                Log.e("TXT_IMPORT", "Erro ao ler arquivo", e);
+                            });
                         }
-                    }
+                    }).start();
                     
-                    if (isAlternatingQa && lines.length >= 2 && lines.length % 2 == 0) {
-                        parseAlternatingLinesContent(fileContent);
-                    } else if (fileContent.contains("\t") || fileContent.contains(";;")) {
-                        parseQAContent(fileContent);
-                    } else {
-                        parseTextContent(fileContent);
-                    }
-                    
-                    updateDisplay();
-                    saveState();
-                    Toast.makeText(this, "Ficheiro importado com sucesso!", Toast.LENGTH_SHORT).show();
                 } else if (requestCode == CREATE_FILE) {
-                    exportFile(uri);
+                    // Exportação de arquivo
+                    progressDialog.setMessage("Exportando conteúdo...");
+                    progressDialog.show();
+                    
+                    new Thread(() -> {
+                        try {
+                            exportFile(uri);
+                            
+                            runOnUiThread(() -> {
+                                progressDialog.dismiss();
+                                Toast.makeText(this, "Conteúdo exportado com sucesso!", Toast.LENGTH_LONG).show();
+                            });
+                        } catch (Exception e) {
+                            runOnUiThread(() -> {
+                                progressDialog.dismiss();
+                                Toast.makeText(this, "Erro ao exportar: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                Log.e("EXPORT", "Erro ao exportar", e);
+                            });
+                        }
+                    }).start();
                 }
-            } catch (IOException e) {
-                Toast.makeText(this, "Erro ao ler ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                e.printStackTrace();
+            } catch (SecurityException e) {
+                progressDialog.dismiss();
+                Toast.makeText(this, "Permissão negada para acessar o arquivo", Toast.LENGTH_LONG).show();
+                Log.e("FILE_ACCESS", "Erro de permissão", e);
             } catch (Exception e) {
-                Toast.makeText(this, "Erro ao processar ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                e.printStackTrace();
+                progressDialog.dismiss();
+                Toast.makeText(this, "Erro inesperado: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                Log.e("FILE_IMPORT", "Erro geral", e);
             }
+        } else if (resultCode == RESULT_CANCELED) {
+            // Usuário cancelou a seleção de arquivo
+            Toast.makeText(this, "Importação cancelada", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -774,18 +807,47 @@ public class MainActivity extends AppCompatActivity {
                 throw new IOException("Não foi possível abrir o arquivo PDF");
             }
     
-            // Carrega o documento em modo seguro
-            document = PDDocument.load(new BufferedInputStream(inputStream));
+            // Usar um buffer maior para PDFs complexos
+            BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream, 8192);
+            
+            // Carrega o documento com tratamento de memória
+            document = PDDocument.load(bufferedInputStream);
     
             // Verifica se o PDF está criptografado
             if (document.isEncrypted()) {
-                throw new IOException("PDF criptografado não é suportado");
+                try {
+                    // Tentar abrir sem senha (para alguns PDFs marcados como criptografados mas sem senha real)
+                    document.setAllSecurityToBeRemoved(true);
+                } catch (Exception e) {
+                    throw new IOException("PDF criptografado não é suportado");
+                }
             }
     
+            // Configurar o extrator de texto
             PDFTextStripper stripper = new PDFTextStripper();
             stripper.setSortByPosition(true);
-            return stripper.getText(document);
+            stripper.setLineSeparator("\n"); // Manter consistência com o tratamento de linhas
+            
+            // Limitar o número de páginas para evitar problemas com PDFs muito grandes
+            if (document.getNumberOfPages() > 100) {
+                stripper.setEndPage(100); // Limitar às primeiras 100 páginas
+            }
     
+            String text = stripper.getText(document);
+            
+            // Fechar recursos antes de retornar
+            document.close();
+            inputStream.close();
+            
+            return text;
+    
+        } catch (OutOfMemoryError e) {
+            runOnUiThread(() -> Toast.makeText(
+                this, 
+                "PDF muito grande - memória insuficiente", 
+                Toast.LENGTH_LONG
+            ).show());
+            return null;
         } catch (Exception e) {
             runOnUiThread(() -> Toast.makeText(
                 this, 
