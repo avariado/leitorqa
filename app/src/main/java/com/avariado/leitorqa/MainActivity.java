@@ -50,6 +50,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 import com.tom_roush.pdfbox.text.PDFTextStripper;
+import android.util.Log;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PICK_TXT_FILE = 1;
