@@ -732,18 +732,10 @@ public class MainActivity extends AppCompatActivity {
                 
                 String pdfContent = fullText.toString();
                 String[] lines = pdfContent.split("\n");
-                boolean isAlternatingQa = true;
-                
-                for (String line : lines) {
-                    String trimmedLine = line.trim();
-                    if (!trimmedLine.isEmpty() && !isSingleSentence(trimmedLine)) {
-                        isAlternatingQa = false;
-                        break;
-                    }
-                }
+                final boolean isAlternatingQaFinal = checkIfAlternatingQa(lines);
                 
                 runOnUiThread(() -> {
-                    if (isAlternatingQa && lines.length >= 2) {
+                    if (isAlternatingQaFinal && lines.length >= 2) {
                         if (lines.length % 2 != 0) {
                             Toast.makeText(this, 
                                 "Aviso: O número de linhas não é par. A última linha será ignorada.", 
@@ -776,6 +768,16 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         }).start();
+    }
+    
+    private boolean checkIfAlternatingQa(String[] lines) {
+        for (String line : lines) {
+            String trimmedLine = line.trim();
+            if (!trimmedLine.isEmpty() && !isSingleSentence(trimmedLine)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
