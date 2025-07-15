@@ -771,13 +771,13 @@ public class MainActivity extends AppCompatActivity {
         try {
             inputStream = getContentResolver().openInputStream(uri);
             if (inputStream == null) {
-                throw new IOException("Não foi possível abrir o fluxo de entrada do PDF");
+                throw new IOException("Não foi possível abrir o arquivo PDF");
             }
     
-            // Usar um BufferedInputStream para melhor desempenho
-            BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
-            document = PDDocument.load(bufferedInputStream);
+            // Carrega o documento em modo seguro
+            document = PDDocument.load(new BufferedInputStream(inputStream));
     
+            // Verifica se o PDF está criptografado
             if (document.isEncrypted()) {
                 throw new IOException("PDF criptografado não é suportado");
             }
@@ -789,7 +789,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             runOnUiThread(() -> Toast.makeText(
                 this, 
-                "Erro ao ler PDF: " + e.getMessage(), 
+                "Erro ao processar PDF: " + e.getMessage(), 
                 Toast.LENGTH_LONG
             ).show());
             return null;
@@ -802,7 +802,7 @@ public class MainActivity extends AppCompatActivity {
                     inputStream.close();
                 }
             } catch (IOException e) {
-                // Ignorar erros ao fechar
+                // Ignora erros ao fechar
             }
         }
     }
