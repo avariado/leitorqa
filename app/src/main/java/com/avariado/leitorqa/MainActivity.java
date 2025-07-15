@@ -50,6 +50,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 import com.tom_roush.pdfbox.text.PDFTextStripper;
+import com.tom_roush.pdfbox.pdmodel.PDPage;
 import android.app.ProgressDialog;
 import android.util.Log;
 
@@ -865,35 +866,53 @@ public class MainActivity extends AppCompatActivity {
                 throw new IOException("Não foi possível abrir o arquivo PDF");
             }
     
-            // Usar um buffer maior para PDFs complexos
-            BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream, 8192);
+            // Configuração segura para PDFBox
+            System.setProperty("org.apache.pdfbox.baseParser.pushBackSize", "1000000");
             
-            // Carrega o documento com tratamento de memória
-            document = PDDocument.load(bufferedInputStream);
-    
+            // Carrega o documento com configurações de memória otimizadas
+            document = PDDocument.load(inputStream, (String)null);
+            
             // Verifica se o PDF está criptografado
             if (document.isEncrypted()) {
                 try {
-                    // Tentar abrir sem senha (para alguns PDFs marcados como criptografados mas sem senha real)
                     document.setAllSecurityToBeRemoved(true);
                 } catch (Exception e) {
                     throw new IOException("PDF criptografado não é suportado");
                 }
             }
     
-            // Configurar o extrator de texto
-            PDFTextStripper stripper = new PDFTextStripper();
-            stripper.setSortByPosition(true);
-            stripper.setLineSeparator("\n"); // Manter consistência com o tratamento de linhas
+            // Configura o extrator de texto com tratamento especial para PDFs complexos
+            PDFTextStripper stripper = new PDFTextStripper() {
+                @Override
+                protected void startPage(PDPage page) throws IOException {
+                    startArticle();
+                    startParagraph();
+                }
+                
+                @Override
+                protected void endPage(PDPage page) throws IOException {
+                    endParagraph();
+                    endArticle();
+                }
+            };
             
-            // Limitar o número de páginas para evitar problemas com PDFs muito grandes
-            if (document.getNumberOfPages() > 100) {
-                stripper.setEndPage(100); // Limitar às primeiras 100 páginas
+            stripper.setSortByPosition(true);
+            stripper.setLineSeparator("\n");
+            stripper.setWordSeparator(" ");
+            
+            // Limita o número de páginas para evitar estouro de memória
+            if (document.getNumberOfPages() > 50) {
+                stripper.setEndPage(50);
+                runOnUiThread(() -> Toast.makeText(
+                    this, 
+                    "Apenas as primeiras 50 páginas foram processadas", 
+                    Toast.LENGTH_LONG
+                ).show());
             }
     
             String text = stripper.getText(document);
             
-            // Fechar recursos antes de retornar
+            // Fecha os recursos
             document.close();
             inputStream.close();
             
@@ -907,6 +926,7 @@ public class MainActivity extends AppCompatActivity {
             ).show());
             return null;
         } catch (Exception e) {
+            Log.e("PDF_ERROR", "Erro ao processar PDF", e);
             runOnUiThread(() -> Toast.makeText(
                 this, 
                 "Erro ao processar PDF: " + e.getMessage(), 
@@ -922,7 +942,7 @@ public class MainActivity extends AppCompatActivity {
                     inputStream.close();
                 }
             } catch (IOException e) {
-                // Ignora erros ao fechar
+                Log.e("PDF_CLOSE", "Erro ao fechar recursos", e);
             }
         }
     }
