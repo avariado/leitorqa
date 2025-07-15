@@ -661,7 +661,7 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
-        private void processImportedText(String text, boolean isPdf) {
+    private void processImportedText(String text, boolean isPdf) {
         runOnUiThread(() -> {
             try {
                 // Verificar se o texto parece ser QA (pergunta/resposta)
@@ -676,8 +676,8 @@ public class MainActivity extends AppCompatActivity {
                         String trimmed = line.trim();
                         if (trimmed.isEmpty()) continue;
                         
-                        // Se a linha termina com pontuação, assumir que é uma frase completa
-                        if (trimmed.matches(".*[.!?]\""?\\s*$")) {
+                        // Corrigido: Expressão regular simplificada e correta
+                        if (trimmed.matches(".*[.!?][\"']?\\s*$")) {
                             normalizedText.append(trimmed).append("\n");
                         } else {
                             normalizedText.append(trimmed).append(" ");
