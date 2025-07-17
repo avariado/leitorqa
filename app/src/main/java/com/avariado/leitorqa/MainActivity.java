@@ -555,48 +555,50 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void parseQAContent(String text) {
-        if (text == null) return;
+private void parseQAContent(String text) {
+    if (text == null) return;
+    
+    boolean hasTabs = text.contains("\t");
+    boolean hasDoubleSemicolon = text.contains(";;");
+    
+    if (hasTabs || hasDoubleSemicolon) {
+        originalSeparator = hasTabs ? "\t" : ";;";
+        String[] lines = text.split("\n");
+        items.clear();
+        originalItems.clear();
         
-        boolean hasTabs = text.contains("\t");
-        boolean hasDoubleSemicolon = text.contains(";;");
-        
-        if (hasTabs || hasDoubleSemicolon) {
-            originalSeparator = hasTabs ? "\t" : ";;";
-            String[] lines = text.split("\n");
-            items.clear();
-            originalItems.clear();
+        for (String line : lines) {
+            if (line.trim().isEmpty()) continue;
             
-            for (String line : lines) {
-                if (line.trim().isEmpty()) continue;
-                String[] parts = line.split(originalSeparator);
-                
-                if (parts.length >= 2) {
-                    String question = parts[0].trim();
-                    String answer = String.join(originalSeparator, Arrays.copyOfRange(parts, 1, parts.length)).trim();
-                    items.add(new QAItem(question, answer, line));
-                } else {
-                    if (hasMultipleSentences(line)) {
-                        parseTextContent(text);
-                        return;
-                    }
-                    items.add(new QAItem(line.trim(), line));
-                }
-            }
+            // Modificação principal aqui - usar split com limite 2 para manter o restante do texto
+            String[] parts = line.split(originalSeparator, 2);
             
-            originalItems = new ArrayList<>(items);
-            currentIndex = 0;
-            isQAMode = !items.isEmpty() && items.get(0).isQA();
-        } else {
-            if (checkAlternatingLinesFormat(text)) {
-                parseAlternatingLinesContent(text);
+            if (parts.length >= 2) {
+                String question = parts[0].trim();
+                String answer = parts[1].trim();
+                items.add(new QAItem(question, answer, line));
             } else {
-                parseTextContent(text);
+                if (hasMultipleSentences(line)) {
+                    parseTextContent(text);
+                    return;
+                }
+                items.add(new QAItem(line.trim(), line));
             }
         }
+        
+        originalItems = new ArrayList<>(items);
+        currentIndex = 0;
+        isQAMode = !items.isEmpty() && items.get(0).isQA();
+    } else {
+        if (checkAlternatingLinesFormat(text)) {
+            parseAlternatingLinesContent(text);
+        } else {
+            parseTextContent(text);
+        }
     }
+}
 	
-	private boolean isSingleSentence(String text) {
+private boolean isSingleSentence(String text) {
     if (text == null || text.trim().isEmpty()) return false;
     
     String trimmed = text.trim();
