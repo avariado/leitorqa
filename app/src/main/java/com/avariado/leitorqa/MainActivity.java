@@ -563,11 +563,9 @@ public class MainActivity extends AppCompatActivity {
         items.clear();
         originalItems.clear();
         
-        // Regra 11: Verificar delimitadores primeiro
         boolean hasTabs = text.contains("\t");
         boolean hasDoubleSemicolon = text.contains(";;");
         
-        // Regra 14: Basta um delimitador para ser Q&A
         if (hasTabs || hasDoubleSemicolon) {
             originalSeparator = hasTabs ? "\t" : ";;";
             
@@ -581,7 +579,6 @@ public class MainActivity extends AppCompatActivity {
                     String answer = parts[1].trim();
                     items.add(new QAItem(question, answer, line));
                 } else {
-                    // Regra 17: Verificar se tem múltiplas frases
                     if (hasMultipleSentences(line)) {
                         parseTextContent(text);
                         return;
@@ -590,13 +587,11 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         } else {
-            // Regra 10: Verificar linhas alternadas
             if (checkAlternatingLinesFormat(text)) {
                 parseAlternatingLinesContent(text);
                 return;
             }
             
-            // Regra 3: Se não for Q&A, tratar como texto normal
             parseTextContent(text);
             return;
         }
@@ -609,14 +604,12 @@ public class MainActivity extends AppCompatActivity {
     private boolean hasMultipleSentences(String line) {
         if (line == null || line.trim().isEmpty()) return false;
         
-        // Regra 15: Verificar pontuação interna
         Pattern pattern = Pattern.compile("[.!?…](?![.!?…]*$)");
         Matcher matcher = pattern.matcher(line);
         if (matcher.find()) {
             return true;
         }
         
-        // Verificar múltiplas frases na mesma linha
         int punctuationCount = line.replaceAll("[^.!?…]", "").length();
         return punctuationCount > 1;
     }
@@ -626,12 +619,10 @@ public class MainActivity extends AppCompatActivity {
         
         String originalText = text;
         
-        // Regra 21: Tratar quebras de linha
         String singleLine = text.replaceAll("[\\r\\n]+", " ")
                               .replaceAll("\\s+", " ")
                               .trim();
         
-        // Regra 9: Identificar frases completas
         Pattern pattern = Pattern.compile("[^.!?…]+[.!?…]+");
         Matcher matcher = pattern.matcher(singleLine);
         List<String> sentences = new ArrayList<>();
@@ -640,7 +631,6 @@ public class MainActivity extends AppCompatActivity {
             sentences.add(matcher.group().trim());
         }
         
-        // Regra 16: Identificar frases implícitas
         Pattern implicitPattern = Pattern.compile("[^.!?…]+$");
         Matcher implicitMatcher = implicitPattern.matcher(singleLine);
         String lastImplicit = "";
@@ -649,7 +639,6 @@ public class MainActivity extends AppCompatActivity {
             lastImplicit = implicitMatcher.group().trim();
         }
         
-        // Regra 28: Fundir frases implícitas
         if (!lastImplicit.isEmpty()) {
             if (!sentences.isEmpty()) {
                 sentences.set(sentences.size() - 1, 
@@ -659,7 +648,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         
-        // Regra 25: Agrupar frases com mínimo de 75 caracteres
         List<QAItem> processedItems = new ArrayList<>();
         StringBuilder currentChunk = new StringBuilder();
         
@@ -674,7 +662,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         
-        // Regra 26: Não suprimir frases curtas no final
         if (currentChunk.length() > 0) {
             processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
         }
@@ -725,14 +712,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void processTextContent(String fileContent, Uri uri) throws IOException {
-        // Regra 2: Verificação de codificação já feita em readTextFileWithEncodingDetection
-        
-        // Regra 3: Determinar tipo de conteúdo
+
         boolean hasTabs = fileContent.contains("\t");
         boolean hasDoubleSemicolon = fileContent.contains(";;");
         boolean isAlternatingLines = checkAlternatingLinesFormat(fileContent);
         
-        // Regra 4: Verificar apenas 50 linhas para determinar o formato
         String[] lines = fileContent.split("\n");
         int linesToCheck = Math.min(lines.length, 50);
         boolean hasMultipleSentences = false;
@@ -744,13 +728,11 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         
-        // Regra 5: Tratar diferentes tipos de Q&A
         if (hasTabs || hasDoubleSemicolon) {
             parseQAContent(fileContent);
         } 
-        // Regra 8: Verificar pares de linhas sem delimitadores
+
         else if (isAlternatingLines && !hasMultipleSentences && lines.length >= 2) {
-            // Regra 12: Verificar número par de linhas
             if (lines.length % 2 != 0) {
                 Toast.makeText(this, 
                     "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.", 
@@ -794,12 +776,10 @@ public class MainActivity extends AppCompatActivity {
                 boolean isAlternatingQa = true;
                 boolean hasMultipleSentences = false;
                 
-                // Verificar as primeiras 50 linhas conforme a regra 4
                 int linesToCheck = Math.min(lines.length, 50);
                 for (int i = 0; i < linesToCheck; i++) {
                     String line = lines[i].trim();
                     if (!line.isEmpty()) {
-                        // Regra 17: Verificar múltiplas frases
                         if (hasMultipleSentences(line)) {
                             hasMultipleSentences = true;
                             break;
@@ -807,9 +787,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 
-                // Regra 13: Distinguir Q&A de pares de linhas de texto normal
                 if (isAlternatingQa && !hasMultipleSentences && lines.length >= 2) {
-                    // Regra 12: Verificar número par de linhas
                     if (lines.length % 2 != 0) {
                         runOnUiThread(() -> {
                             Toast.makeText(this, 
@@ -853,28 +831,24 @@ public class MainActivity extends AppCompatActivity {
         String[] lines = text.split("\n");
         if (lines.length < 2) return false;
         
-        // Verificar até 50 linhas conforme a regra 4
         int linesToCheck = Math.min(lines.length, 50);
         
         for (int i = 0; i < linesToCheck; i++) {
             String line = lines[i].trim();
             if (line.isEmpty()) continue;
             
-            // Regra 17: Verificar pontuação interna
             Pattern pattern = Pattern.compile("[.!?…](?![.!?…]*$)");
             Matcher matcher = pattern.matcher(line);
             if (matcher.find()) {
                 return false;
             }
             
-            // Regra 15: Verificar múltiplas frases
             int punctuationCount = line.replaceAll("[^.!?…]", "").length();
             if (punctuationCount > 1) {
                 return false;
             }
         }
         
-        // Regra 12: Verificar número par de linhas
         if (lines.length % 2 != 0) {
             return false;
         }
@@ -883,7 +857,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
-        // Regra 2: Detecção de codificação de caracteres
         InputStream inputStream = getContentResolver().openInputStream(uri);
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         byte[] buffer = new byte[1024];
@@ -894,28 +867,22 @@ public class MainActivity extends AppCompatActivity {
         byte[] fileContentBytes = byteArrayOutputStream.toByteArray();
         inputStream.close();
 
-        // Tentar UTF-8 primeiro
         try {
             String content = new String(fileContentBytes, StandardCharsets.UTF_8);
             if (!hasInvalidUTF8Characters(content)) {
                 return content;
             }
         } catch (Exception e) {
-            // Continuar para próxima tentativa
         }
 
-        // Tentar ISO-8859-1 (Latin-1)
         try {
             return new String(fileContentBytes, "ISO-8859-1");
         } catch (Exception e) {
-            // Continuar para próxima tentativa
         }
 
-        // Tentar Windows-1252 como fallback
         try {
             return new String(fileContentBytes, "Windows-1252");
         } catch (Exception e) {
-            // Usar padrão do sistema como último recurso
             return new String(fileContentBytes);
         }
     }
@@ -1002,7 +969,6 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             
-            // Regra 11: Verificar delimitadores primeiro
             boolean hasTabs = text.contains("\t");
             boolean hasDoubleSemicolon = text.contains(";;");
             boolean isAlternatingLines = checkAlternatingLinesFormat(text);
@@ -1027,7 +993,6 @@ public class MainActivity extends AppCompatActivity {
         items.clear();
         originalItems.clear();
         
-        // Regra 12: Verificar número par de linhas
         if (lines.length % 2 != 0) {
             Toast.makeText(this, 
                 "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.", 
@@ -1041,7 +1006,6 @@ public class MainActivity extends AppCompatActivity {
             String answer = lines[i + 1].trim();
             String originalLines = lines[i] + "\n" + lines[i+1];
             
-            // Regra 13: Verificar se cada linha tem apenas uma frase
             if (hasMultipleSentences(question) || hasMultipleSentences(answer)) {
                 parseTextContent(text);
                 return;
