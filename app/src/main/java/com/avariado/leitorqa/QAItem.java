@@ -6,14 +6,12 @@ public class QAItem {
     private String text;
     private String originalLine;
     
-    // Construtor para itens Q&A
     public QAItem(String question, String answer, String originalLine) {
         this.question = question;
         this.answer = answer;
         this.originalLine = originalLine;
     }
     
-    // Construtor para texto simples
     public QAItem(String text, String originalLine) {
         this.text = text;
         this.originalLine = originalLine;
