@@ -405,7 +405,6 @@ public class MainActivity extends AppCompatActivity {
         menuVisible = !menuVisible;
         
         if (menuVisible) {
-            // Se ainda não foi medido (improvável após a pré-medida)
             if (menuLayout.getWidth() <= 0) {
                 menuLayout.measure(
                     View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
@@ -559,14 +558,9 @@ public class MainActivity extends AppCompatActivity {
     private void parseQAContent(String text) {
         if (text == null) return;
         
-        // Regra 2: Verificação inicial da codificação (já tratada no método de leitura)
-        // Regra 3: Determinar grupo do ficheiro (QA ou texto normal)
-        
-        // Regra 5: Verificar tipos de delimitadores
         boolean hasTabs = text.contains("\t");
         boolean hasDoubleSemicolon = text.contains(";;");
         
-        // Regra 11: Verificação de delimitadores em primeiro lugar
         if (hasTabs || hasDoubleSemicolon) {
             originalSeparator = hasTabs ? "\t" : ";;";
             String[] lines = text.split("\n");
@@ -575,8 +569,6 @@ public class MainActivity extends AppCompatActivity {
             
             for (String line : lines) {
                 if (line.trim().isEmpty()) continue;
-                
-                // Regra 6 e 7: Processar delimitadores tab ou ;;
                 String[] parts = line.split(originalSeparator);
                 
                 if (parts.length >= 2) {
@@ -584,7 +576,6 @@ public class MainActivity extends AppCompatActivity {
                     String answer = String.join(originalSeparator, Arrays.copyOfRange(parts, 1, parts.length)).trim();
                     items.add(new QAItem(question, answer, line));
                 } else {
-                    // Regra 17: Verificar se é texto normal
                     if (hasMultipleSentences(line)) {
                         parseTextContent(text);
                         return;
@@ -597,7 +588,6 @@ public class MainActivity extends AppCompatActivity {
             currentIndex = 0;
             isQAMode = !items.isEmpty() && items.get(0).isQA();
         } else {
-            // Regra 8: Verificar formato de pares de linhas sem delimitadores
             if (checkAlternatingLinesFormat(text)) {
                 parseAlternatingLinesContent(text);
             } else {
@@ -612,13 +602,11 @@ public class MainActivity extends AppCompatActivity {
     String trimmed = text.trim();
     int punctuationCount = trimmed.replaceAll("[^.!?]", "").length();
     
-    // Verifica se tem exatamente um sinal de pontuação no final
     boolean hasSingleEndingPunctuation = punctuationCount == 1 && 
                                        (trimmed.endsWith(".") || 
                                         trimmed.endsWith("!") || 
                                         trimmed.endsWith("?"));
     
-    // Verifica se não tem pontuação no meio do texto
     boolean hasNoInternalPunctuation = punctuationCount == 0 || 
                                       (punctuationCount == 1 && 
                                       trimmed.lastIndexOf('.') == trimmed.length()-1 &&
@@ -629,22 +617,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean hasMultipleSentences(String line) {
-        // Regra 15 e 17: Verificar múltiplas frases na mesma linha
         String trimmedLine = line.trim();
         int punctuationCount = trimmedLine.replaceAll("[^.!?…]", "").length();
         
-        // Regra 18: Pontuação no meio da frase
         boolean hasInternalPunctuation = Pattern.compile("[.!?…](?![.!?…]*$)").matcher(trimmedLine).find();
         
         return punctuationCount > 1 || hasInternalPunctuation;
     }
 
     private boolean checkAlternatingLinesFormat(String text) {
-        // Regra 4: Verificar até 50 linhas
         String[] lines = text.split("\n");
         int linesToCheck = Math.min(lines.length, 50);
         
-        // Regra 12: Verificar se número de linhas é par
         if (lines.length % 2 != 0) {
             return false;
         }
@@ -653,7 +637,6 @@ public class MainActivity extends AppCompatActivity {
             String line = lines[i].trim();
             if (line.isEmpty()) continue;
             
-            // Regra 13: Verificar apenas uma frase por linha
             if (hasMultipleSentences(line)) {
                 return false;
             }
@@ -663,7 +646,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void parseAlternatingLinesContent(String text) {
-        // Regra 8: Processar pares de linhas sem delimitadores
         String[] lines = text.split("\n");
         items.clear();
         originalItems.clear();
@@ -681,12 +663,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void parseTextContent(String text) {
-        // Regra 21: Tratar quebras de linha primeiro
         String cleanedText = text.replaceAll("(\r\n|\n|\r)(?![.!?…])", " ")
                                .replaceAll("\\s+", " ")
                                .trim();
         
-        // Regra 9: Identificar frases completas
         Pattern sentencePattern = Pattern.compile("[^.!?…]*[.!?…]+");
         Matcher matcher = sentencePattern.matcher(cleanedText);
         List<String> sentences = new ArrayList<>();
@@ -695,7 +675,6 @@ public class MainActivity extends AppCompatActivity {
             sentences.add(matcher.group().trim());
         }
         
-        // Regra 16 e 27: Processar frases implícitas
         Pattern implicitPattern = Pattern.compile("[^.!?…]+$");
         Matcher implicitMatcher = implicitPattern.matcher(cleanedText);
         
@@ -703,17 +682,14 @@ public class MainActivity extends AppCompatActivity {
             String lastImplicit = implicitMatcher.group().trim();
             if (!lastImplicit.isEmpty()) {
                 if (!sentences.isEmpty()) {
-                    // Regra 28: Fundir com última frase completa
                     sentences.set(sentences.size() - 1, 
                         sentences.get(sentences.size() - 1) + " " + lastImplicit);
                 } else {
-                    // Único conteúdo do texto
                     sentences.add(lastImplicit);
                 }
             }
         }
         
-        // Regra 25: Agrupar frases com mínimo de 75 caracteres
         List<QAItem> processedItems = new ArrayList<>();
         StringBuilder currentChunk = new StringBuilder();
         
@@ -728,7 +704,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         
-        // Regra 26: Adicionar último chunk mesmo se menor que 75 caracteres
         if (currentChunk.length() > 0) {
             processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
         }
@@ -742,7 +717,7 @@ public class MainActivity extends AppCompatActivity {
     private void importTextFile() {
         toggleMenu();
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("*/*"); // Aceita qualquer tipo de arquivo
+        intent.setType("*/*");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         String[] mimeTypes = {"text/*", "application/pdf"};
         intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
@@ -779,7 +754,6 @@ public class MainActivity extends AppCompatActivity {
         String[] lines = fileContent.split("\n");
         boolean isAlternatingQa = true;
         
-        // Check if all non-empty lines could be considered single sentences
         for (String line : lines) {
             String trimmedLine = line.trim();
             if (!trimmedLine.isEmpty() && !isSingleSentence(trimmedLine)) {
