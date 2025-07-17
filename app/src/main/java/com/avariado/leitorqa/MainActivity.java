@@ -47,7 +47,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -434,47 +433,47 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void toggleAnswerVisibility() {
-        if (answerTextView.getVisibility() == View.VISIBLE) {
-            answerTextView.setVisibility(View.GONE);
-        } else {
-            answerTextView.setVisibility(View.VISIBLE);
+        if (isQAMode) {
+            if (answerTextView.getVisibility() == View.VISIBLE) {
+                answerTextView.setVisibility(View.GONE);
+            } else {
+                answerTextView.setVisibility(View.VISIBLE);
+            }
         }
     }
     
-private void updateDisplay() {
-    if (items.isEmpty()) {
-        questionTextView.setText("Nenhum conteúdo carregado.");
-        answerTextView.setText("");
-        currentCardInput.setText("0");
-        totalCardsText.setText("/ 0");
-        return;
+    private void updateDisplay() {
+        if (items.isEmpty()) {
+            questionTextView.setText("Nenhum conteúdo carregado.");
+            answerTextView.setText("");
+            currentCardInput.setText("0");
+            totalCardsText.setText("/ 0");
+            return;
+        }
+    
+        if (isQAMode) {
+            questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
+            answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
+        } else {
+            questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
+        }
+    
+        currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
+        QAItem currentItem = items.get(currentIndex);
+    
+        if (isQAMode) {
+            questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
+            answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
+            answerTextView.setVisibility(View.GONE);
+        } else {
+            questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
+            answerTextView.setText("");
+            answerTextView.setVisibility(View.GONE);
+        }
+    
+        currentCardInput.setText(String.valueOf(currentIndex + 1));
+        totalCardsText.setText("/ " + items.size());
     }
-
-    if (isQAMode) {
-        questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
-        answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
-    } else {
-        questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
-    }
-
-    currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
-    QAItem currentItem = items.get(currentIndex);
-
-    if (isQAMode) {
-        // Mostra apenas a pergunta inicialmente
-        questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
-        answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
-        answerTextView.setVisibility(View.GONE);
-    } else {
-        // Modo texto - mostra todo o conteúdo
-        questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
-        answerTextView.setText("");
-        answerTextView.setVisibility(View.GONE);
-    }
-
-    currentCardInput.setText(String.valueOf(currentIndex + 1));
-    totalCardsText.setText("/ " + items.size());
-}
 
     private Spanned highlightText(String text, String searchTerm) {
         if (text == null || searchTerm == null || searchTerm.isEmpty()) {
@@ -556,150 +555,111 @@ private void updateDisplay() {
             parseQAContent(sampleData);
         }
     }
-
-private void parseQAContent(String text) {
-    if (text == null) return;
     
-    // Verifica todos os possíveis delimitadores
-    boolean hasTabs = text.contains("\t");
-    boolean hasDoubleSemicolon = text.contains(";;");
-    boolean hasDoubleColonWithSpaces = text.matches("(?s).*\\s::\\s.*");
-    
-    if (hasTabs || hasDoubleSemicolon || hasDoubleColonWithSpaces) {
-        // Determina o delimitador principal
-        originalSeparator = hasTabs ? "\t" : 
-                          hasDoubleSemicolon ? ";;" : " :: ";
+    private void parseQAContent(String text) {
+        if (text == null) return;
         
         String[] lines = text.split("\n");
         items.clear();
         originalItems.clear();
         
-        for (String line : lines) {
-            if (line.trim().isEmpty()) continue;
+        // Regra 11: Verificar delimitadores primeiro
+        boolean hasTabs = text.contains("\t");
+        boolean hasDoubleSemicolon = text.contains(";;");
+        
+        // Regra 14: Basta um delimitador para ser Q&A
+        if (hasTabs || hasDoubleSemicolon) {
+            originalSeparator = hasTabs ? "\t" : ";;";
             
-            // Para o delimitador " :: ", precisamos tratar os espaços
-            String separatorToUse = originalSeparator;
-            if (originalSeparator.equals(" :: ") && !line.contains(" :: ")) {
-                separatorToUse = "::"; // Tenta sem espaços
-            }
-            
-            String[] parts = line.split(Pattern.quote(separatorToUse));
-            
-            if (parts.length >= 2) {
-                String question = parts[0].trim();
-                // Junta as partes restantes como resposta (caso haja mais delimitadores na linha)
-                String answer = line.substring(question.length() + separatorToUse.length()).trim();
-                items.add(new QAItem(question, answer, line));
-            } else {
-                if (hasMultipleSentences(line)) {
-                    parseTextContent(text);
-                    return;
+            for (String line : lines) {
+                if (line.trim().isEmpty()) continue;
+                
+                String[] parts = line.split(originalSeparator);
+                
+                if (parts.length >= 2) {
+                    String question = parts[0].trim();
+                    String answer = parts[1].trim();
+                    items.add(new QAItem(question, answer, line));
+                } else {
+                    // Regra 17: Verificar se tem múltiplas frases
+                    if (hasMultipleSentences(line)) {
+                        parseTextContent(text);
+                        return;
+                    }
+                    items.add(new QAItem(line.trim(), line));
                 }
-                items.add(new QAItem(line.trim(), line));
             }
+        } else {
+            // Regra 10: Verificar linhas alternadas
+            if (checkAlternatingLinesFormat(text)) {
+                parseAlternatingLinesContent(text);
+                return;
+            }
+            
+            // Regra 3: Se não for Q&A, tratar como texto normal
+            parseTextContent(text);
+            return;
         }
         
         originalItems = new ArrayList<>(items);
         currentIndex = 0;
         isQAMode = !items.isEmpty() && items.get(0).isQA();
-    } else {
-        if (checkAlternatingLinesFormat(text)) {
-            parseAlternatingLinesContent(text);
-        } else {
-            parseTextContent(text);
-        }
     }
-}
-	
-private boolean isSingleSentence(String text) {
-    if (text == null || text.trim().isEmpty()) return false;
     
-    String trimmed = text.trim();
-    // Conta pontuações de fim de frase
-    int punctuationCount = trimmed.replaceAll("[^.!?]", "").length();
-    
-    // Verifica se termina com pontuação e não tem pontuação no meio
-    boolean endsWithPunctuation = trimmed.matches(".*[.!?]$");
-    boolean hasInternalPunctuation = Pattern.compile("[.!?](?=\\s|$)").matcher(trimmed).find();
-    
-    return (punctuationCount <= 1 && endsWithPunctuation) || 
-           (punctuationCount == 0 && !hasInternalPunctuation);
-}
-
     private boolean hasMultipleSentences(String line) {
-        String trimmedLine = line.trim();
-        int punctuationCount = trimmedLine.replaceAll("[^.!?…]", "").length();
+        if (line == null || line.trim().isEmpty()) return false;
         
-        boolean hasInternalPunctuation = Pattern.compile("[.!?…](?![.!?…]*$)").matcher(trimmedLine).find();
-        
-        return punctuationCount > 1 || hasInternalPunctuation;
-    }
-
-    private boolean checkAlternatingLinesFormat(String text) {
-        String[] lines = text.split("\n");
-        int linesToCheck = Math.min(lines.length, 50);
-        
-        if (lines.length % 2 != 0) {
-            return false;
+        // Regra 15: Verificar pontuação interna
+        Pattern pattern = Pattern.compile("[.!?…](?![.!?…]*$)");
+        Matcher matcher = pattern.matcher(line);
+        if (matcher.find()) {
+            return true;
         }
         
-        for (int i = 0; i < linesToCheck; i++) {
-            String line = lines[i].trim();
-            if (line.isEmpty()) continue;
-            
-            if (hasMultipleSentences(line)) {
-                return false;
-            }
-        }
-        
-        return true;
+        // Verificar múltiplas frases na mesma linha
+        int punctuationCount = line.replaceAll("[^.!?…]", "").length();
+        return punctuationCount > 1;
     }
-
-    private void parseAlternatingLinesContent(String text) {
-        String[] lines = text.split("\n");
-        items.clear();
-        originalItems.clear();
-        
-        for (int i = 0; i < lines.length - 1; i += 2) {
-            String question = lines[i].trim();
-            String answer = lines[i + 1].trim();
-            String originalLines = lines[i] + "\n" + lines[i+1];
-            items.add(new QAItem(question, answer, originalLines));
-        }
-        
-        originalItems = new ArrayList<>(items);
-        currentIndex = 0;
-        isQAMode = true;
-    }
-
+    
     private void parseTextContent(String text) {
-        String cleanedText = text.replaceAll("(\r\n|\n|\r)(?![.!?…])", " ")
-                               .replaceAll("\\s+", " ")
-                               .trim();
+        if (text == null) return;
         
-        Pattern sentencePattern = Pattern.compile("[^.!?…]*[.!?…]+");
-        Matcher matcher = sentencePattern.matcher(cleanedText);
+        String originalText = text;
+        
+        // Regra 21: Tratar quebras de linha
+        String singleLine = text.replaceAll("[\\r\\n]+", " ")
+                              .replaceAll("\\s+", " ")
+                              .trim();
+        
+        // Regra 9: Identificar frases completas
+        Pattern pattern = Pattern.compile("[^.!?…]+[.!?…]+");
+        Matcher matcher = pattern.matcher(singleLine);
         List<String> sentences = new ArrayList<>();
         
         while (matcher.find()) {
             sentences.add(matcher.group().trim());
         }
         
+        // Regra 16: Identificar frases implícitas
         Pattern implicitPattern = Pattern.compile("[^.!?…]+$");
-        Matcher implicitMatcher = implicitPattern.matcher(cleanedText);
+        Matcher implicitMatcher = implicitPattern.matcher(singleLine);
+        String lastImplicit = "";
         
         if (implicitMatcher.find()) {
-            String lastImplicit = implicitMatcher.group().trim();
-            if (!lastImplicit.isEmpty()) {
-                if (!sentences.isEmpty()) {
-                    sentences.set(sentences.size() - 1, 
-                        sentences.get(sentences.size() - 1) + " " + lastImplicit);
-                } else {
-                    sentences.add(lastImplicit);
-                }
+            lastImplicit = implicitMatcher.group().trim();
+        }
+        
+        // Regra 28: Fundir frases implícitas
+        if (!lastImplicit.isEmpty()) {
+            if (!sentences.isEmpty()) {
+                sentences.set(sentences.size() - 1, 
+                    sentences.get(sentences.size() - 1) + " " + lastImplicit);
+            } else {
+                sentences.add(lastImplicit);
             }
         }
         
+        // Regra 25: Agrupar frases com mínimo de 75 caracteres
         List<QAItem> processedItems = new ArrayList<>();
         StringBuilder currentChunk = new StringBuilder();
         
@@ -714,11 +674,15 @@ private boolean isSingleSentence(String text) {
             }
         }
         
+        // Regra 26: Não suprimir frases curtas no final
         if (currentChunk.length() > 0) {
             processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
         }
         
         items = processedItems;
+        if (!processedItems.isEmpty()) {
+            processedItems.get(0).setOriginalLine(originalText);
+        }
         originalItems = new ArrayList<>(items);
         currentIndex = 0;
         isQAMode = false;
@@ -761,26 +725,40 @@ private boolean isSingleSentence(String text) {
     }
 
     private void processTextContent(String fileContent, Uri uri) throws IOException {
-        String[] lines = fileContent.split("\n");
-        boolean isAlternatingQa = true;
+        // Regra 2: Verificação de codificação já feita em readTextFileWithEncodingDetection
         
-        for (String line : lines) {
-            String trimmedLine = line.trim();
-            if (!trimmedLine.isEmpty() && !isSingleSentence(trimmedLine)) {
-                isAlternatingQa = false;
+        // Regra 3: Determinar tipo de conteúdo
+        boolean hasTabs = fileContent.contains("\t");
+        boolean hasDoubleSemicolon = fileContent.contains(";;");
+        boolean isAlternatingLines = checkAlternatingLinesFormat(fileContent);
+        
+        // Regra 4: Verificar apenas 50 linhas para determinar o formato
+        String[] lines = fileContent.split("\n");
+        int linesToCheck = Math.min(lines.length, 50);
+        boolean hasMultipleSentences = false;
+        
+        for (int i = 0; i < linesToCheck; i++) {
+            if (hasMultipleSentences(lines[i])) {
+                hasMultipleSentences = true;
                 break;
             }
         }
         
-        if (isAlternatingQa && lines.length >= 2) {
+        // Regra 5: Tratar diferentes tipos de Q&A
+        if (hasTabs || hasDoubleSemicolon) {
+            parseQAContent(fileContent);
+        } 
+        // Regra 8: Verificar pares de linhas sem delimitadores
+        else if (isAlternatingLines && !hasMultipleSentences && lines.length >= 2) {
+            // Regra 12: Verificar número par de linhas
             if (lines.length % 2 != 0) {
                 Toast.makeText(this, 
-                    "Aviso: O número de linhas não é par. A última linha será ignorada.", 
+                    "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.", 
                     Toast.LENGTH_LONG).show();
+                parseTextContent(fileContent);
+            } else {
+                parseAlternatingLinesContent(fileContent);
             }
-            parseAlternatingLinesContent(fileContent);
-        } else if (fileContent.contains("\t") || fileContent.contains(";;")) {
-            parseQAContent(fileContent);
         } else {
             parseTextContent(fileContent);
         }
@@ -813,22 +791,42 @@ private boolean isSingleSentence(String text) {
                 
                 String pdfContent = fullText.toString();
                 String[] lines = pdfContent.split("\n");
-                final boolean isAlternatingQaFinal = checkIfAlternatingQa(lines);
+                boolean isAlternatingQa = true;
+                boolean hasMultipleSentences = false;
+                
+                // Verificar as primeiras 50 linhas conforme a regra 4
+                int linesToCheck = Math.min(lines.length, 50);
+                for (int i = 0; i < linesToCheck; i++) {
+                    String line = lines[i].trim();
+                    if (!line.isEmpty()) {
+                        // Regra 17: Verificar múltiplas frases
+                        if (hasMultipleSentences(line)) {
+                            hasMultipleSentences = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // Regra 13: Distinguir Q&A de pares de linhas de texto normal
+                if (isAlternatingQa && !hasMultipleSentences && lines.length >= 2) {
+                    // Regra 12: Verificar número par de linhas
+                    if (lines.length % 2 != 0) {
+                        runOnUiThread(() -> {
+                            Toast.makeText(this, 
+                                "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.", 
+                                Toast.LENGTH_LONG).show();
+                        });
+                        parseTextContent(pdfContent);
+                    } else {
+                        parseAlternatingLinesContent(pdfContent);
+                    }
+                } else if (pdfContent.contains("\t") || pdfContent.contains(";;")) {
+                    parseQAContent(pdfContent);
+                } else {
+                    parseTextContent(pdfContent);
+                }
                 
                 runOnUiThread(() -> {
-                    if (isAlternatingQaFinal && lines.length >= 2) {
-                        if (lines.length % 2 != 0) {
-                            Toast.makeText(this, 
-                                "Aviso: O número de linhas não é par. A última linha será ignorada.", 
-                                Toast.LENGTH_LONG).show();
-                        }
-                        parseAlternatingLinesContent(pdfContent);
-                    } else if (pdfContent.contains("\t") || pdfContent.contains(";;")) {
-                        parseQAContent(pdfContent);
-                    } else {
-                        parseTextContent(pdfContent);
-                    }
-                    
                     updateDisplay();
                     saveState();
                     processingMessage.setVisibility(View.GONE);
@@ -851,17 +849,41 @@ private boolean isSingleSentence(String text) {
         }).start();
     }
     
-    private boolean checkIfAlternatingQa(String[] lines) {
-        for (String line : lines) {
-            String trimmedLine = line.trim();
-            if (!trimmedLine.isEmpty() && !isSingleSentence(trimmedLine)) {
+    private boolean checkAlternatingLinesFormat(String text) {
+        String[] lines = text.split("\n");
+        if (lines.length < 2) return false;
+        
+        // Verificar até 50 linhas conforme a regra 4
+        int linesToCheck = Math.min(lines.length, 50);
+        
+        for (int i = 0; i < linesToCheck; i++) {
+            String line = lines[i].trim();
+            if (line.isEmpty()) continue;
+            
+            // Regra 17: Verificar pontuação interna
+            Pattern pattern = Pattern.compile("[.!?…](?![.!?…]*$)");
+            Matcher matcher = pattern.matcher(line);
+            if (matcher.find()) {
+                return false;
+            }
+            
+            // Regra 15: Verificar múltiplas frases
+            int punctuationCount = line.replaceAll("[^.!?…]", "").length();
+            if (punctuationCount > 1) {
                 return false;
             }
         }
+        
+        // Regra 12: Verificar número par de linhas
+        if (lines.length % 2 != 0) {
+            return false;
+        }
+        
         return true;
     }
 
     private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
+        // Regra 2: Detecção de codificação de caracteres
         InputStream inputStream = getContentResolver().openInputStream(uri);
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         byte[] buffer = new byte[1024];
@@ -872,20 +894,30 @@ private boolean isSingleSentence(String text) {
         byte[] fileContentBytes = byteArrayOutputStream.toByteArray();
         inputStream.close();
 
+        // Tentar UTF-8 primeiro
         try {
             String content = new String(fileContentBytes, StandardCharsets.UTF_8);
             if (!hasInvalidUTF8Characters(content)) {
                 return content;
             }
         } catch (Exception e) {
+            // Continuar para próxima tentativa
         }
 
+        // Tentar ISO-8859-1 (Latin-1)
+        try {
+            return new String(fileContentBytes, "ISO-8859-1");
+        } catch (Exception e) {
+            // Continuar para próxima tentativa
+        }
+
+        // Tentar Windows-1252 como fallback
         try {
             return new String(fileContentBytes, "Windows-1252");
         } catch (Exception e) {
+            // Usar padrão do sistema como último recurso
+            return new String(fileContentBytes);
         }
-
-        return new String(fileContentBytes, StandardCharsets.ISO_8859_1);
     }
 
     private boolean hasInvalidUTF8Characters(String content) {
@@ -970,6 +1002,7 @@ private boolean isSingleSentence(String text) {
                 return;
             }
             
+            // Regra 11: Verificar delimitadores primeiro
             boolean hasTabs = text.contains("\t");
             boolean hasDoubleSemicolon = text.contains(";;");
             boolean isAlternatingLines = checkAlternatingLinesFormat(text);
@@ -987,6 +1020,39 @@ private boolean isSingleSentence(String text) {
         });
         builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
         builder.show();
+    }
+    
+    private void parseAlternatingLinesContent(String text) {
+        String[] lines = text.split("\n");
+        items.clear();
+        originalItems.clear();
+        
+        // Regra 12: Verificar número par de linhas
+        if (lines.length % 2 != 0) {
+            Toast.makeText(this, 
+                "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.", 
+                Toast.LENGTH_LONG).show();
+            parseTextContent(text);
+            return;
+        }
+        
+        for (int i = 0; i < lines.length - 1; i += 2) {
+            String question = lines[i].trim();
+            String answer = lines[i + 1].trim();
+            String originalLines = lines[i] + "\n" + lines[i+1];
+            
+            // Regra 13: Verificar se cada linha tem apenas uma frase
+            if (hasMultipleSentences(question) || hasMultipleSentences(answer)) {
+                parseTextContent(text);
+                return;
+            }
+            
+            items.add(new QAItem(question, answer, originalLines));
+        }
+        
+        originalItems = new ArrayList<>(items);
+        currentIndex = 0;
+        isQAMode = true;
     }
     
     private void performSearch() {
@@ -1062,7 +1128,7 @@ private boolean isSingleSentence(String text) {
         searchInfo.setText("");
         updateDisplay();
     }
-
+    
     private void saveState() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
@@ -1070,7 +1136,7 @@ private boolean isSingleSentence(String text) {
         StringBuilder itemsStr = new StringBuilder();
         for (QAItem item : items) {
             if (item.isQA()) {
-                itemsStr.append(item.getQuestion()).append(originalSeparator).append(item.getAnswer()).append("\n");
+                itemsStr.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
             } else {
                 itemsStr.append(item.getText()).append("\n");
             }
@@ -1080,7 +1146,7 @@ private boolean isSingleSentence(String text) {
         StringBuilder originalItemsStr = new StringBuilder();
         for (QAItem item : originalItems) {
             if (item.isQA()) {
-                originalItemsStr.append(item.getQuestion()).append(originalSeparator).append(item.getAnswer()).append("\n");
+                originalItemsStr.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
             } else {
                 originalItemsStr.append(item.getText()).append("\n");
             }
@@ -1099,7 +1165,6 @@ private boolean isSingleSentence(String text) {
         
         String itemsStr = prefs.getString(ITEMS_KEY, "");
         String originalItemsStr = prefs.getString(ORIGINAL_ITEMS_KEY, "");
-        originalSeparator = prefs.getString(ORIGINAL_SEPARATOR_KEY, "\t");
         
         if (!itemsStr.isEmpty()) {
             parseQAContent(itemsStr);
@@ -1111,7 +1176,7 @@ private boolean isSingleSentence(String text) {
             for (String line : lines) {
                 if (line.trim().isEmpty()) continue;
                 
-                String[] parts = line.split(originalSeparator);
+                String[] parts = line.split("\t");
                 if (parts.length >= 2) {
                     loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim(), line));
                 } else {
@@ -1124,9 +1189,25 @@ private boolean isSingleSentence(String text) {
         currentIndex = prefs.getInt(CURRENT_INDEX_KEY, 0);
         isQAMode = prefs.getBoolean(IS_QA_MODE_KEY, true);
         baseFontSize = prefs.getInt(FONT_SIZE_KEY, 20);
+        originalSeparator = prefs.getString(ORIGINAL_SEPARATOR_KEY, "\t");
+    }
+    
+    @Override
+    public void onBackPressed() {
+        if (menuVisible) {
+            toggleMenu();
+        } else {
+            super.onBackPressed();
+        }
+    }
+    
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        gestureDetector.onTouchEvent(event);
+        return super.onTouchEvent(event);
     }
 
-    private class QAItem {
+    private static class QAItem {
         private String question;
         private String answer;
         private String text;
@@ -1140,20 +1221,34 @@ private boolean isSingleSentence(String text) {
         }
         
         public QAItem(String text, String originalLine) {
-            this.text = text;
-            this.originalLine = originalLine;
             this.question = null;
             this.answer = null;
+            this.text = text;
+            this.originalLine = originalLine;
+        }
+        
+        public String getQuestion() {
+            return question != null ? question : "";
+        }
+        
+        public String getAnswer() {
+            return answer != null ? answer : "";
+        }
+        
+        public String getText() {
+            return text != null ? text : "";
+        }
+        
+        public String getOriginalLine() {
+            return originalLine;
+        }
+        
+        public void setOriginalLine(String originalLine) {
+            this.originalLine = originalLine;
         }
         
         public boolean isQA() {
             return question != null && answer != null;
         }
-        
-        public String getQuestion() { return question; }
-        public String getAnswer() { return answer; }
-        public String getText() { return text; }
-        public String getOriginalLine() { return originalLine; }
-        public void setOriginalLine(String originalLine) { this.originalLine = originalLine; }
     }
 }
