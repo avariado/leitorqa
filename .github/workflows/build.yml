@@ -22,7 +22,6 @@ jobs:
       - name: Grant gradlew permission
         run: chmod +x ./gradlew
 
-      # Gera o keystore no diretório raiz e especifica o caminho absoluto
       - name: Generate Debug Keystore
         if: github.ref == 'refs/heads/main'
         run: |
