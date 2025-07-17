@@ -47,6 +47,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -580,7 +581,7 @@ public class MainActivity extends AppCompatActivity {
                 
                 if (parts.length >= 2) {
                     String question = parts[0].trim();
-                    String answer = parts.slice(1).join(originalSeparator).trim();
+                    String answer = String.join(originalSeparator, Arrays.copyOfRange(parts, 1, parts.length)).trim();
                     items.add(new QAItem(question, answer, line));
                 } else {
                     // Regra 17: Verificar se é texto normal
@@ -603,6 +604,28 @@ public class MainActivity extends AppCompatActivity {
                 parseTextContent(text);
             }
         }
+    }
+	
+	private boolean isSingleSentence(String text) {
+    if (text == null || text.trim().isEmpty()) return false;
+    
+    String trimmed = text.trim();
+    int punctuationCount = trimmed.replaceAll("[^.!?]", "").length();
+    
+    // Verifica se tem exatamente um sinal de pontuação no final
+    boolean hasSingleEndingPunctuation = punctuationCount == 1 && 
+                                       (trimmed.endsWith(".") || 
+                                        trimmed.endsWith("!") || 
+                                        trimmed.endsWith("?"));
+    
+    // Verifica se não tem pontuação no meio do texto
+    boolean hasNoInternalPunctuation = punctuationCount == 0 || 
+                                      (punctuationCount == 1 && 
+                                      trimmed.lastIndexOf('.') == trimmed.length()-1 &&
+                                      trimmed.lastIndexOf('!') == trimmed.length()-1 &&
+                                      trimmed.lastIndexOf('?') == trimmed.length()-1);
+    
+    return hasSingleEndingPunctuation || (punctuationCount == 0);
     }
 
     private boolean hasMultipleSentences(String line) {
@@ -980,44 +1003,6 @@ public class MainActivity extends AppCompatActivity {
         });
         builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
         builder.show();
-    }
-    
-    private boolean checkAlternatingLinesFormat(String text) {
-        String[] lines = text.split("\n");
-        if (lines.length < 2) return false;
-        
-        for (String line : lines) {
-            String trimmedLine = line.trim();
-            if (trimmedLine.split("\\.").length > 2 && !trimmedLine.endsWith(".")) {
-                return false;
-            }
-            if ((trimmedLine.replaceAll("[^.!?]", "").length()) > 1) {
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
-    private void parseAlternatingLinesContent(String text) {
-        String[] lines = text.split("\n");
-        items.clear();
-        originalItems.clear();
-        
-        if (lines.length % 2 != 0) {
-            Toast.makeText(this, "Aviso: O número de linhas não é par. A última linha será ignorada.", Toast.LENGTH_LONG).show();
-        }
-        
-        for (int i = 0; i < lines.length - 1; i += 2) {
-            String question = lines[i].trim();
-            String answer = lines[i + 1].trim();
-            String originalLines = lines[i] + "\n" + lines[i+1];
-            items.add(new QAItem(question, answer, originalLines));
-        }
-        
-        originalItems = new ArrayList<>(items);
-        currentIndex = 0;
-        isQAMode = true;
     }
     
     private void performSearch() {
