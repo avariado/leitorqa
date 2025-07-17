@@ -461,12 +461,12 @@ private void updateDisplay() {
     QAItem currentItem = items.get(currentIndex);
 
     if (isQAMode) {
-        // Exibir apenas a pergunta (sem o delimitador)
+        // Mostra apenas a pergunta inicialmente
         questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
-        // Exibir apenas a resposta (sem o delimitador)
         answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
         answerTextView.setVisibility(View.GONE);
     } else {
+        // Modo texto - mostra todo o conteúdo
         questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
         answerTextView.setText("");
         answerTextView.setVisibility(View.GONE);
@@ -560,12 +560,16 @@ private void updateDisplay() {
 private void parseQAContent(String text) {
     if (text == null) return;
     
-    // Verificar qual delimitador está presente
+    // Verifica todos os possíveis delimitadores
     boolean hasTabs = text.contains("\t");
     boolean hasDoubleSemicolon = text.contains(";;");
+    boolean hasDoubleColonWithSpaces = text.matches("(?s).*\\s::\\s.*");
     
-    if (hasTabs || hasDoubleSemicolon) {
-        originalSeparator = hasTabs ? "\t" : ";;";
+    if (hasTabs || hasDoubleSemicolon || hasDoubleColonWithSpaces) {
+        // Determina o delimitador principal
+        originalSeparator = hasTabs ? "\t" : 
+                          hasDoubleSemicolon ? ";;" : " :: ";
+        
         String[] lines = text.split("\n");
         items.clear();
         originalItems.clear();
@@ -573,12 +577,18 @@ private void parseQAContent(String text) {
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
             
-            // Dividir a linha usando o delimitador, limitando a 2 partes para manter o texto depois do primeiro delimitador
-            String[] parts = line.split(originalSeparator, 2);
+            // Para o delimitador " :: ", precisamos tratar os espaços
+            String separatorToUse = originalSeparator;
+            if (originalSeparator.equals(" :: ") && !line.contains(" :: ")) {
+                separatorToUse = "::"; // Tenta sem espaços
+            }
+            
+            String[] parts = line.split(Pattern.quote(separatorToUse));
             
             if (parts.length >= 2) {
                 String question = parts[0].trim();
-                String answer = parts[1].trim();
+                // Junta as partes restantes como resposta (caso haja mais delimitadores na linha)
+                String answer = line.substring(question.length() + separatorToUse.length()).trim();
                 items.add(new QAItem(question, answer, line));
             } else {
                 if (hasMultipleSentences(line)) {
@@ -605,21 +615,16 @@ private boolean isSingleSentence(String text) {
     if (text == null || text.trim().isEmpty()) return false;
     
     String trimmed = text.trim();
+    // Conta pontuações de fim de frase
     int punctuationCount = trimmed.replaceAll("[^.!?]", "").length();
     
-    boolean hasSingleEndingPunctuation = punctuationCount == 1 && 
-                                       (trimmed.endsWith(".") || 
-                                        trimmed.endsWith("!") || 
-                                        trimmed.endsWith("?"));
+    // Verifica se termina com pontuação e não tem pontuação no meio
+    boolean endsWithPunctuation = trimmed.matches(".*[.!?]$");
+    boolean hasInternalPunctuation = Pattern.compile("[.!?](?=\\s|$)").matcher(trimmed).find();
     
-    boolean hasNoInternalPunctuation = punctuationCount == 0 || 
-                                      (punctuationCount == 1 && 
-                                      trimmed.lastIndexOf('.') == trimmed.length()-1 &&
-                                      trimmed.lastIndexOf('!') == trimmed.length()-1 &&
-                                      trimmed.lastIndexOf('?') == trimmed.length()-1);
-    
-    return hasSingleEndingPunctuation || (punctuationCount == 0);
-    }
+    return (punctuationCount <= 1 && endsWithPunctuation) || 
+           (punctuationCount == 0 && !hasInternalPunctuation);
+}
 
     private boolean hasMultipleSentences(String line) {
         String trimmedLine = line.trim();
