@@ -50,7 +50,7 @@ jobs:
       - name: Build Release APK
         if: github.ref == 'refs/heads/main'
         env:
-          KEYSTORE_FILE: ${{ github.workspace }}/debug.keystore  # Caminho absoluto
+          KEYSTORE_FILE: ${{ github.workspace }}/debug.keystore 
           KEYSTORE_PASSWORD: android
           KEY_ALIAS: androiddebugkey
           KEY_PASSWORD: android
