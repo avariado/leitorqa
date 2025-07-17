@@ -441,38 +441,40 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     
-    private void updateDisplay() {
-        if (items.isEmpty()) {
-            questionTextView.setText("Nenhum conteúdo carregado.");
-            answerTextView.setText("");
-            currentCardInput.setText("0");
-            totalCardsText.setText("/ 0");
-            return;
-        }
-    
-        if (isQAMode) {
-            questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
-            answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
-        } else {
-            questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
-        }
-    
-        currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
-        QAItem currentItem = items.get(currentIndex);
-    
-        if (isQAMode) {
-            questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
-            answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
-            answerTextView.setVisibility(View.GONE);
-        } else {
-            questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
-            answerTextView.setText("");
-            answerTextView.setVisibility(View.GONE);
-        }
-    
-        currentCardInput.setText(String.valueOf(currentIndex + 1));
-        totalCardsText.setText("/ " + items.size());
+private void updateDisplay() {
+    if (items.isEmpty()) {
+        questionTextView.setText("Nenhum conteúdo carregado.");
+        answerTextView.setText("");
+        currentCardInput.setText("0");
+        totalCardsText.setText("/ 0");
+        return;
     }
+
+    if (isQAMode) {
+        questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
+        answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
+    } else {
+        questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
+    }
+
+    currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
+    QAItem currentItem = items.get(currentIndex);
+
+    if (isQAMode) {
+        // Exibir apenas a pergunta (sem o delimitador)
+        questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
+        // Exibir apenas a resposta (sem o delimitador)
+        answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
+        answerTextView.setVisibility(View.GONE);
+    } else {
+        questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
+        answerTextView.setText("");
+        answerTextView.setVisibility(View.GONE);
+    }
+
+    currentCardInput.setText(String.valueOf(currentIndex + 1));
+    totalCardsText.setText("/ " + items.size());
+}
 
     private Spanned highlightText(String text, String searchTerm) {
         if (text == null || searchTerm == null || searchTerm.isEmpty()) {
@@ -558,6 +560,7 @@ public class MainActivity extends AppCompatActivity {
 private void parseQAContent(String text) {
     if (text == null) return;
     
+    // Verificar qual delimitador está presente
     boolean hasTabs = text.contains("\t");
     boolean hasDoubleSemicolon = text.contains(";;");
     
@@ -570,7 +573,7 @@ private void parseQAContent(String text) {
         for (String line : lines) {
             if (line.trim().isEmpty()) continue;
             
-            // Modificação principal aqui - usar split com limite 2 para manter o restante do texto
+            // Dividir a linha usando o delimitador, limitando a 2 partes para manter o texto depois do primeiro delimitador
             String[] parts = line.split(originalSeparator, 2);
             
             if (parts.length >= 2) {
