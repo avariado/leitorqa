@@ -1,8 +1,6 @@
 package com.avariado.leitorqa;
 
 import android.app.AlertDialog;
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -15,11 +13,8 @@ import android.text.Html;
 import android.text.Spanned;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
-import android.view.ActionMode;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -125,64 +120,10 @@ public class MainActivity extends AppCompatActivity {
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
-
-        // Configuração da seleção de texto e toque longo
-        questionTextView.setTextIsSelectable(true);
-        answerTextView.setTextIsSelectable(true);
-        questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-        answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-        
-        questionTextView.setOnLongClickListener(v -> {
-            showTextOptions(questionTextView.getText().toString());
-            return true;
-        });
-
-        answerTextView.setOnLongClickListener(v -> {
-            showTextOptions(answerTextView.getText().toString());
-            return true;
-        });
-
-        questionTextView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
-            @Override
-            public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-                return true;
-            }
-
-            @Override
-            public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-                return false;
-            }
-
-            @Override
-            public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-                return false;
-            }
-
-            @Override
-            public void onDestroyActionMode(ActionMode mode) {
-            }
-        });
-
-        answerTextView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
-            @Override
-            public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-                return true;
-            }
-
-            @Override
-            public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-                return false;
-            }
-
-            @Override
-            public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-                return false;
-            }
-
-            @Override
-            public void onDestroyActionMode(ActionMode mode) {
-            }
-        });
+		questionTextView.setTextIsSelectable(true);
+		answerTextView.setTextIsSelectable(true);
+		questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
+		answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -281,45 +222,6 @@ public class MainActivity extends AppCompatActivity {
         }
         updateDisplay();
         updateFontSize();
-    }
-
-    private void showTextOptions(String selectedText) {
-        String cleanText = Html.fromHtml(selectedText).toString().trim();
-        
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Opções de texto");
-        
-        CharSequence[] items = {"Copiar texto", "Pesquisar no Google"};
-        
-        builder.setItems(items, (dialog, which) -> {
-            switch (which) {
-                case 0:
-                    copyToClipboard(cleanText);
-                    break;
-                case 1:
-                    searchOnGoogle(cleanText);
-                    break;
-            }
-        });
-        
-        builder.show();
-    }
-
-    private void copyToClipboard(String text) {
-        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        ClipData clip = ClipData.newPlainText("Texto copiado", text);
-        clipboard.setPrimaryClip(clip);
-        Toast.makeText(this, "Texto copiado", Toast.LENGTH_SHORT).show();
-    }
-
-    private void searchOnGoogle(String query) {
-        try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, 
-                Uri.parse("https://www.google.com/search?q=" + Uri.encode(query)));
-            startActivity(intent);
-        } catch (Exception e) {
-            Toast.makeText(this, "Não foi possível realizar a pesquisa", Toast.LENGTH_SHORT).show();
-        }
     }
 
     @Override
