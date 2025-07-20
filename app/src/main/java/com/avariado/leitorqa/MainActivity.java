@@ -171,11 +171,6 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
         };
-
-        View.OnTouchListener textViewTouchListener = (v, event) -> {
-            v.onTouchEvent(event); // Processa seleção de texto
-            return true; // Sempre consome o evento
-        };
         
         questionTextView.setOnTouchListener(textViewTouchListener);
         answerTextView.setOnTouchListener(textViewTouchListener);
