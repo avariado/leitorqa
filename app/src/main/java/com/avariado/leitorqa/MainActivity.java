@@ -99,6 +99,8 @@ public class MainActivity extends AppCompatActivity {
     private String searchTerm = "";
 
     private GestureDetectorCompat gestureDetector;
+    
+    private boolean isLongPressHandled = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -154,18 +156,26 @@ public class MainActivity extends AppCompatActivity {
         setupCardInputBehavior();
 
         cardView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return true;
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            gestureDetector.onTouchEvent(event);
+            
+            // Permitir que o evento continue sendo processado para a seleção de texto
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (!menuVisible && !isLongPressHandled) {
+                    toggleAnswerVisibility();
+                }
+                isLongPressHandled = false;
             }
-        });
+            return true;
+        }
+    });
         
         textScrollView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
-                return false;
+                return false; // Permitir que o evento continue para os filhos (TextView)
             }
         });
         
@@ -316,46 +326,88 @@ public class MainActivity extends AppCompatActivity {
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
 
-    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
-        private static final int SWIPE_THRESHOLD = 100;
-        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-        private static final float SWIPE_ANGLE_THRESHOLD = 30;
+private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
+    private static final int SWIPE_THRESHOLD = 100;
+    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+    private static final float SWIPE_ANGLE_THRESHOLD = 30;
     
-        @Override
-        public boolean onDown(MotionEvent e) {
-            return true;
-        }
+    @Override
+    public boolean onDown(MotionEvent e) {
+        isLongPressHandled = false;
+        return true;
+    }
     
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
+    @Override
+    public boolean onSingleTapUp(MotionEvent e) {
+        if (!isLongPressHandled) {
             toggleAnswerVisibility();
-            return true;
         }
+        return true;
+    }
     
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            float diffX = e2.getX() - e1.getX();
-            float diffY = e2.getY() - e1.getY();
+    @Override
+    public void onLongPress(MotionEvent e) {
+        isLongPressHandled = true;
+        
+        // Obter as views de texto
+        TextView textView = isQAMode ? 
+            (answerTextView.getVisibility() == View.VISIBLE ? answerTextView : questionTextView) : 
+            questionTextView;
             
-            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
-            
-            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
-                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
-                
-                if (Math.abs(diffX) > SWIPE_THRESHOLD && 
-                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                    
-                    if (diffX > 0) {
-                        safePrevItem();
-                    } else {
-                        safeNextItem();
-                    }
-                    return true;
-                }
+        // Criar e mostrar o menu de seleção de texto
+        textView.setCustomSelectionActionModeCallback(new android.view.ActionMode.Callback() {
+            @Override
+            public boolean onCreateActionMode(android.view.ActionMode mode, android.view.Menu menu) {
+                return true;
             }
+
+            @Override
+            public boolean onPrepareActionMode(android.view.ActionMode mode, android.view.Menu menu) {
+                return false;
+            }
+
+            @Override
+            public boolean onActionItemClicked(android.view.ActionMode mode, android.view.MenuItem item) {
+                return false;
+            }
+
+            @Override
+            public void onDestroyActionMode(android.view.ActionMode mode) {
+            }
+        });
+        
+        // Iniciar a seleção de texto
+        textView.performLongClick();
+    }
+    
+    @Override
+    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        if (isLongPressHandled) {
             return false;
         }
+        
+        float diffX = e2.getX() - e1.getX();
+        float diffY = e2.getY() - e1.getY();
+        
+        float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
+        
+        if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
+            Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
+            
+            if (Math.abs(diffX) > SWIPE_THRESHOLD && 
+                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                
+                if (diffX > 0) {
+                    safePrevItem();
+                } else {
+                    safeNextItem();
+                }
+                return true;
+            }
+        }
+        return false;
     }
+}
 
     private void safePrevItem() {
         try {
