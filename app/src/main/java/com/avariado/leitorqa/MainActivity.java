@@ -259,15 +259,35 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupCardInputBehavior() {
-    currentCardInput.setOnClickListener(v -> enableEditing());
-    
-    currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
-        if (actionId == EditorInfo.IME_ACTION_DONE) {
-            finishEditing();
-            return true;
-        }
-        return false;
-    });
+        currentCardInput.setOnClickListener(v -> enableEditing());
+        
+        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                finishEditing();
+                return true;
+            }
+            return false;
+        });
+    }
+
+        private void enableEditing() {
+        currentCardInput.setFocusable(true);
+        currentCardInput.setFocusableInTouchMode(true);
+        currentCardInput.requestFocus();
+        currentCardInput.setCursorVisible(true);
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(currentCardInput, InputMethodManager.SHOW_IMPLICIT);
+    }
+
+    private void finishEditing() {
+        currentCardInput.clearFocus();
+        currentCardInput.setFocusable(false);
+        currentCardInput.setFocusableInTouchMode(false);
+        currentCardInput.setCursorVisible(false);
+        validateAndUpdateCardNumber();
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
+    }
     
     cardView.setOnTouchListener((v, event) -> {
         if (event.getAction() == MotionEvent.ACTION_UP) {
