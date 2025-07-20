@@ -100,46 +100,46 @@ public class MainActivity extends AppCompatActivity {
     private GestureDetectorCompat gestureDetector;
 
     private void setupCardInputBehavior() {
-    currentCardInput.setOnClickListener(v -> enableEditing());
-    
-    currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
-        if (actionId == EditorInfo.IME_ACTION_DONE) {
-            finishEditing();
-            return true;
-        }
-        return false;
-    });
-    
-    cardView.setOnTouchListener((v, event) -> {
-        if (event.getAction() == MotionEvent.ACTION_UP) {
-            if (!menuVisible) {
+        currentCardInput.setOnClickListener(v -> enableEditing());
+        
+        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
                 finishEditing();
-                toggleAnswerVisibility();
+                return true;
             }
-        }
-        gestureDetector.onTouchEvent(event);
-        return true;
-    });
-}
+            return false;
+        });
+        
+        cardView.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (!menuVisible) {
+                    finishEditing();
+                    toggleAnswerVisibility();
+                }
+            }
+            return true;
+        });
+    }
 
-private void enableEditing() {
-    currentCardInput.setFocusable(true);
-    currentCardInput.setFocusableInTouchMode(true);
-    currentCardInput.requestFocus();
-    currentCardInput.setCursorVisible(true);
-    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-    imm.showSoftInput(currentCardInput, InputMethodManager.SHOW_IMPLICIT);
-}
+    private void enableEditing() {
+        currentCardInput.setFocusable(true);
+        currentCardInput.setFocusableInTouchMode(true);
+        currentCardInput.requestFocus();
+        currentCardInput.setCursorVisible(true);
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(currentCardInput, InputMethodManager.SHOW_IMPLICIT);
+    }
 
-private void finishEditing() {
-    currentCardInput.clearFocus();
-    currentCardInput.setFocusable(false);
-    currentCardInput.setFocusableInTouchMode(false);
-    currentCardInput.setCursorVisible(false);
-    validateAndUpdateCardNumber();
-    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-    imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
-}
+    private void finishEditing() {
+        currentCardInput.clearFocus();
+        currentCardInput.setFocusable(false);
+        currentCardInput.setFocusableInTouchMode(false);
+        currentCardInput.setCursorVisible(false);
+        validateAndUpdateCardNumber();
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -162,16 +162,12 @@ private void finishEditing() {
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
 
-        // Configuração para seleção de texto
         questionTextView.setTextIsSelectable(true);
         answerTextView.setTextIsSelectable(true);
         questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         
-        // Configuração do gesture detector
         gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
-        
-        // Configuração dos listeners de toque
         setupTouchHandling();
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -256,49 +252,29 @@ private void finishEditing() {
     }
 
     private void setupTouchHandling() {
-        // Listener para a área de texto
-        View.OnTouchListener textTouchListener = new View.OnTouchListener() {
-            private boolean isSelectingText = false;
-
+        cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        isSelectingText = false;
-                        break;
-                        
-                    case MotionEvent.ACTION_MOVE:
-                        if (Math.abs(event.getX() - event.getHistoricalX(0)) > 10 || 
-                            Math.abs(event.getY() - event.getHistoricalY(0)) > 10) {
-                            isSelectingText = true;
-                        }
-                        break;
-                }
-
-                if (!isSelectingText) {
-                    gestureDetector.onTouchEvent(event);
-                    
-                    if (event.getAction() == MotionEvent.ACTION_UP) {
+                gestureDetector.onTouchEvent(event);
+                
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    if (!menuVisible) {
+                        finishEditing();
                         toggleAnswerVisibility();
                     }
-                    return true;
                 }
-                
-                return v.onTouchEvent(event);
+                return true;
             }
-        };
+        });
 
-        questionTextView.setOnTouchListener(textTouchListener);
-        answerTextView.setOnTouchListener(textTouchListener);
-
-        // Listener para a área do cartão sem texto
-        cardView.setOnTouchListener((v, event) -> {
+        questionTextView.setOnTouchListener((v, event) -> {
             gestureDetector.onTouchEvent(event);
-            
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                toggleAnswerVisibility();
-            }
-            return true;
+            return v.onTouchEvent(event);
+        });
+
+        answerTextView.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            return v.onTouchEvent(event);
         });
     }
 
@@ -314,8 +290,12 @@ private void finishEditing() {
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             float diffX = e2.getX() - e1.getX();
+            float diffY = e2.getY() - e1.getY();
             
-            if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+            if (Math.abs(diffX) > Math.abs(diffY) && 
+                Math.abs(diffX) > SWIPE_THRESHOLD && 
+                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                
                 if (diffX > 0) {
                     safePrevItem();
                 } else {
