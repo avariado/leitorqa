@@ -357,7 +357,6 @@ public class MainActivity extends AppCompatActivity {
     
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-			return super.onFling(e1, e2, velocityX, velocityY);
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
             
