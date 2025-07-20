@@ -109,6 +109,8 @@ public class MainActivity extends AppCompatActivity {
         
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
+        questionTextView.setTextIsSelectable(true);
+        answerTextView.setTextIsSelectable(true);
         currentCardInput = findViewById(R.id.current_card_input);
         totalCardsText = findViewById(R.id.total_cards_text);
         menuLayout = findViewById(R.id.menu_layout);
