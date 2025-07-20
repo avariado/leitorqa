@@ -282,8 +282,6 @@ private void setupLongPressToSelectText() {
         public boolean onLongClick(View v) {
             if (v instanceof TextView) {
                 TextView textView = (TextView) v;
-                int startSelection = 0;
-                int endSelection = textView.getText().length();
                 
                 if (textView.getText().length() > 0) {
                     textView.setCustomSelectionActionModeCallback(new android.view.ActionMode.Callback() {
@@ -308,9 +306,22 @@ private void setupLongPressToSelectText() {
                     });
                     
                     textView.setTextIsSelectable(true);
-                    textView.setSelection(startSelection, endSelection);
                     
                     // Mostrar o menu de seleção de texto
+                    try {
+                        // Usar reflexão para chamar setSelection() se disponível
+                        TextView.class.getMethod("setSelection", int.class, int.class)
+                            .invoke(textView, 0, textView.getText().length());
+                    } catch (Exception e) {
+                        // Fallback para seleção simples se o método não estiver disponível
+                        try {
+                            TextView.class.getMethod("setSelection", int.class)
+                                .invoke(textView, textView.getText().length());
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                    
                     InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
                     textView.performLongClick();
@@ -503,6 +514,8 @@ private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListen
             answerTextView.setText("");
             currentCardInput.setText("0");
             totalCardsText.setText("/ 0");
+            questionTextView.setTextIsSelectable(true);
+            answerTextView.setTextIsSelectable(true);
             return;
         }
     
