@@ -172,9 +172,8 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         
-        questionTextView.setOnTouchListener(textViewTouchListener);
-        answerTextView.setOnTouchListener(textViewTouchListener);
-    }
+    questionTextView.setOnTouchListener(textViewTouchListener);
+    answerTextView.setOnTouchListener(textViewTouchListener);
         
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
