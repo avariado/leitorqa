@@ -110,8 +110,6 @@ public class MainActivity extends AppCompatActivity {
         
         PDFBoxResourceLoader.init(getApplicationContext());
         
-        setupLongPressToSelectText();
-        
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
         currentCardInput = findViewById(R.id.current_card_input);
@@ -125,6 +123,8 @@ public class MainActivity extends AppCompatActivity {
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
+
+        setupLongPressToSelectText();
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -283,59 +283,70 @@ private void setupLongPressToSelectText() {
     View.OnLongClickListener longClickListener = new View.OnLongClickListener() {
         @Override
         public boolean onLongClick(View v) {
-            if (v instanceof TextView) {
-                TextView textView = (TextView) v;
-                
-                if (textView.getText().length() > 0) {
-                    textView.setCustomSelectionActionModeCallback(new android.view.ActionMode.Callback() {
-                        @Override
-                        public boolean onCreateActionMode(android.view.ActionMode mode, Menu menu) {
-                            return true;
-                        }
-
-                        @Override
-                        public boolean onPrepareActionMode(android.view.ActionMode mode, Menu menu) {
-                            return false;
-                        }
-
-                        @Override
-                        public boolean onActionItemClicked(android.view.ActionMode mode, MenuItem item) {
-                            return false;
-                        }
-
-                        @Override
-                        public void onDestroyActionMode(android.view.ActionMode mode) {
-                        }
-                    });
+            try {
+                if (v instanceof TextView) {
+                    TextView textView = (TextView) v;
                     
-                    textView.setTextIsSelectable(true);
-                    
-                    // Mostrar o menu de seleção de texto
-                    try {
-                        // Usar reflexão para chamar setSelection() se disponível
-                        TextView.class.getMethod("setSelection", int.class, int.class)
-                            .invoke(textView, 0, textView.getText().length());
-                    } catch (Exception e) {
-                        // Fallback para seleção simples se o método não estiver disponível
+                    if (textView.getText() != null && textView.getText().length() > 0) {
+                        // Habilita a seleção de texto
+                        textView.setTextIsSelectable(true);
+                        
+                        // Configura o callback para a ação de seleção
+                        textView.setCustomSelectionActionModeCallback(new android.view.ActionMode.Callback() {
+                            @Override
+                            public boolean onCreateActionMode(android.view.ActionMode mode, Menu menu) {
+                                return true;
+                            }
+
+                            @Override
+                            public boolean onPrepareActionMode(android.view.ActionMode mode, Menu menu) {
+                                return false;
+                            }
+
+                            @Override
+                            public boolean onActionItemClicked(android.view.ActionMode mode, MenuItem item) {
+                                return false;
+                            }
+
+                            @Override
+                            public void onDestroyActionMode(android.view.ActionMode mode) {
+                            }
+                        });
+                        
+                        // Tenta selecionar todo o texto
                         try {
-                            TextView.class.getMethod("setSelection", int.class)
-                                .invoke(textView, textView.getText().length());
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
+                            textView.setSelection(0, textView.getText().length());
+                        } catch (Exception e) {
+                            // Fallback seguro
+                            textView.setSelection(textView.getText().length());
                         }
+                        
+                        // Esconde o teclado virtual se estiver visível
+                        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                        if (imm != null) {
+                            imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
+                        }
+                        
+                        return true;
                     }
-                    
-                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
-                    textView.performLongClick();
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            return true;
+            return false;
         }
     };
 
-    questionTextView.setOnLongClickListener(longClickListener);
-    answerTextView.setOnLongClickListener(longClickListener);
+    // Aplica o listener após as views estarem inicializadas
+    if (questionTextView != null) {
+        questionTextView.setOnLongClickListener(longClickListener);
+        questionTextView.setTextIsSelectable(true);
+    }
+    
+    if (answerTextView != null) {
+        answerTextView.setOnLongClickListener(longClickListener);
+        answerTextView.setTextIsSelectable(true);
+    }
 }
     
     private void setupCardInputBehavior() {
