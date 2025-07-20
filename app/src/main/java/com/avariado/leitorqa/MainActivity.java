@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
@@ -120,10 +121,11 @@ public class MainActivity extends AppCompatActivity {
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
-		questionTextView.setTextIsSelectable(true);
-		answerTextView.setTextIsSelectable(true);
-		questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-		answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
+        
+        questionTextView.setTextIsSelectable(true);
+        answerTextView.setTextIsSelectable(true);
+        questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
+        answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -157,20 +159,24 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
-        cardView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return true;
-            }
+        cardView.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            return true;
         });
         
-        textScrollView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return false;
-            }
+        questionTextView.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            return false;
+        });
+        
+        answerTextView.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            return false;
+        });
+        
+        textScrollView.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            return false;
         });
         
         menuButton.setOnClickListener(v -> toggleMenu());
@@ -222,6 +228,59 @@ public class MainActivity extends AppCompatActivity {
         }
         updateDisplay();
         updateFontSize();
+    }
+
+    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
+        private static final int SWIPE_THRESHOLD = 100;
+        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+        
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
+        
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            if (isTouchInTextView(e)) {
+                toggleAnswerVisibility();
+            }
+            return true;
+        }
+        
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            return false;
+        }
+        
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            float diffX = e2.getX() - e1.getX();
+            float diffY = e2.getY() - e1.getY();
+            
+            if (Math.abs(diffX) > Math.abs(diffY) && 
+                Math.abs(diffX) > SWIPE_THRESHOLD && 
+                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                
+                if (diffX > 0) {
+                    safePrevItem();
+                } else {
+                    safeNextItem();
+                }
+                return true;
+            }
+            return false;
+        }
+        
+        private boolean isTouchInTextView(MotionEvent e) {
+            Rect questionRect = new Rect();
+            Rect answerRect = new Rect();
+            questionTextView.getGlobalVisibleRect(questionRect);
+            answerTextView.getGlobalVisibleRect(answerRect);
+            
+            return questionRect.contains((int)e.getRawX(), (int)e.getRawY()) || 
+                   (answerTextView.getVisibility() == View.VISIBLE && 
+                    answerRect.contains((int)e.getRawX(), (int)e.getRawY()));
+        }
     }
 
     @Override
@@ -328,25 +387,6 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public boolean onDown(MotionEvent e) {
             return true;
-        }
-		
-		@Override
-        public void onLongPress(MotionEvent e) {
-        }
-		
-        @Override
-        public boolean onScroll(MotionEvent e1, MotionEvent e2, 
-                              float distanceX, float distanceY) {
-            float diffX = e2.getX() - e1.getX();
-            if (Math.abs(diffX) > SWIPE_THRESHOLD) {
-                if (diffX > 0) {
-                    safePrevItem();
-                } else {
-                    safeNextItem();
-                }
-                return true;
-            }
-            return false;
         }
     
         @Override
