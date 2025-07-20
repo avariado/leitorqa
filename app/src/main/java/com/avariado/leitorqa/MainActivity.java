@@ -258,6 +258,29 @@ public class MainActivity extends AppCompatActivity {
         answerTextView.setCustomSelectionActionModeCallback(callback);
     }
 
+    private void setupCardInputBehavior() {
+    currentCardInput.setOnClickListener(v -> enableEditing());
+    
+    currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
+        if (actionId == EditorInfo.IME_ACTION_DONE) {
+            finishEditing();
+            return true;
+        }
+        return false;
+    });
+    
+    cardView.setOnTouchListener((v, event) -> {
+        if (event.getAction() == MotionEvent.ACTION_UP) {
+            if (!menuVisible) {
+                finishEditing();
+                toggleAnswerVisibility();
+            }
+        }
+        gestureDetector.onTouchEvent(event);
+        return true;
+    });
+}
+
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
