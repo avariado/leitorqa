@@ -295,18 +295,34 @@ public class MainActivity extends AppCompatActivity {
                     toggleAnswerVisibility();
                 }
             }
-            return true;
+            return false;
         });
 
-            questionTextView.setOnTouchListener((v, event) -> {
+        questionTextView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                v.onTouchEvent(event);
+                return true;
+            }
             gestureDetector.onTouchEvent(event);
-            return true;
+            return false;
         });
-        
+            
         answerTextView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                // Permite que o TextView processe a seleção de texto primeiro
+                v.onTouchEvent(event);
+                return true;
+            }
             gestureDetector.onTouchEvent(event);
-            return true;
+            return false;
         });
+    }
+
+    private boolean isTextSelected() {
+    int selStart = questionTextView.getSelectionStart();
+    int selEnd = questionTextView.getSelectionEnd();
+    return selStart != selEnd || (answerTextView.getVisibility() == View.VISIBLE && 
+           answerTextView.getSelectionStart() != answerTextView.getSelectionEnd());
     }
 
     private void enableEditing() {
