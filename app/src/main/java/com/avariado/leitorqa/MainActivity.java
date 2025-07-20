@@ -320,101 +320,102 @@ public class MainActivity extends AppCompatActivity {
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
 
-    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
-        private static final int SWIPE_THRESHOLD = 100;
-        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-        private static final float SWIPE_ANGLE_THRESHOLD = 30;
-        
-        @Override
-        public boolean onDown(MotionEvent e) {
-            return true;
-        }
-        
-        @Override
-        public void onLongPress(MotionEvent e) {
-            // Permite que o comportamento padrão de seleção de texto ocorra
-            super.onLongPress(e);
-        }
-        
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            // Verifica se o toque foi em uma área de texto selecionado
-            if (isTouchOnSelectedText(e)) {
-                return false; // Permite que o tratamento padrão de seleção de texto ocorra
-            }
-            toggleAnswerVisibility();
-            return true;
-        }
-        
-        @Override
-        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-            // Permite rolagem quando o texto está selecionado
-            if (isTextSelected()) {
-                return false;
-            }
-            return super.onScroll(e1, e2, distanceX, distanceY);
-        }
-        
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            // Não processar swipe se o texto estiver selecionado
-            if (isTextSelected()) {
-                return false;
-            }
-            
-            float diffX = e2.getX() - e1.getX();
-            float diffY = e2.getY() - e1.getY();
-            
-            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
-            
-            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
-                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
-                
-                if (Math.abs(diffX) > SWIPE_THRESHOLD && 
-                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                    
-                    if (diffX > 0) {
-                        safePrevItem();
-                    } else {
-                        safeNextItem();
-                    }
-                    return true;
-                }
-            }
-            return false;
-        }
-        
-        private boolean isTextSelected() {
-            return (questionTextView.isTextSelected() || answerTextView.isTextSelected());
-        }
-        
-        private boolean isTouchOnSelectedText(MotionEvent e) {
-            // Verifica se o toque foi em texto selecionado
-            if (questionTextView.isTextSelected() || answerTextView.isTextSelected()) {
-                int[] questionLocation = new int[2];
-                int[] answerLocation = new int[2];
-                questionTextView.getLocationOnScreen(questionLocation);
-                answerTextView.getLocationOnScreen(answerLocation);
-                
-                float x = e.getRawX();
-                float y = e.getRawY();
-                
-                // Verifica se o toque está dentro da área do TextView da pergunta
-                if (x >= questionLocation[0] && x <= questionLocation[0] + questionTextView.getWidth() &&
-                    y >= questionLocation[1] && y <= questionLocation[1] + questionTextView.getHeight()) {
-                    return true;
-                }
-                
-                // Verifica se o toque está dentro da área do TextView da resposta
-                if (answerTextView.getVisibility() == View.VISIBLE &&
-                    x >= answerLocation[0] && x <= answerLocation[0] + answerTextView.getWidth() &&
-                    y >= answerLocation[1] && y <= answerLocation[1] + answerTextView.getHeight()) {
-                    return true;
-                }
-            }
-            return false;
-        }
+private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
+    private static final int SWIPE_THRESHOLD = 100;
+    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+    private static final float SWIPE_ANGLE_THRESHOLD = 30;
+    
+    @Override
+    public boolean onDown(MotionEvent e) {
+        return true;
     }
+    
+    @Override
+    public void onLongPress(MotionEvent e) {
+        super.onLongPress(e);
+    }
+    
+    @Override
+    public boolean onSingleTapUp(MotionEvent e) {
+        if (isTextSelected(e)) {
+            return false;
+        }
+        toggleAnswerVisibility();
+        return true;
+    }
+    
+    @Override
+    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+        if (hasSelection()) {
+            return false;
+        }
+        return super.onScroll(e1, e2, distanceX, distanceY);
+    }
+    
+    @Override
+    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        if (hasSelection()) {
+            return false;
+        }
+        
+        float diffX = e2.getX() - e1.getX();
+        float diffY = e2.getY() - e1.getY();
+        
+        float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
+        
+        if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
+            Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
+            
+            if (Math.abs(diffX) > SWIPE_THRESHOLD && 
+                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                
+                if (diffX > 0) {
+                    safePrevItem();
+                } else {
+                    safeNextItem();
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private boolean hasSelection() {
+        // Verifica se há texto selecionado
+        int questionSelStart = questionTextView.getSelectionStart();
+        int questionSelEnd = questionTextView.getSelectionEnd();
+        int answerSelStart = answerTextView.getSelectionStart();
+        int answerSelEnd = answerTextView.getSelectionEnd();
+        
+        return (questionSelStart != questionSelEnd) || (answerSelStart != answerSelEnd);
+    }
+    
+    private boolean isTextSelected(MotionEvent e) {
+        if (hasSelection()) {
+            int[] questionLocation = new int[2];
+            int[] answerLocation = new int[2];
+            questionTextView.getLocationOnScreen(questionLocation);
+            answerTextView.getLocationOnScreen(answerLocation);
+            
+            float x = e.getRawX();
+            float y = e.getRawY();
+            
+            // Verifica se o toque está dentro da área do TextView da pergunta
+            if (x >= questionLocation[0] && x <= questionLocation[0] + questionTextView.getWidth() &&
+                y >= questionLocation[1] && y <= questionLocation[1] + questionTextView.getHeight()) {
+                return true;
+            }
+            
+            // Verifica se o toque está dentro da área do TextView da resposta
+            if (answerTextView.getVisibility() == View.VISIBLE &&
+                x >= answerLocation[0] && x <= answerLocation[0] + answerTextView.getWidth() &&
+                y >= answerLocation[1] && y <= answerLocation[1] + answerTextView.getHeight()) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
 	
     private void safePrevItem() {
         try {
