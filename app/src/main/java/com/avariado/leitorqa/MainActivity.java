@@ -157,21 +157,13 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
-        cardView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return true;
-            }
-        });
-        
-        textScrollView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return false;
-            }
-        });
+		cardView.setOnTouchListener(new View.OnTouchListener() {
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				gestureDetector.onTouchEvent(event);
+				return true;
+			}
+		});
         
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
@@ -323,62 +315,34 @@ public class MainActivity extends AppCompatActivity {
 private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
     private static final int SWIPE_THRESHOLD = 100;
     private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-    private static final float SWIPE_ANGLE_THRESHOLD = 30;
-    
+
     @Override
     public boolean onDown(MotionEvent e) {
         return true;
     }
-    
-    @Override
-    public void onLongPress(MotionEvent e) {
-        super.onLongPress(e);
-    }
-    
+
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
-        if (isTextSelected(e)) {
-            return false;
-        }
         toggleAnswerVisibility();
         return true;
     }
-    
-    @Override
-    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-        if (hasSelection()) {
-            return false;
-        }
-        return super.onScroll(e1, e2, distanceX, distanceY);
-    }
-    
+
     @Override
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        if (hasSelection()) {
-            return false;
-        }
-        
         float diffX = e2.getX() - e1.getX();
-        float diffY = e2.getY() - e1.getY();
         
-        float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
-        
-        if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
-            Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
-            
-            if (Math.abs(diffX) > SWIPE_THRESHOLD && 
-                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                
-                if (diffX > 0) {
-                    safePrevItem();
-                } else {
-                    safeNextItem();
-                }
-                return true;
+        if (Math.abs(diffX) > SWIPE_THRESHOLD && 
+            Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+            if (diffX > 0) {
+                safePrevItem();
+            } else {
+                safeNextItem();
             }
+            return true;
         }
         return false;
     }
+}
     
     private boolean hasSelection() {
         // Verifica se há texto selecionado
