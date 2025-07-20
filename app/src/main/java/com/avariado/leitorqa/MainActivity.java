@@ -157,7 +157,6 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
-        // Configuração dos listeners de toque corrigida
         cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -166,6 +165,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         
+        // Modificado para permitir swipe horizontal na área de texto
         questionTextView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -177,18 +177,6 @@ public class MainActivity extends AppCompatActivity {
         answerTextView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return false;
-            }
-        });
-        
-        textScrollView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                // Permite que o ScrollView ainda funcione para rolagem vertical
-                if (event.getAction() == MotionEvent.ACTION_MOVE) {
-                    return false;
-                }
                 gestureDetector.onTouchEvent(event);
                 return false;
             }
@@ -353,19 +341,7 @@ public class MainActivity extends AppCompatActivity {
     
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
-            // Verifica se o toque foi dentro da área de texto
-            int[] questionLocation = new int[2];
-            questionTextView.getLocationOnScreen(questionLocation);
-            int[] answerLocation = new int[2];
-            answerTextView.getLocationOnScreen(answerLocation);
-            
-            float x = e.getRawX();
-            float y = e.getRawY();
-            
-            // Verifica se o toque foi fora da área de texto
-            if (!isPointInsideView(x, y, questionTextView) && !isPointInsideView(x, y, answerTextView)) {
-                toggleAnswerVisibility();
-            }
+            toggleAnswerVisibility();
             return true;
         }
     
@@ -391,16 +367,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             return false;
-        }
-        
-        private boolean isPointInsideView(float x, float y, View view) {
-            int[] location = new int[2];
-            view.getLocationOnScreen(location);
-            int viewX = location[0];
-            int viewY = location[1];
-            
-            return (x > viewX && x < (viewX + view.getWidth()) &&
-                    y > viewY && y < (viewY + view.getHeight()));
         }
     }
 
