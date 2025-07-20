@@ -120,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
-        questionTextView.setTextIsSelectable(true);
+		questionTextView.setTextIsSelectable(true);
         answerTextView.setTextIsSelectable(true);
         questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
@@ -165,15 +165,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         
-        questionTextView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return false;
-            }
-        });
-        
-        answerTextView.setOnTouchListener(new View.OnTouchListener() {
+        textScrollView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
@@ -332,20 +324,44 @@ public class MainActivity extends AppCompatActivity {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
         private static final float SWIPE_ANGLE_THRESHOLD = 30;
-    
+        
         @Override
         public boolean onDown(MotionEvent e) {
             return true;
         }
-    
+        
+        @Override
+        public void onLongPress(MotionEvent e) {
+            // Permite que o comportamento padrão de seleção de texto ocorra
+            super.onLongPress(e);
+        }
+        
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
+            // Verifica se o toque foi em uma área de texto selecionado
+            if (isTouchOnSelectedText(e)) {
+                return false; // Permite que o tratamento padrão de seleção de texto ocorra
+            }
             toggleAnswerVisibility();
             return true;
         }
-    
+        
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            // Permite rolagem quando o texto está selecionado
+            if (isTextSelected()) {
+                return false;
+            }
+            return super.onScroll(e1, e2, distanceX, distanceY);
+        }
+        
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            // Não processar swipe se o texto estiver selecionado
+            if (isTextSelected()) {
+                return false;
+            }
+            
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
             
@@ -367,8 +383,39 @@ public class MainActivity extends AppCompatActivity {
             }
             return false;
         }
+        
+        private boolean isTextSelected() {
+            return (questionTextView.isTextSelected() || answerTextView.isTextSelected());
+        }
+        
+        private boolean isTouchOnSelectedText(MotionEvent e) {
+            // Verifica se o toque foi em texto selecionado
+            if (questionTextView.isTextSelected() || answerTextView.isTextSelected()) {
+                int[] questionLocation = new int[2];
+                int[] answerLocation = new int[2];
+                questionTextView.getLocationOnScreen(questionLocation);
+                answerTextView.getLocationOnScreen(answerLocation);
+                
+                float x = e.getRawX();
+                float y = e.getRawY();
+                
+                // Verifica se o toque está dentro da área do TextView da pergunta
+                if (x >= questionLocation[0] && x <= questionLocation[0] + questionTextView.getWidth() &&
+                    y >= questionLocation[1] && y <= questionLocation[1] + questionTextView.getHeight()) {
+                    return true;
+                }
+                
+                // Verifica se o toque está dentro da área do TextView da resposta
+                if (answerTextView.getVisibility() == View.VISIBLE &&
+                    x >= answerLocation[0] && x <= answerLocation[0] + answerTextView.getWidth() &&
+                    y >= answerLocation[1] && y <= answerLocation[1] + answerTextView.getHeight()) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
-
+	
     private void safePrevItem() {
         try {
             prevItem();
