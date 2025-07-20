@@ -172,17 +172,14 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        View.OnTouchListener cardTouchListener = (v, event) -> {
-        gestureDetector.onTouchEvent(event);
-        if (event.getAction() == MotionEvent.ACTION_UP && !menuVisible) {
-            toggleAnswerVisibility();
-        }
-        return true;
+        View.OnTouchListener textViewTouchListener = (v, event) -> {
+            v.onTouchEvent(event); // Processa seleção de texto
+            return true; // Sempre consome o evento
         };
-
+        
         questionTextView.setOnTouchListener(textViewTouchListener);
         answerTextView.setOnTouchListener(textViewTouchListener);
-        cardView.setOnTouchListener(cardTouchListener);
+    }
         
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
@@ -299,32 +296,13 @@ public class MainActivity extends AppCompatActivity {
             return false;
         });
         
-        cardView.setOnTouchListener((v, event) -> {
-            gestureDetector.onTouchEvent(event);
-            if (event.getAction() == MotionEvent.ACTION_UP && !menuVisible) {
-                toggleAnswerVisibility();
-            }
-            return true;
-        });
-
-        questionTextView.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                v.onTouchEvent(event);
-                return true;
-            }
-            gestureDetector.onTouchEvent(event);
-            return false;
-        });
-            
-        answerTextView.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                // Permite que o TextView processe a seleção de texto primeiro
-                v.onTouchEvent(event);
-                return true;
-            }
-            gestureDetector.onTouchEvent(event);
-            return false;
-        });
+    cardView.setOnTouchListener((v, event) -> {
+        gestureDetector.onTouchEvent(event);
+        if (event.getAction() == MotionEvent.ACTION_UP && !isTextSelected() && !menuVisible) {
+            toggleAnswerVisibility();
+        }
+        return true;
+    });
     }
 
     private boolean isTextSelected() {
