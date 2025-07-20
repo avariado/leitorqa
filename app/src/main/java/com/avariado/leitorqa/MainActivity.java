@@ -339,13 +339,19 @@ public class MainActivity extends AppCompatActivity {
         }
     
         @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            toggleAnswerVisibility();
+        public boolean onSingleTapConfirmed(MotionEvent e) {
+            if (!isTextSelected()) {
+                toggleAnswerVisibility();
+            }
             return true;
         }
     
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            if (isTextSelected()) {
+                return false;
+            }
+            
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
             
