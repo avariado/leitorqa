@@ -151,13 +151,15 @@ public class MainActivity extends AppCompatActivity {
         currentCardInput.setFocusableInTouchMode(false);
         currentCardInput.setCursorVisible(false);
         
+        textView.setTextIsSelectable(true);
+        
         setupCardInputBehavior();
 
         cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
-                return true;
+                return false;
             }
         });
         
