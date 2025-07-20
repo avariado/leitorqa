@@ -283,52 +283,22 @@ private void setupLongPressToSelectText() {
     View.OnLongClickListener longClickListener = new View.OnLongClickListener() {
         @Override
         public boolean onLongClick(View v) {
-            try {
-                if (v instanceof TextView) {
-                    TextView textView = (TextView) v;
-                    
-                    if (textView.getText() != null && textView.getText().length() > 0) {
-                        // Habilita a seleção de texto
-                        textView.setTextIsSelectable(true);
-                        
-                        // Configura o callback para a ação de seleção
-                        textView.setCustomSelectionActionModeCallback(new android.view.ActionMode.Callback() {
-                            @Override
-                            public boolean onCreateActionMode(android.view.ActionMode mode, Menu menu) {
-                                return true;
-                            }
-
-                            @Override
-                            public boolean onPrepareActionMode(android.view.ActionMode mode, Menu menu) {
-                                return false;
-                            }
-
-                            @Override
-                            public boolean onActionItemClicked(android.view.ActionMode mode, MenuItem item) {
-                                return false;
-                            }
-
-                            @Override
-                            public void onDestroyActionMode(android.view.ActionMode mode) {
-                            }
-                        });
-                        
-                        // Esconde o teclado virtual se estiver visível
-                        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                        if (imm != null) {
-                            imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
-                        }
-                        
-                        // Mostra o menu de seleção de texto
-                        return false; // Deixa o sistema lidar com a seleção
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+            if (v instanceof TextView) {
+                TextView textView = (TextView)v;
+                textView.setTextIsSelectable(true);
+                return false; // Importante: não consuma o evento
             }
             return false;
         }
     };
+
+    questionTextView.setOnLongClickListener(longClickListener);
+    answerTextView.setOnLongClickListener(longClickListener);
+    
+    // Mantenha as TextViews não selecionáveis por padrão
+    questionTextView.setTextIsSelectable(false);
+    answerTextView.setTextIsSelectable(false);
+}
 
     // Aplica o listener após as views estarem inicializadas
     if (questionTextView != null) {
@@ -521,8 +491,6 @@ private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListen
             answerTextView.setText("");
             currentCardInput.setText("0");
             totalCardsText.setText("/ 0");
-            questionTextView.setTextIsSelectable(true);
-            answerTextView.setTextIsSelectable(true);
             return;
         }
     
