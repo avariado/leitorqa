@@ -286,7 +286,7 @@ private void setupLongPressToSelectText() {
             if (v instanceof TextView) {
                 TextView textView = (TextView)v;
                 textView.setTextIsSelectable(true);
-                return false; // Importante: não consuma o evento
+                return false;
             }
             return false;
         }
@@ -295,45 +295,33 @@ private void setupLongPressToSelectText() {
     questionTextView.setOnLongClickListener(longClickListener);
     answerTextView.setOnLongClickListener(longClickListener);
     
-    // Mantenha as TextViews não selecionáveis por padrão
+    // Configuração inicial
     questionTextView.setTextIsSelectable(false);
     answerTextView.setTextIsSelectable(false);
 }
 
-    // Aplica o listener após as views estarem inicializadas
-    if (questionTextView != null) {
-        questionTextView.setOnLongClickListener(longClickListener);
-        questionTextView.setTextIsSelectable(true);
-    }
+private void setupCardInputBehavior() {
+    currentCardInput.setOnClickListener(v -> enableEditing());
     
-    if (answerTextView != null) {
-        answerTextView.setOnLongClickListener(longClickListener);
-        answerTextView.setTextIsSelectable(true);
-    }
-}
-    
-    private void setupCardInputBehavior() {
-        currentCardInput.setOnClickListener(v -> enableEditing());
-        
-        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_DONE) {
-                finishEditing();
-                return true;
-            }
-            return false;
-        });
-        
-        cardView.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (!menuVisible) {
-                    finishEditing();
-                    toggleAnswerVisibility();
-                }
-            }
-            gestureDetector.onTouchEvent(event);
+    currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
+        if (actionId == EditorInfo.IME_ACTION_DONE) {
+            finishEditing();
             return true;
-        });
-    }
+        }
+        return false;
+    });
+    
+    cardView.setOnTouchListener((v, event) -> {
+        if (event.getAction() == MotionEvent.ACTION_UP) {
+            if (!menuVisible) {
+                finishEditing();
+                toggleAnswerVisibility();
+            }
+        }
+        gestureDetector.onTouchEvent(event);
+        return true;
+    });
+}
 
     private void enableEditing() {
         currentCardInput.setFocusable(true);
