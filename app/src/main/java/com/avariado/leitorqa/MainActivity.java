@@ -18,11 +18,6 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
-import android.view.ViewGroup;
-import android.view.ViewParent;
-import android.view.ActionMode;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -104,79 +99,40 @@ public class MainActivity extends AppCompatActivity {
     private String searchTerm = "";
 
     private GestureDetectorCompat gestureDetector;
-    private GestureDetectorCompat longPressDetector;
 
     @Override
-protected void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    setContentView(R.layout.activity_main);
-    
-    PDFBoxResourceLoader.init(getApplicationContext());
-    
-    // Inicialização dos componentes...
-    questionTextView = findViewById(R.id.question_text);
-    answerTextView = findViewById(R.id.answer_text);
-    // ... resto das inicializações
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        
+        PDFBoxResourceLoader.init(getApplicationContext());
+        
+        questionTextView = findViewById(R.id.question_text);
+        answerTextView = findViewById(R.id.answer_text);
+        currentCardInput = findViewById(R.id.current_card_input);
+        totalCardsText = findViewById(R.id.total_cards_text);
+        menuLayout = findViewById(R.id.menu_layout);
+        overlay = findViewById(R.id.overlay);
+        searchInput = findViewById(R.id.search_input);
+        searchInfo = findViewById(R.id.search_info);
+        fontSizeText = findViewById(R.id.current_font_size);
+        mainContainer = findViewById(R.id.main_container);
+        cardView = findViewById(R.id.card_view);
+        textScrollView = findViewById(R.id.text_scroll_view);
+        processingMessage = findViewById(R.id.processing_message);
 
-    // Configuração dos ActionMode.Callbacks
-    questionTextView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
-        @Override
-        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-            return true;
-        }
-
-        @Override
-        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-            return false;
-        }
-
-        @Override
-        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-            return false;
-        }
-
-        @Override
-        public void onDestroyActionMode(ActionMode mode) {
-            questionTextView.setTextIsSelectable(false);
-        }
-    });
-
-    answerTextView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
-        @Override
-        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-            return true;
-        }
-
-        @Override
-        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-            return false;
-        }
-
-        @Override
-        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-            return false;
-        }
-
-        @Override
-        public void onDestroyActionMode(ActionMode mode) {
-            answerTextView.setTextIsSelectable(false);
-        }
-    });
-
-    // Resto da implementação do onCreate...
-    menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-        @Override
-        public void onGlobalLayout() {
-            menuLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-            menuLayout.setX(-menuLayout.getWidth());
-            menuLayout.setVisibility(View.GONE);
-        }
-    });
+        menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                menuLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                menuLayout.setX(-menuLayout.getWidth());
+                menuLayout.setVisibility(View.GONE);
+            }
+        });
         
         menuLayout.setVisibility(View.VISIBLE);
         
         gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
-        longPressDetector = new GestureDetectorCompat(this, new LongPressGestureListener());
         
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
@@ -318,36 +274,28 @@ protected void onCreate(Bundle savedInstanceState) {
         return super.dispatchKeyEvent(event);
     }
 
-private void setupCardInputBehavior() {
-    currentCardInput.setOnClickListener(v -> enableEditing());
-    
-    currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
-        if (actionId == EditorInfo.IME_ACTION_DONE) {
-            finishEditing();
-            return true;
-        }
-        return false;
-    });
-    
-    cardView.setOnTouchListener((v, event) -> {
-        longPressDetector.onTouchEvent(event);
-        gestureDetector.onTouchEvent(event);
+    private void setupCardInputBehavior() {
+        currentCardInput.setOnClickListener(v -> enableEditing());
         
-        if (event.getAction() == MotionEvent.ACTION_UP) {
-            if (!menuVisible) {
+        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
                 finishEditing();
-                toggleAnswerVisibility();
+                return true;
             }
-        }
-        return true;
-    });
-    
-    // Configuração inicial dos TextViews
-    questionTextView.setTextIsSelectable(false);
-    answerTextView.setTextIsSelectable(false);
-    questionTextView.setMovementMethod(LinkMovementMethod.getInstance());
-    answerTextView.setMovementMethod(LinkMovementMethod.getInstance());
-}
+            return false;
+        });
+        
+        cardView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (!menuVisible) {
+                    finishEditing();
+                    toggleAnswerVisibility();
+                }
+            }
+            gestureDetector.onTouchEvent(event);
+            return true;
+        });
+    }
 
     private void enableEditing() {
         currentCardInput.setFocusable(true);
@@ -368,64 +316,6 @@ private void setupCardInputBehavior() {
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
 
-private class LongPressGestureListener extends GestureDetector.SimpleOnGestureListener {
-    @Override
-    public void onLongPress(MotionEvent e) {
-        View touchedView = findTextViewAt(e.getRawX(), e.getRawY());
-        if (touchedView != null) {
-            final TextView textView = (TextView) touchedView;
-            runOnUiThread(() -> {
-                textView.setTextIsSelectable(true);
-                textView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
-                    @Override
-                    public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-                        return true;
-                    }
-
-                    @Override
-                    public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-                        return false;
-                    }
-
-                    @Override
-                    public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-                        return false;
-                    }
-
-                    @Override
-                    public void onDestroyActionMode(ActionMode mode) {
-                        textView.setTextIsSelectable(false);
-                    }
-                });
-                textView.performLongClick();
-            });
-        }
-    }
-
-    private View findTextViewAt(float x, float y) {
-        View rootView = getWindow().getDecorView();
-        return findTextViewAt(rootView, x, y);
-    }
-
-    private View findTextViewAt(View root, float x, float y) {
-        if (root instanceof TextView) {
-            int[] location = new int[2];
-            root.getLocationOnScreen(location);
-            if (x >= location[0] && x <= location[0] + root.getWidth() &&
-                y >= location[1] && y <= location[1] + root.getHeight()) {
-                return root;
-            }
-        } else if (root instanceof ViewGroup) {
-            ViewGroup group = (ViewGroup) root;
-            for (int i = 0; i < group.getChildCount(); i++) {
-                View found = findTextViewAt(group.getChildAt(i), x, y);
-                if (found != null) return found;
-            }
-        }
-        return null;
-    }
-}
-    
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
