@@ -12,7 +12,6 @@ import android.text.Editable;
 import android.text.Html;
 import android.text.Spanned;
 import android.text.TextWatcher;
-import android.text.method.LinkMovementMethod;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -99,7 +98,6 @@ public class MainActivity extends AppCompatActivity {
     private String searchTerm = "";
 
     private GestureDetectorCompat gestureDetector;
-    
     private boolean isLongPressHandled = false;
 
     @Override
@@ -122,6 +120,8 @@ public class MainActivity extends AppCompatActivity {
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
+
+        setupTextSelection();
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -156,26 +156,25 @@ public class MainActivity extends AppCompatActivity {
         setupCardInputBehavior();
 
         cardView.setOnTouchListener(new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            gestureDetector.onTouchEvent(event);
-            
-            // Permitir que o evento continue sendo processado para a seleção de texto
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (!menuVisible && !isLongPressHandled) {
-                    toggleAnswerVisibility();
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    if (!menuVisible && !isLongPressHandled) {
+                        toggleAnswerVisibility();
+                    }
+                    isLongPressHandled = false;
                 }
-                isLongPressHandled = false;
+                return true;
             }
-            return true;
-        }
-    });
+        });
         
         textScrollView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
-                return false; // Permitir que o evento continue para os filhos (TextView)
+                return false;
             }
         });
         
@@ -230,135 +229,14 @@ public class MainActivity extends AppCompatActivity {
         updateFontSize();
     }
 
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (currentCardInput.hasFocus()) {
-            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
-                finishEditing();
-                return true;
-            }
-            return super.onKeyDown(keyCode, event);
-        }
-    
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_DPAD_LEFT:
-                safePrevItem();
-                return true;
-            case KeyEvent.KEYCODE_DPAD_RIGHT:
-                safeNextItem();
-                return true;
-            case KeyEvent.KEYCODE_ENTER:
-            case KeyEvent.KEYCODE_NUMPAD_ENTER:
-                toggleAnswerVisibility();
-                return true;
-            case KeyEvent.KEYCODE_SPACE:
-                toggleMenu();
-                return true;
-            default:
-                return super.onKeyDown(keyCode, event);
-        }
-    }
-    
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            int keyCode = event.getKeyCode();
-            
-            if (currentCardInput.hasFocus() && 
-               (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
-                finishEditing();
-                return true;
-            }
-            
-            if (!currentCardInput.hasFocus()) {
-                if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
-                    toggleAnswerVisibility();
-                    return true;
-                }
-                if (keyCode == KeyEvent.KEYCODE_SPACE) {
-                    toggleMenu();
-                    return true;
-                }
-            }
-        }
-        return super.dispatchKeyEvent(event);
-    }
-
-    private void setupCardInputBehavior() {
-        currentCardInput.setOnClickListener(v -> enableEditing());
+    private void setupTextSelection() {
+        questionTextView.setTextIsSelectable(true);
+        answerTextView.setTextIsSelectable(true);
         
-        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_DONE) {
-                finishEditing();
-                return true;
-            }
-            return false;
-        });
-        
-        cardView.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (!menuVisible) {
-                    finishEditing();
-                    toggleAnswerVisibility();
-                }
-            }
-            gestureDetector.onTouchEvent(event);
-            return true;
-        });
-    }
-
-    private void enableEditing() {
-        currentCardInput.setFocusable(true);
-        currentCardInput.setFocusableInTouchMode(true);
-        currentCardInput.requestFocus();
-        currentCardInput.setCursorVisible(true);
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.showSoftInput(currentCardInput, InputMethodManager.SHOW_IMPLICIT);
-    }
-
-    private void finishEditing() {
-        currentCardInput.clearFocus();
-        currentCardInput.setFocusable(false);
-        currentCardInput.setFocusableInTouchMode(false);
-        currentCardInput.setCursorVisible(false);
-        validateAndUpdateCardNumber();
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
-    }
-
-private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
-    private static final int SWIPE_THRESHOLD = 100;
-    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-    private static final float SWIPE_ANGLE_THRESHOLD = 30;
-    
-    @Override
-    public boolean onDown(MotionEvent e) {
-        isLongPressHandled = false;
-        return true;
-    }
-    
-    @Override
-    public boolean onSingleTapUp(MotionEvent e) {
-        if (!isLongPressHandled) {
-            toggleAnswerVisibility();
-        }
-        return true;
-    }
-    
-    @Override
-    public void onLongPress(MotionEvent e) {
-        isLongPressHandled = true;
-        
-        // Obter as views de texto
-        TextView textView = isQAMode ? 
-            (answerTextView.getVisibility() == View.VISIBLE ? answerTextView : questionTextView) : 
-            questionTextView;
-            
-        // Criar e mostrar o menu de seleção de texto
-        textView.setCustomSelectionActionModeCallback(new android.view.ActionMode.Callback() {
+        android.view.ActionMode.Callback callback = new android.view.ActionMode.Callback() {
             @Override
             public boolean onCreateActionMode(android.view.ActionMode mode, android.view.Menu menu) {
-                return true;
+                return false;
             }
 
             @Override
@@ -374,40 +252,68 @@ private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListen
             @Override
             public void onDestroyActionMode(android.view.ActionMode mode) {
             }
-        });
+        };
         
-        // Iniciar a seleção de texto
-        textView.performLongClick();
+        questionTextView.setCustomSelectionActionModeCallback(callback);
+        answerTextView.setCustomSelectionActionModeCallback(callback);
     }
+
+    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
+        private static final int SWIPE_THRESHOLD = 100;
+        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+        private static final float SWIPE_ANGLE_THRESHOLD = 30;
     
-    @Override
-    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        if (isLongPressHandled) {
+        @Override
+        public boolean onDown(MotionEvent e) {
+            isLongPressHandled = false;
+            return true;
+        }
+    
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            if (!isLongPressHandled) {
+                toggleAnswerVisibility();
+            }
+            return true;
+        }
+    
+        @Override
+        public void onLongPress(MotionEvent e) {
+            isLongPressHandled = true;
+            TextView targetTextView = isQAMode ? 
+                (answerTextView.getVisibility() == View.VISIBLE ? answerTextView : questionTextView) : 
+                questionTextView;
+            targetTextView.performLongClick();
+        }
+    
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            if (isLongPressHandled) {
+                return false;
+            }
+            
+            float diffX = e2.getX() - e1.getX();
+            float diffY = e2.getY() - e1.getY();
+            
+            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
+            
+            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
+                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
+                
+                if (Math.abs(diffX) > SWIPE_THRESHOLD && 
+                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                    
+                    if (diffX > 0) {
+                        safePrevItem();
+                    } else {
+                        safeNextItem();
+                    }
+                    return true;
+                }
+            }
             return false;
         }
-        
-        float diffX = e2.getX() - e1.getX();
-        float diffY = e2.getY() - e1.getY();
-        
-        float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
-        
-        if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
-            Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
-            
-            if (Math.abs(diffX) > SWIPE_THRESHOLD && 
-                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                
-                if (diffX > 0) {
-                    safePrevItem();
-                } else {
-                    safeNextItem();
-                }
-                return true;
-            }
-        }
-        return false;
     }
-}
 
     private void safePrevItem() {
         try {
