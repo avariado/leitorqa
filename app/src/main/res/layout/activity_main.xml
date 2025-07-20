@@ -69,7 +69,9 @@
                     android:layout_above="@id/card_footer"
                     android:fillViewport="true"
                     android:overScrollMode="never"
-                    android:scrollbars="none">
+                    android:scrollbars="none"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <LinearLayout
                         android:layout_width="match_parent"
