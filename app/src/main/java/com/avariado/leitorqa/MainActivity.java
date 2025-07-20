@@ -165,7 +165,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         
-        // Modificado para permitir swipe horizontal na área de texto
         questionTextView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
