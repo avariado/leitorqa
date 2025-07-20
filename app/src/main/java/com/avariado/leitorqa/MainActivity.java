@@ -107,6 +107,8 @@ public class MainActivity extends AppCompatActivity {
         
         PDFBoxResourceLoader.init(getApplicationContext());
         
+        setupLongPressToSelectText();
+        
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
         currentCardInput = findViewById(R.id.current_card_input);
@@ -274,6 +276,54 @@ public class MainActivity extends AppCompatActivity {
         return super.dispatchKeyEvent(event);
     }
 
+private void setupLongPressToSelectText() {
+    View.OnLongClickListener longClickListener = new View.OnLongClickListener() {
+        @Override
+        public boolean onLongClick(View v) {
+            if (v instanceof TextView) {
+                TextView textView = (TextView) v;
+                int startSelection = 0;
+                int endSelection = textView.getText().length();
+                
+                if (textView.getText().length() > 0) {
+                    textView.setCustomSelectionActionModeCallback(new android.view.ActionMode.Callback() {
+                        @Override
+                        public boolean onCreateActionMode(android.view.ActionMode mode, Menu menu) {
+                            return true;
+                        }
+
+                        @Override
+                        public boolean onPrepareActionMode(android.view.ActionMode mode, Menu menu) {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean onActionItemClicked(android.view.ActionMode mode, MenuItem item) {
+                            return false;
+                        }
+
+                        @Override
+                        public void onDestroyActionMode(android.view.ActionMode mode) {
+                        }
+                    });
+                    
+                    textView.setTextIsSelectable(true);
+                    textView.setSelection(startSelection, endSelection);
+                    
+                    // Mostrar o menu de seleção de texto
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
+                    textView.performLongClick();
+                }
+            }
+            return true;
+        }
+    };
+
+    questionTextView.setOnLongClickListener(longClickListener);
+    answerTextView.setOnLongClickListener(longClickListener);
+}
+    
     private void setupCardInputBehavior() {
         currentCardInput.setOnClickListener(v -> enableEditing());
         
@@ -316,46 +366,51 @@ public class MainActivity extends AppCompatActivity {
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
 
-    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
-        private static final int SWIPE_THRESHOLD = 100;
-        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-        private static final float SWIPE_ANGLE_THRESHOLD = 30;
+private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
+    private static final int SWIPE_THRESHOLD = 100;
+    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+    private static final float SWIPE_ANGLE_THRESHOLD = 30;
     
-        @Override
-        public boolean onDown(MotionEvent e) {
-            return true;
-        }
-    
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            toggleAnswerVisibility();
-            return true;
-        }
-    
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            float diffX = e2.getX() - e1.getX();
-            float diffY = e2.getY() - e1.getY();
-            
-            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
-            
-            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
-                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
-                
-                if (Math.abs(diffX) > SWIPE_THRESHOLD && 
-                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                    
-                    if (diffX > 0) {
-                        safePrevItem();
-                    } else {
-                        safeNextItem();
-                    }
-                    return true;
-                }
-            }
-            return false;
-        }
+    @Override
+    public boolean onDown(MotionEvent e) {
+        return true;
     }
+    
+    @Override
+    public void onLongPress(MotionEvent e) {
+        // Não fazemos nada aqui para permitir que o long press padrão do TextView funcione
+    }
+    
+    @Override
+    public boolean onSingleTapUp(MotionEvent e) {
+        toggleAnswerVisibility();
+        return true;
+    }
+    
+    @Override
+    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        float diffX = e2.getX() - e1.getX();
+        float diffY = e2.getY() - e1.getY();
+        
+        float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
+        
+        if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
+            Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
+            
+            if (Math.abs(diffX) > SWIPE_THRESHOLD && 
+                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                
+                if (diffX > 0) {
+                    safePrevItem();
+                } else {
+                    safeNextItem();
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+}
 
     private void safePrevItem() {
         try {
