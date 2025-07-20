@@ -99,6 +99,48 @@ public class MainActivity extends AppCompatActivity {
 
     private GestureDetectorCompat gestureDetector;
 
+    private void setupCardInputBehavior() {
+    currentCardInput.setOnClickListener(v -> enableEditing());
+    
+    currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
+        if (actionId == EditorInfo.IME_ACTION_DONE) {
+            finishEditing();
+            return true;
+        }
+        return false;
+    });
+    
+    cardView.setOnTouchListener((v, event) -> {
+        if (event.getAction() == MotionEvent.ACTION_UP) {
+            if (!menuVisible) {
+                finishEditing();
+                toggleAnswerVisibility();
+            }
+        }
+        gestureDetector.onTouchEvent(event);
+        return true;
+    });
+}
+
+private void enableEditing() {
+    currentCardInput.setFocusable(true);
+    currentCardInput.setFocusableInTouchMode(true);
+    currentCardInput.requestFocus();
+    currentCardInput.setCursorVisible(true);
+    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+    imm.showSoftInput(currentCardInput, InputMethodManager.SHOW_IMPLICIT);
+}
+
+private void finishEditing() {
+    currentCardInput.clearFocus();
+    currentCardInput.setFocusable(false);
+    currentCardInput.setFocusableInTouchMode(false);
+    currentCardInput.setCursorVisible(false);
+    validateAndUpdateCardNumber();
+    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+    imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
+}
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
