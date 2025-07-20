@@ -121,6 +121,32 @@ public class MainActivity extends AppCompatActivity {
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
 
+        // Configuração para permitir seleção de texto
+        questionTextView.setTextIsSelectable(true);
+        answerTextView.setTextIsSelectable(true);
+        questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
+        answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
+        questionTextView.setCustomSelectionActionModeCallback(new android.view.ActionMode.Callback2() {
+            @Override
+            public boolean onCreateActionMode(android.view.ActionMode mode, android.view.Menu menu) {
+                return true;
+            }
+
+            @Override
+            public boolean onPrepareActionMode(android.view.ActionMode mode, android.view.Menu menu) {
+                return false;
+            }
+
+            @Override
+            public boolean onActionItemClicked(android.view.ActionMode mode, android.view.MenuItem item) {
+                return false;
+            }
+
+            @Override
+            public void onDestroyActionMode(android.view.ActionMode mode) {
+            }
+        });
+
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
@@ -132,7 +158,12 @@ public class MainActivity extends AppCompatActivity {
         
         menuLayout.setVisibility(View.VISIBLE);
         
-        gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
+        gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener() {
+            @Override
+            public void onLongPress(MotionEvent e) {
+                // Não faz nada - permite que o TextView lide com o long press
+            }
+        });
         
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
@@ -328,12 +359,30 @@ public class MainActivity extends AppCompatActivity {
     
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
+            // Verifica se o toque foi em um TextView com texto selecionado
+            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                return false; // Permite que o TextView lide com o toque
+            }
             toggleAnswerVisibility();
             return true;
         }
     
         @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            // Se há texto selecionado, não processa o scroll como swipe
+            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                return false;
+            }
+            return super.onScroll(e1, e2, distanceX, distanceY);
+        }
+    
+        @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            // Se há texto selecionado, não processa o fling como swipe
+            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                return false;
+            }
+            
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
             
@@ -712,7 +761,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void processTextContent(String fileContent, Uri uri) throws IOException {
-
         boolean hasTabs = fileContent.contains("\t");
         boolean hasDoubleSemicolon = fileContent.contains(";;");
         boolean isAlternatingLines = checkAlternatingLinesFormat(fileContent);
@@ -730,9 +778,7 @@ public class MainActivity extends AppCompatActivity {
         
         if (hasTabs || hasDoubleSemicolon) {
             parseQAContent(fileContent);
-        } 
-
-        else if (isAlternatingLines && !hasMultipleSentences && lines.length >= 2) {
+        } else if (isAlternatingLines && !hasMultipleSentences && lines.length >= 2) {
             if (lines.length % 2 != 0) {
                 Toast.makeText(this, 
                     "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.", 
