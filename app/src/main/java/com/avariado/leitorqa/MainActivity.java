@@ -298,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
         }
         return true;
     });
-    }
+}  // This closing brace was missing
 
     private boolean isTextSelected() {
         try {
