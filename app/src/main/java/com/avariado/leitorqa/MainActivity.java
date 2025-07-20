@@ -12,6 +12,7 @@ import android.text.Editable;
 import android.text.Html;
 import android.text.Spanned;
 import android.text.TextWatcher;
+import android.text.method.LinkMovementMethod;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -98,7 +99,6 @@ public class MainActivity extends AppCompatActivity {
     private String searchTerm = "";
 
     private GestureDetectorCompat gestureDetector;
-    private boolean isLongPressHandled = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -120,8 +120,6 @@ public class MainActivity extends AppCompatActivity {
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
-
-        setupTextSelection();
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -159,13 +157,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
-                
-                if (event.getAction() == MotionEvent.ACTION_UP) {
-                    if (!menuVisible && !isLongPressHandled) {
-                        toggleAnswerVisibility();
-                    }
-                    isLongPressHandled = false;
-                }
                 return true;
             }
         });
@@ -229,33 +220,58 @@ public class MainActivity extends AppCompatActivity {
         updateFontSize();
     }
 
-    private void setupTextSelection() {
-        questionTextView.setTextIsSelectable(true);
-        answerTextView.setTextIsSelectable(true);
-        
-        android.view.ActionMode.Callback callback = new android.view.ActionMode.Callback() {
-            @Override
-            public boolean onCreateActionMode(android.view.ActionMode mode, android.view.Menu menu) {
-                return false;
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (currentCardInput.hasFocus()) {
+            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                finishEditing();
+                return true;
             }
-
-            @Override
-            public boolean onPrepareActionMode(android.view.ActionMode mode, android.view.Menu menu) {
-                return false;
+            return super.onKeyDown(keyCode, event);
+        }
+    
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                safePrevItem();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                safeNextItem();
+                return true;
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_NUMPAD_ENTER:
+                toggleAnswerVisibility();
+                return true;
+            case KeyEvent.KEYCODE_SPACE:
+                toggleMenu();
+                return true;
+            default:
+                return super.onKeyDown(keyCode, event);
+        }
+    }
+    
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            int keyCode = event.getKeyCode();
+            
+            if (currentCardInput.hasFocus() && 
+               (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                finishEditing();
+                return true;
             }
-
-            @Override
-            public boolean onActionItemClicked(android.view.ActionMode mode, android.view.MenuItem item) {
-                return false;
+            
+            if (!currentCardInput.hasFocus()) {
+                if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                    toggleAnswerVisibility();
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_SPACE) {
+                    toggleMenu();
+                    return true;
+                }
             }
-
-            @Override
-            public void onDestroyActionMode(android.view.ActionMode mode) {
-            }
-        };
-        
-        questionTextView.setCustomSelectionActionModeCallback(callback);
-        answerTextView.setCustomSelectionActionModeCallback(callback);
+        }
+        return super.dispatchKeyEvent(event);
     }
 
     private void setupCardInputBehavior() {
@@ -268,9 +284,20 @@ public class MainActivity extends AppCompatActivity {
             }
             return false;
         });
+        
+        cardView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (!menuVisible) {
+                    finishEditing();
+                    toggleAnswerVisibility();
+                }
+            }
+            gestureDetector.onTouchEvent(event);
+            return true;
+        });
     }
 
-        private void enableEditing() {
+    private void enableEditing() {
         currentCardInput.setFocusable(true);
         currentCardInput.setFocusableInTouchMode(true);
         currentCardInput.requestFocus();
@@ -288,18 +315,6 @@ public class MainActivity extends AppCompatActivity {
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
-    
-    cardView.setOnTouchListener((v, event) -> {
-        if (event.getAction() == MotionEvent.ACTION_UP) {
-            if (!menuVisible) {
-                finishEditing();
-                toggleAnswerVisibility();
-            }
-        }
-        gestureDetector.onTouchEvent(event);
-        return true;
-    });
-}
 
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
@@ -308,33 +323,17 @@ public class MainActivity extends AppCompatActivity {
     
         @Override
         public boolean onDown(MotionEvent e) {
-            isLongPressHandled = false;
             return true;
         }
     
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
-            if (!isLongPressHandled) {
-                toggleAnswerVisibility();
-            }
+            toggleAnswerVisibility();
             return true;
         }
     
         @Override
-        public void onLongPress(MotionEvent e) {
-            isLongPressHandled = true;
-            TextView targetTextView = isQAMode ? 
-                (answerTextView.getVisibility() == View.VISIBLE ? answerTextView : questionTextView) : 
-                questionTextView;
-            targetTextView.performLongClick();
-        }
-    
-        @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            if (isLongPressHandled) {
-                return false;
-            }
-            
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
             
