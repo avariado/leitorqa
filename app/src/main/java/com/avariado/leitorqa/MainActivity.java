@@ -19,6 +19,10 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.ViewGroup;
+import android.view.ViewParent;
+import android.view.ActionMode;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -122,6 +126,51 @@ public class MainActivity extends AppCompatActivity {
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
+
+        // Configurar os TextViews para permitir seleção de texto quando necessário
+questionTextView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
+    @Override
+    public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+        return true;
+    }
+
+    @Override
+    public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+        return false;
+    }
+
+    @Override
+    public void onDestroyActionMode(ActionMode mode) {
+        questionTextView.setTextIsSelectable(false);
+    }
+});
+
+answerTextView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
+    @Override
+    public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+        return true;
+    }
+
+    @Override
+    public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+        return false;
+    }
+
+    @Override
+    public void onDestroyActionMode(ActionMode mode) {
+        answerTextView.setTextIsSelectable(false);
+    }
+});
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -277,29 +326,37 @@ public class MainActivity extends AppCompatActivity {
         return super.dispatchKeyEvent(event);
     }
 
-    private void setupCardInputBehavior() {
-        currentCardInput.setOnClickListener(v -> enableEditing());
-        
-        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_DONE) {
-                finishEditing();
-                return true;
-            }
-            return false;
-        });
-        
-        cardView.setOnTouchListener((v, event) -> {
-            longPressDetector.onTouchEvent(event);
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (!menuVisible) {
-                    finishEditing();
-                    toggleAnswerVisibility();
-                }
-            }
-            gestureDetector.onTouchEvent(event);
+private void setupCardInputBehavior() {
+    currentCardInput.setOnClickListener(v -> enableEditing());
+    
+    currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
+        if (actionId == EditorInfo.IME_ACTION_DONE) {
+            finishEditing();
             return true;
-        });
-    }
+        }
+        return false;
+    });
+    
+    cardView.setOnTouchListener((v, event) -> {
+        // Primeiro processa o toque longo
+        longPressDetector.onTouchEvent(event);
+        
+        // Depois processa os outros gestos
+        gestureDetector.onTouchEvent(event);
+        
+        if (event.getAction() == MotionEvent.ACTION_UP) {
+            if (!menuVisible) {
+                finishEditing();
+                toggleAnswerVisibility();
+            }
+        }
+        return true;
+    });
+    
+    // Configurar os TextViews para permitir seleção de texto
+    questionTextView.setTextIsSelectable(false);
+    answerTextView.setTextIsSelectable(false);
+}
 
     private void enableEditing() {
         currentCardInput.setFocusable(true);
@@ -320,57 +377,63 @@ public class MainActivity extends AppCompatActivity {
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
 
-    private class LongPressGestureListener extends GestureDetector.SimpleOnGestureListener {
-        @Override
-        public void onLongPress(MotionEvent e) {
-            // Verificar se o toque foi em uma área com texto
-            View touchedView = findViewAt(e.getRawX(), e.getRawY());
-            if (touchedView instanceof TextView) {
-                TextView textView = (TextView) touchedView;
-                if (textView.getText().length() > 0) {
-                    // Ativar seleção de texto
-                    textView.setTextIsSelectable(true);
-                    // Definir um listener para desativar a seleção quando o usuário terminar
-                    textView.setOnTouchListener(new View.OnTouchListener() {
-                        @Override
-                        public boolean onTouch(View v, MotionEvent event) {
-                            if (event.getAction() == MotionEvent.ACTION_UP || 
-                                event.getAction() == MotionEvent.ACTION_CANCEL) {
-                                // Quando o usuário levanta o dedo, desativar a seleção
-                                textView.setTextIsSelectable(false);
-                                textView.setOnTouchListener(null);
-                            }
-                            return false;
-                        }
-                    });
-                }
-            }
-        }
-
-        private View findViewAt(float x, float y) {
-            View rootView = getWindow().getDecorView().getRootView();
-            return findViewAt(rootView, x, y);
-        }
-
-        private View findViewAt(View root, float x, float y) {
-            int[] location = new int[2];
-            root.getLocationOnScreen(location);
-            if (x >= location[0] && x < location[0] + root.getWidth() &&
-                y >= location[1] && y < location[1] + root.getHeight()) {
+private class LongPressGestureListener extends GestureDetector.SimpleOnGestureListener {
+    @Override
+    public void onLongPress(MotionEvent e) {
+        // Encontrar a view que foi pressionada
+        View touchedView = findViewAt(e.getRawX(), e.getRawY());
+        
+        if (touchedView instanceof TextView) {
+            final TextView textView = (TextView) touchedView;
+            if (textView.getText().length() > 0) {
+                // Ativar seleção de texto
+                textView.setTextIsSelectable(true);
                 
-                if (root instanceof ViewGroup) {
-                    ViewGroup group = (ViewGroup) root;
-                    for (int i = 0; i < group.getChildCount(); i++) {
-                        View child = group.getChildAt(i);
-                        View found = findViewAt(child, x, y);
-                        if (found != null) return found;
+                // Definir um listener para desativar a seleção quando o usuário terminar
+                textView.setOnTouchListener(new View.OnTouchListener() {
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
+                        if (event.getAction() == MotionEvent.ACTION_UP || 
+                            event.getAction() == MotionEvent.ACTION_CANCEL) {
+                            // Restaurar o estado normal
+                            textView.setTextIsSelectable(false);
+                            textView.setOnTouchListener(null);
+                        }
+                        return false;
                     }
-                }
-                return root;
+                });
+                
+                // Mostrar o menu de seleção de texto
+                textView.performLongClick();
             }
-            return null;
         }
     }
+
+    private View findViewAt(float x, float y) {
+        View rootView = getWindow().getDecorView();
+        return findViewAt(rootView, x, y);
+    }
+
+    private View findViewAt(View root, float x, float y) {
+        int[] location = new int[2];
+        root.getLocationOnScreen(location);
+        
+        if (x >= location[0] && x < location[0] + root.getWidth() &&
+            y >= location[1] && y < location[1] + root.getHeight()) {
+            
+            if (root instanceof ViewGroup) {
+                ViewGroup group = (ViewGroup) root;
+                for (int i = 0; i < group.getChildCount(); i++) {
+                    View child = group.getChildAt(i);
+                    View found = findViewAt(child, x, y);
+                    if (found != null) return found;
+                }
+            }
+            return root;
+        }
+        return null;
+    }
+}
     
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
