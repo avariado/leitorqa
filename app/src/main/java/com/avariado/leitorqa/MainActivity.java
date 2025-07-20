@@ -342,52 +342,48 @@ private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListen
         }
         return false;
     }
+} // Fecha corretamente a classe SwipeGestureListener
+
+// ----- MÉTODOS SEGUINTES DEVEM FICAR DENTRO DE MainActivity ----- //
+private boolean hasSelection() {
+    int questionSelStart = questionTextView.getSelectionStart();
+    int questionSelEnd = questionTextView.getSelectionEnd();
+    int answerSelStart = answerTextView.getSelectionStart();
+    int answerSelEnd = answerTextView.getSelectionEnd();
+    return (questionSelStart != questionSelEnd) || (answerSelStart != answerSelEnd);
 }
-    
-    private boolean hasSelection() {
-        // Verifica se há texto selecionado
-        int questionSelStart = questionTextView.getSelectionStart();
-        int questionSelEnd = questionTextView.getSelectionEnd();
-        int answerSelStart = answerTextView.getSelectionStart();
-        int answerSelEnd = answerTextView.getSelectionEnd();
+
+private boolean isTextSelected(MotionEvent e) {
+    if (hasSelection()) {
+        int[] questionLocation = new int[2];
+        int[] answerLocation = new int[2];
+        questionTextView.getLocationOnScreen(questionLocation);
+        answerTextView.getLocationOnScreen(answerLocation);
         
-        return (questionSelStart != questionSelEnd) || (answerSelStart != answerSelEnd);
-    }
-    
-    private boolean isTextSelected(MotionEvent e) {
-        if (hasSelection()) {
-            int[] questionLocation = new int[2];
-            int[] answerLocation = new int[2];
-            questionTextView.getLocationOnScreen(questionLocation);
-            answerTextView.getLocationOnScreen(answerLocation);
-            
-            float x = e.getRawX();
-            float y = e.getRawY();
-            
-            // Verifica se o toque está dentro da área do TextView da pergunta
-            if (x >= questionLocation[0] && x <= questionLocation[0] + questionTextView.getWidth() &&
-                y >= questionLocation[1] && y <= questionLocation[1] + questionTextView.getHeight()) {
-                return true;
-            }
-            
-            // Verifica se o toque está dentro da área do TextView da resposta
-            if (answerTextView.getVisibility() == View.VISIBLE &&
-                x >= answerLocation[0] && x <= answerLocation[0] + answerTextView.getWidth() &&
-                y >= answerLocation[1] && y <= answerLocation[1] + answerTextView.getHeight()) {
-                return true;
-            }
+        float x = e.getRawX();
+        float y = e.getRawY();
+        
+        if (x >= questionLocation[0] && x <= questionLocation[0] + questionTextView.getWidth() &&
+            y >= questionLocation[1] && y <= questionLocation[1] + questionTextView.getHeight()) {
+            return true;
         }
-        return false;
+        
+        if (answerTextView.getVisibility() == View.VISIBLE &&
+            x >= answerLocation[0] && x <= answerLocation[0] + answerTextView.getWidth() &&
+            y >= answerLocation[1] && y <= answerLocation[1] + answerTextView.getHeight()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+private void safePrevItem() {
+    try {
+        prevItem();
+    } catch (Exception e) {
+        showError("Erro ao navegar para o cartão anterior");
     }
 }
-	
-    private void safePrevItem() {
-        try {
-            prevItem();
-        } catch (Exception e) {
-            showError("Erro ao navegar para o cartão anterior");
-        }
-    }
     
     private void safeNextItem() {
         try {
