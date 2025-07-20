@@ -12,7 +12,6 @@ import android.text.Editable;
 import android.text.Html;
 import android.text.Spanned;
 import android.text.TextWatcher;
-import android.text.method.LinkMovementMethod;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -121,31 +120,17 @@ public class MainActivity extends AppCompatActivity {
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
 
-        // Configuração para permitir seleção de texto
+        // Configuração para seleção de texto
         questionTextView.setTextIsSelectable(true);
         answerTextView.setTextIsSelectable(true);
         questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-        questionTextView.setCustomSelectionActionModeCallback(new android.view.ActionMode.Callback2() {
-            @Override
-            public boolean onCreateActionMode(android.view.ActionMode mode, android.view.Menu menu) {
-                return true;
-            }
-
-            @Override
-            public boolean onPrepareActionMode(android.view.ActionMode mode, android.view.Menu menu) {
-                return false;
-            }
-
-            @Override
-            public boolean onActionItemClicked(android.view.ActionMode mode, android.view.MenuItem item) {
-                return false;
-            }
-
-            @Override
-            public void onDestroyActionMode(android.view.ActionMode mode) {
-            }
-        });
+        
+        // Configuração do gesture detector
+        gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
+        
+        // Configuração dos listeners de toque
+        setupTouchHandling();
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -157,13 +142,6 @@ public class MainActivity extends AppCompatActivity {
         });
         
         menuLayout.setVisibility(View.VISIBLE);
-        
-        gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener() {
-            @Override
-            public void onLongPress(MotionEvent e) {
-                // Não faz nada - permite que o TextView lide com o long press
-            }
-        });
         
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
@@ -184,22 +162,6 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
-        cardView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return true;
-            }
-        });
-        
-        textScrollView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return false;
-            }
-        });
-        
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
         nextButton.setOnClickListener(v -> safeNextItem());
@@ -251,156 +213,73 @@ public class MainActivity extends AppCompatActivity {
         updateFontSize();
     }
 
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (currentCardInput.hasFocus()) {
-            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
-                finishEditing();
-                return true;
-            }
-            return super.onKeyDown(keyCode, event);
-        }
-    
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_DPAD_LEFT:
-                safePrevItem();
-                return true;
-            case KeyEvent.KEYCODE_DPAD_RIGHT:
-                safeNextItem();
-                return true;
-            case KeyEvent.KEYCODE_ENTER:
-            case KeyEvent.KEYCODE_NUMPAD_ENTER:
-                toggleAnswerVisibility();
-                return true;
-            case KeyEvent.KEYCODE_SPACE:
-                toggleMenu();
-                return true;
-            default:
-                return super.onKeyDown(keyCode, event);
-        }
-    }
-    
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            int keyCode = event.getKeyCode();
-            
-            if (currentCardInput.hasFocus() && 
-               (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
-                finishEditing();
-                return true;
-            }
-            
-            if (!currentCardInput.hasFocus()) {
-                if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
-                    toggleAnswerVisibility();
-                    return true;
-                }
-                if (keyCode == KeyEvent.KEYCODE_SPACE) {
-                    toggleMenu();
-                    return true;
-                }
-            }
-        }
-        return super.dispatchKeyEvent(event);
-    }
+    private void setupTouchHandling() {
+        // Listener para a área de texto
+        View.OnTouchListener textTouchListener = new View.OnTouchListener() {
+            private boolean isSelectingText = false;
 
-    private void setupCardInputBehavior() {
-        currentCardInput.setOnClickListener(v -> enableEditing());
-        
-        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_DONE) {
-                finishEditing();
-                return true;
-            }
-            return false;
-        });
-        
-        cardView.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (!menuVisible) {
-                    finishEditing();
-                    toggleAnswerVisibility();
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        isSelectingText = false;
+                        break;
+                        
+                    case MotionEvent.ACTION_MOVE:
+                        if (Math.abs(event.getX() - event.getHistoricalX(0)) > 10 || 
+                            Math.abs(event.getY() - event.getHistoricalY(0)) > 10) {
+                            isSelectingText = true;
+                        }
+                        break;
                 }
+
+                if (!isSelectingText) {
+                    gestureDetector.onTouchEvent(event);
+                    
+                    if (event.getAction() == MotionEvent.ACTION_UP) {
+                        toggleAnswerVisibility();
+                    }
+                    return true;
+                }
+                
+                return v.onTouchEvent(event);
             }
+        };
+
+        questionTextView.setOnTouchListener(textTouchListener);
+        answerTextView.setOnTouchListener(textTouchListener);
+
+        // Listener para a área do cartão sem texto
+        cardView.setOnTouchListener((v, event) -> {
             gestureDetector.onTouchEvent(event);
+            
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                toggleAnswerVisibility();
+            }
             return true;
         });
-    }
-
-    private void enableEditing() {
-        currentCardInput.setFocusable(true);
-        currentCardInput.setFocusableInTouchMode(true);
-        currentCardInput.requestFocus();
-        currentCardInput.setCursorVisible(true);
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.showSoftInput(currentCardInput, InputMethodManager.SHOW_IMPLICIT);
-    }
-
-    private void finishEditing() {
-        currentCardInput.clearFocus();
-        currentCardInput.setFocusable(false);
-        currentCardInput.setFocusableInTouchMode(false);
-        currentCardInput.setCursorVisible(false);
-        validateAndUpdateCardNumber();
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
 
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-        private static final float SWIPE_ANGLE_THRESHOLD = 30;
-    
+
         @Override
         public boolean onDown(MotionEvent e) {
             return true;
         }
-    
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            // Verifica se o toque foi em um TextView com texto selecionado
-            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                return false; // Permite que o TextView lide com o toque
-            }
-            toggleAnswerVisibility();
-            return true;
-        }
-    
-        @Override
-        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-            // Se há texto selecionado, não processa o scroll como swipe
-            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                return false;
-            }
-            return super.onScroll(e1, e2, distanceX, distanceY);
-        }
-    
+
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            // Se há texto selecionado, não processa o fling como swipe
-            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                return false;
-            }
-            
             float diffX = e2.getX() - e1.getX();
-            float diffY = e2.getY() - e1.getY();
             
-            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
-            
-            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
-                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
-                
-                if (Math.abs(diffX) > SWIPE_THRESHOLD && 
-                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                    
-                    if (diffX > 0) {
-                        safePrevItem();
-                    } else {
-                        safeNextItem();
-                    }
-                    return true;
+            if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                if (diffX > 0) {
+                    safePrevItem();
+                } else {
+                    safeNextItem();
                 }
+                return true;
             }
             return false;
         }
