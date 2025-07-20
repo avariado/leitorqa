@@ -288,12 +288,22 @@ public class MainActivity extends AppCompatActivity {
         });
         
         cardView.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
             if (event.getAction() == MotionEvent.ACTION_UP) {
                 if (!menuVisible) {
                     finishEditing();
                     toggleAnswerVisibility();
                 }
             }
+            return true;
+        });
+
+            questionTextView.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            return true;
+        });
+        
+        answerTextView.setOnTouchListener((v, event) -> {
             gestureDetector.onTouchEvent(event);
             return true;
         });
