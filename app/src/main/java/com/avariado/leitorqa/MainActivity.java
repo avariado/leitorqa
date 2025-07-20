@@ -329,6 +329,25 @@ public class MainActivity extends AppCompatActivity {
         public boolean onDown(MotionEvent e) {
             return true;
         }
+		
+		@Override
+        public void onLongPress(MotionEvent e) {
+        }
+		
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, 
+                              float distanceX, float distanceY) {
+            float diffX = e2.getX() - e1.getX();
+            if (Math.abs(diffX) > SWIPE_THRESHOLD) {
+                if (diffX > 0) {
+                    safePrevItem();
+                } else {
+                    safeNextItem();
+                }
+                return true;
+            }
+            return false;
+        }
     
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
@@ -338,6 +357,7 @@ public class MainActivity extends AppCompatActivity {
     
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+			return super.onFling(e1, e2, velocityX, velocityY);
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
             
