@@ -304,7 +304,6 @@ public class MainActivity extends AppCompatActivity {
             }
             return true;
         });
-    }
 
         questionTextView.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
