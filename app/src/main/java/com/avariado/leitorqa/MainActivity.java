@@ -120,10 +120,6 @@ public class MainActivity extends AppCompatActivity {
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
-		questionTextView.setTextIsSelectable(true);
-        answerTextView.setTextIsSelectable(true);
-        questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-        answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -157,13 +153,21 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
-		cardView.setOnTouchListener(new View.OnTouchListener() {
-			@Override
-			public boolean onTouch(View v, MotionEvent event) {
-				gestureDetector.onTouchEvent(event);
-				return true;
-			}
-		});
+        cardView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                return true;
+            }
+        });
+        
+        textScrollView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                return false;
+            }
+        });
         
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
@@ -312,78 +316,54 @@ public class MainActivity extends AppCompatActivity {
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
 
-private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
-    private static final int SWIPE_THRESHOLD = 100;
-    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-
-    @Override
-    public boolean onDown(MotionEvent e) {
-        return true;
-    }
-
-    @Override
-    public boolean onSingleTapUp(MotionEvent e) {
-        toggleAnswerVisibility();
-        return true;
-    }
-
-    @Override
-    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        float diffX = e2.getX() - e1.getX();
-        
-        if (Math.abs(diffX) > SWIPE_THRESHOLD && 
-            Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-            if (diffX > 0) {
-                safePrevItem();
-            } else {
-                safeNextItem();
+    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
+        private static final int SWIPE_THRESHOLD = 100;
+        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+        private static final float SWIPE_ANGLE_THRESHOLD = 30;
+    
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
+    
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            toggleAnswerVisibility();
+            return true;
+        }
+    
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            float diffX = e2.getX() - e1.getX();
+            float diffY = e2.getY() - e1.getY();
+            
+            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
+            
+            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
+                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
+                
+                if (Math.abs(diffX) > SWIPE_THRESHOLD && 
+                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                    
+                    if (diffX > 0) {
+                        safePrevItem();
+                    } else {
+                        safeNextItem();
+                    }
+                    return true;
+                }
             }
-            return true;
-        }
-        return false;
-    }
-} // Fecha corretamente a classe SwipeGestureListener
-
-// ----- MÉTODOS SEGUINTES DEVEM FICAR DENTRO DE MainActivity ----- //
-private boolean hasSelection() {
-    int questionSelStart = questionTextView.getSelectionStart();
-    int questionSelEnd = questionTextView.getSelectionEnd();
-    int answerSelStart = answerTextView.getSelectionStart();
-    int answerSelEnd = answerTextView.getSelectionEnd();
-    return (questionSelStart != questionSelEnd) || (answerSelStart != answerSelEnd);
-}
-
-private boolean isTextSelected(MotionEvent e) {
-    if (hasSelection()) {
-        int[] questionLocation = new int[2];
-        int[] answerLocation = new int[2];
-        questionTextView.getLocationOnScreen(questionLocation);
-        answerTextView.getLocationOnScreen(answerLocation);
-        
-        float x = e.getRawX();
-        float y = e.getRawY();
-        
-        if (x >= questionLocation[0] && x <= questionLocation[0] + questionTextView.getWidth() &&
-            y >= questionLocation[1] && y <= questionLocation[1] + questionTextView.getHeight()) {
-            return true;
-        }
-        
-        if (answerTextView.getVisibility() == View.VISIBLE &&
-            x >= answerLocation[0] && x <= answerLocation[0] + answerTextView.getWidth() &&
-            y >= answerLocation[1] && y <= answerLocation[1] + answerTextView.getHeight()) {
-            return true;
+            return false;
         }
     }
-    return false;
-}
 
-private void safePrevItem() {
-    try {
-        prevItem();
-    } catch (Exception e) {
-        showError("Erro ao navegar para o cartão anterior");
+    private void safePrevItem() {
+        try {
+            prevItem();
+        } catch (Exception e) {
+            showError("Erro ao navegar para o cartão anterior");
+        }
     }
-}
     
     private void safeNextItem() {
         try {
