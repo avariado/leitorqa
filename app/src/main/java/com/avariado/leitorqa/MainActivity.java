@@ -156,17 +156,20 @@ public class MainActivity extends AppCompatActivity {
         setupCardInputBehavior();
 
         View.OnTouchListener touchListener = new View.OnTouchListener() {
-        private GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
+            private GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
+            
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 boolean textViewConsumed = v.onTouchEvent(event);
+                
                 if (!textViewConsumed) {
                     gestureDetector.onTouchEvent(event);
-            }
-            return true;
+                }
+                
+                return true;
             }
         };
-
+    
         questionTextView.setOnTouchListener(touchListener);
         answerTextView.setOnTouchListener(touchListener);
         
@@ -298,10 +301,10 @@ public class MainActivity extends AppCompatActivity {
             gestureDetector.onTouchEvent(event);
             if (event.getAction() == MotionEvent.ACTION_UP && !menuVisible) {
                 toggleAnswerVisibility();
-                }
-                return true;
-            });
-        }
+            }
+            return true;
+        });
+    }
 
         questionTextView.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
