@@ -155,14 +155,34 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
-        View.OnTouchListener textViewTouchListener = (v, event) -> {
-            v.onTouchEvent(event);
-            gestureDetector.onTouchEvent(event);
-            return true;
+        View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
+            private final GestureDetectorCompat textGestureDetector = 
+                new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
+        
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                boolean isSelection = v.onTouchEvent(event);
+                if (!isSelection) {
+                    textGestureDetector.onTouchEvent(event);
+                }
+                if (event.getAction() == MotionEvent.ACTION_UP && !isSelection) {
+                    toggleAnswerVisibility();
+                }
+                return true;
+            }
         };
-    
+
+        View.OnTouchListener cardTouchListener = (v, event) -> {
+        gestureDetector.onTouchEvent(event);
+        if (event.getAction() == MotionEvent.ACTION_UP && !menuVisible) {
+            toggleAnswerVisibility();
+        }
+        return true;
+        };
+
         questionTextView.setOnTouchListener(textViewTouchListener);
         answerTextView.setOnTouchListener(textViewTouchListener);
+        cardView.setOnTouchListener(cardTouchListener);
         
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
@@ -270,7 +290,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupCardInputBehavior() {
-        // Configuração do input do cartão
         currentCardInput.setOnClickListener(v -> enableEditing());
         currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE) {
