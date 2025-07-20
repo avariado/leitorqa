@@ -313,21 +313,14 @@ private void setupLongPressToSelectText() {
                             }
                         });
                         
-                        // Tenta selecionar todo o texto
-                        try {
-                            textView.setSelection(0, textView.getText().length());
-                        } catch (Exception e) {
-                            // Fallback seguro
-                            textView.setSelection(textView.getText().length());
-                        }
-                        
                         // Esconde o teclado virtual se estiver visível
                         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                         if (imm != null) {
                             imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
                         }
                         
-                        return true;
+                        // Mostra o menu de seleção de texto
+                        return false; // Deixa o sistema lidar com a seleção
                     }
                 }
             } catch (Exception e) {
