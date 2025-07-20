@@ -107,66 +107,71 @@ public class MainActivity extends AppCompatActivity {
     private GestureDetectorCompat longPressDetector;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        
-        PDFBoxResourceLoader.init(getApplicationContext());
-        
-        questionTextView = findViewById(R.id.question_text);
-        answerTextView = findViewById(R.id.answer_text);
-        currentCardInput = findViewById(R.id.current_card_input);
-        totalCardsText = findViewById(R.id.total_cards_text);
-        menuLayout = findViewById(R.id.menu_layout);
-        overlay = findViewById(R.id.overlay);
-        searchInput = findViewById(R.id.search_input);
-        searchInfo = findViewById(R.id.search_info);
-        fontSizeText = findViewById(R.id.current_font_size);
-        mainContainer = findViewById(R.id.main_container);
-        cardView = findViewById(R.id.card_view);
-        textScrollView = findViewById(R.id.text_scroll_view);
-        processingMessage = findViewById(R.id.processing_message);
+protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_main);
+    
+    PDFBoxResourceLoader.init(getApplicationContext());
+    
+    // Inicialização dos componentes...
+    questionTextView = findViewById(R.id.question_text);
+    answerTextView = findViewById(R.id.answer_text);
+    // ... resto das inicializações
 
-    @Override
-    public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-        return true;
-    }
+    // Configuração dos ActionMode.Callbacks
+    questionTextView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
+        @Override
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            return true;
+        }
 
-    @Override
-    public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-        return false;
-    }
+        @Override
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            return false;
+        }
 
-    @Override
-    public void onDestroyActionMode(ActionMode mode) {
-        questionTextView.setTextIsSelectable(false);
-    }
-});
+        @Override
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            return false;
+        }
 
-    @Override
-    public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-        return true;
-    }
+        @Override
+        public void onDestroyActionMode(ActionMode mode) {
+            questionTextView.setTextIsSelectable(false);
+        }
+    });
 
-    @Override
-    public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-        return false;
-    }
+    answerTextView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
+        @Override
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            return true;
+        }
 
-    @Override
-    public void onDestroyActionMode(ActionMode mode) {
-        answerTextView.setTextIsSelectable(false);
-    }
-});
+        @Override
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            return false;
+        }
 
-        menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                menuLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                menuLayout.setX(-menuLayout.getWidth());
-                menuLayout.setVisibility(View.GONE);
-            }
-        });
+        @Override
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            return false;
+        }
+
+        @Override
+        public void onDestroyActionMode(ActionMode mode) {
+            answerTextView.setTextIsSelectable(false);
+        }
+    });
+
+    // Resto da implementação do onCreate...
+    menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+        @Override
+        public void onGlobalLayout() {
+            menuLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+            menuLayout.setX(-menuLayout.getWidth());
+            menuLayout.setVisibility(View.GONE);
+        }
+    });
         
         menuLayout.setVisibility(View.VISIBLE);
         
