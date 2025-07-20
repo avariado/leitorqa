@@ -70,8 +70,6 @@
                     android:fillViewport="true"
                     android:overScrollMode="never"
                     android:scrollbars="none"
-                    android:clickable="true"
-                    android:focusable="true">
 
                     <LinearLayout
                         android:layout_width="match_parent"
