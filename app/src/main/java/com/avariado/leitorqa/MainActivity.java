@@ -122,11 +122,13 @@ public class MainActivity extends AppCompatActivity {
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
 
-        // Configuração para evitar corte de texto e rolagem
+        // Configuração para evitar corte de texto e ajustar ao tamanho
         questionTextView.setHorizontallyScrolling(false);
         questionTextView.setMaxLines(Integer.MAX_VALUE);
+        questionTextView.setEllipsize(null);
         answerTextView.setHorizontallyScrolling(false);
         answerTextView.setMaxLines(Integer.MAX_VALUE);
+        answerTextView.setEllipsize(null);
 
         // Habilitar seleção de texto
         questionTextView.setTextIsSelectable(true);
@@ -148,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
         // Configuração do detector de gestos principal
         final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
         
-        // Configuração do toque para mostrar/ocultar resposta em toda a área do cartão
+        // Configuração do touch listener para toda a área do cartão
         View.OnTouchListener cardTouchListener = new View.OnTouchListener() {
             private GestureDetectorCompat cardGestureDetector = new GestureDetectorCompat(
                 MainActivity.this, 
@@ -173,13 +175,14 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        // Aplicar o listener a todos os elementos relevantes
+        // Aplicar o listener a todos os componentes relevantes
         cardView.setOnTouchListener(cardTouchListener);
         horizontalScrollView.setOnTouchListener(cardTouchListener);
         textScrollView.setOnTouchListener(cardTouchListener);
         questionTextView.setOnTouchListener(cardTouchListener);
         answerTextView.setOnTouchListener(cardTouchListener);
 
+        // Configuração especial para o swipe horizontal
         horizontalScrollView.setOnTouchListener(new View.OnTouchListener() {
             private float startX;
             
