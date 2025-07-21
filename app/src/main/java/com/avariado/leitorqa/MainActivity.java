@@ -294,6 +294,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void setupCardInputBehavior() {
+    currentCardInput.setOnClickListener(v -> enableEditing());
+    
+    currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
+        if (actionId == EditorInfo.IME_ACTION_DONE) {
+            finishEditing();
+            return true;
+        }
+        return false;
+    });
+    }
+
     private void safePrevItem() {
         try {
             prevItem();
