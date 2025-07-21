@@ -100,8 +100,6 @@ public class MainActivity extends AppCompatActivity {
     private int currentSearchIndex = -1;
     private String searchTerm = "";
 
-    private GestureDetectorCompat gestureDetector;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -139,7 +137,55 @@ public class MainActivity extends AppCompatActivity {
         
         menuLayout.setVisibility(View.VISIBLE);
         
-        gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
+        // Configuração dos listeners de toque modificados
+        final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
+        
+        horizontalScrollView.setOnTouchListener(new View.OnTouchListener() {
+            private float startX;
+            
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        startX = event.getX();
+                        break;
+                        
+                    case MotionEvent.ACTION_MOVE:
+                        float diffX = Math.abs(event.getX() - startX);
+                        if (diffX > 20) {
+                            questionTextView.setEnabled(false);
+                            answerTextView.setEnabled(false);
+                        }
+                        break;
+                        
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        questionTextView.setEnabled(true);
+                        answerTextView.setEnabled(true);
+                        break;
+                }
+                
+                return false;
+            }
+        });
+
+        textScrollView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                return false;
+            }
+        });
+
+        cardView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                return true;
+            }
+        });
         
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
@@ -160,31 +206,6 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
-        // Configuração dos listeners de toque para os scroll views
-        horizontalScrollView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return false; // Permite que o evento continue para a seleção de texto
-            }
-        });
-        
-        textScrollView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return false; // Permite que o evento continue para a seleção de texto
-            }
-        });
-        
-        cardView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return true;
-            }
-        });
-        
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
         nextButton.setOnClickListener(v -> safeNextItem());
@@ -236,23 +257,6 @@ public class MainActivity extends AppCompatActivity {
         updateFontSize();
     }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        gestureDetector.onTouchEvent(event);
-        return super.onTouchEvent(event);
-    }
-    
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        // Primeiro deixe o GestureDetector processar o evento
-        if (gestureDetector.onTouchEvent(ev)) {
-            return true;
-        }
-        
-        // Depois deixe a seleção de texto funcionar
-        return super.dispatchTouchEvent(ev);
-    }
-
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
@@ -264,9 +268,14 @@ public class MainActivity extends AppCompatActivity {
         }
     
         @Override
-        public boolean onSingleTapUp(MotionEvent e) {
+        public boolean onSingleTapConfirmed(MotionEvent e) {
             toggleAnswerVisibility();
             return true;
+        }
+    
+        @Override
+        public boolean onDoubleTap(MotionEvent e) {
+            return false;
         }
     
         @Override
@@ -674,7 +683,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void processTextContent(String fileContent, Uri uri) throws IOException {
-
         boolean hasTabs = fileContent.contains("\t");
         boolean hasDoubleSemicolon = fileContent.contains(";;");
         boolean isAlternatingLines = checkAlternatingLinesFormat(fileContent);
@@ -692,9 +700,7 @@ public class MainActivity extends AppCompatActivity {
         
         if (hasTabs || hasDoubleSemicolon) {
             parseQAContent(fileContent);
-        } 
-
-        else if (isAlternatingLines && !hasMultipleSentences && lines.length >= 2) {
+        } else if (isAlternatingLines && !hasMultipleSentences && lines.length >= 2) {
             if (lines.length % 2 != 0) {
                 Toast.makeText(this, 
                     "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.", 
