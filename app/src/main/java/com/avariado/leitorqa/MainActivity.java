@@ -148,13 +148,17 @@ public class MainActivity extends AppCompatActivity {
         
         // 1. Configuração do detector de gestos
         final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(this, new GestureDetector.SimpleOnGestureListener() {
+            private static final int SWIPE_THRESHOLD = 100;
+            private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+        
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                if (Math.abs(e1.getX() - e2.getX()) > 100) { // SWIPE detectado
-                    if (e1.getX() > e2.getX()) {
-                        nextItem(); // Swipe para esquerda
-                    } else {
+                float diffX = e2.getX() - e1.getX();
+                if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                    if (diffX > 0) {
                         prevItem(); // Swipe para direita
+                    } else {
+                        nextItem(); // Swipe para esquerda
                     }
                     return true;
                 }
@@ -163,32 +167,40 @@ public class MainActivity extends AppCompatActivity {
         
             @Override
             public boolean onSingleTapConfirmed(MotionEvent e) {
-                toggleAnswerVisibility(); // TOQUE SIMPLES
+                toggleAnswerVisibility();
+                return true;
+            }
+        
+            @Override
+            public boolean onDown(MotionEvent e) {
                 return true;
             }
         });
         
-        // 2. Listener unificado para todas as áreas
-        View.OnTouchListener unifiedTouchListener = new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                // Prioriza seleção de texto se for TextView
-                if (v instanceof TextView) {
-                    v.onTouchEvent(event); // Habilita seleção de texto
+            // 2. Listener para área de texto (prioriza seleção)
+            View.OnTouchListener textTouchListener = new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    gestureDetector.onTouchEvent(event);
+                    v.onTouchEvent(event); // Permite seleção de texto
+                    return true;
                 }
-                
-                // Processa gestos (swipe/toque)
-                gestureDetector.onTouchEvent(event);
-                return true;
-            }
-        };
-
-        // Aplicar o listener a todos os componentes relevantes
-        cardView.setOnTouchListener(unifiedTouchListener);
-        questionTextView.setOnTouchListener(unifiedTouchListener);
-        answerTextView.setOnTouchListener(unifiedTouchListener);
-        questionTextView.setTextIsSelectable(true);
-        answerTextView.setTextIsSelectable(true);
+            };
+            
+            // 3. Listener para área não-texto (apenas gestos)
+            View.OnTouchListener nonTextTouchListener = new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    gestureDetector.onTouchEvent(event);
+                    return true;
+                }
+            };
+            
+            // 4. Aplicação dos listeners
+            cardView.setOnTouchListener(nonTextTouchListener);
+            textScrollView.setOnTouchListener(nonTextTouchListener);
+            questionTextView.setOnTouchListener(textTouchListener);
+            answerTextView.setOnTouchListener(textTouchListener);
 
         // Configuração especial para o swipe horizontal
         cardView.setOnTouchListener(new View.OnTouchListener() {
