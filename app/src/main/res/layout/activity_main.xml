@@ -63,13 +63,13 @@
 
             <!-- ScrollView principal -->
              <!-- SCROLL VERTICAL FUNCIONANDO -->
-            <ScrollView
-                android:id="@+id/vertical_scroll"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_above="@id/card_footer"
-                android:fillViewport="true"
-                android:scrollbars="vertical">
+            ScrollView
+    android:id="@+id/vertical_scroll"  <!-- NOME ATUALIZADO -->
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_above="@id/card_footer"
+    android:fillViewport="true"
+    android:scrollbars="vertical">
 
                 <LinearLayout
                     android:layout_width="match_parent"
