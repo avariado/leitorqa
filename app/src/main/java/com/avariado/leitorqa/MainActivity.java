@@ -85,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
     private CardView cardView;
     private ScrollView textScrollView;
     private TextView processingMessage;
+    private RelativeLayout mainContentArea;
     
     private List<QAItem> items = new ArrayList<>();
     private List<QAItem> originalItems = new ArrayList<>();
@@ -120,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
+        mainContentArea = findViewById(R.id.main_content_area);
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -153,12 +155,18 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
-        cardView.setOnTouchListener(new View.OnTouchListener() {
+        // Improved touch handling for the entire card
+        mainContentArea.setOnTouchListener(new View.OnTouchListener() {
             private final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
             
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
+                
+                // Handle tap to toggle answer
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    toggleAnswerVisibility();
+                }
                 
                 // Allow vertical scrolling when content overflows
                 View child = textScrollView.getChildAt(0);
@@ -254,12 +262,6 @@ public class MainActivity extends AppCompatActivity {
         }
     
         @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            toggleAnswerVisibility();
-            return true;
-        }
-    
-        @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
@@ -347,17 +349,6 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
             return false;
-        });
-        
-        cardView.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (!menuVisible) {
-                    finishEditing();
-                    toggleAnswerVisibility();
-                }
-            }
-            gestureDetector.onTouchEvent(event);
-            return true;
         });
     }
 
@@ -475,8 +466,9 @@ public class MainActivity extends AppCompatActivity {
         }
     
         // Adjust text width to card size
-        questionTextView.setMaxWidth(cardView.getWidth() - 40); // Account for padding
-        answerTextView.setMaxWidth(cardView.getWidth() - 40);
+        int cardWidth = cardView.getWidth() - 40; // Account for padding
+        questionTextView.setMaxWidth(cardWidth);
+        answerTextView.setMaxWidth(cardWidth);
         
         if (isQAMode) {
             questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
