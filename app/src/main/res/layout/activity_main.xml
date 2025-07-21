@@ -58,17 +58,19 @@
 
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:padding="15dp">
 
             <!-- ScrollView principal -->
+             <!-- SCROLL VERTICAL FUNCIONANDO -->
             <ScrollView
-                android:id="@+id/text_scroll_view"
+                android:id="@+id/vertical_scroll"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_above="@id/card_footer"
-                android:fillViewport="true">
+                android:fillViewport="true"
+                android:scrollbars="vertical">
 
-                <!-- Área de conteúdo -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
