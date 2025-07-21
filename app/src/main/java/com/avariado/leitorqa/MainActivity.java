@@ -23,6 +23,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -83,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView fontSizeText;
     private FrameLayout mainContainer;
     private CardView cardView;
+    private HorizontalScrollView horizontalScrollView;
     private ScrollView textScrollView;
     private TextView processingMessage;
     
@@ -118,8 +120,13 @@ public class MainActivity extends AppCompatActivity {
         fontSizeText = findViewById(R.id.current_font_size);
         mainContainer = findViewById(R.id.main_container);
         cardView = findViewById(R.id.card_view);
+        horizontalScrollView = findViewById(R.id.horizontal_scroll_view);
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
+
+        // Habilitar seleção de texto
+        questionTextView.setTextIsSelectable(true);
+        answerTextView.setTextIsSelectable(true);
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -153,11 +160,12 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
-        cardView.setOnTouchListener(new View.OnTouchListener() {
+        // Configuração dos listeners de toque para os scroll views
+        horizontalScrollView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
-                return true;
+                return false; // Permite que o evento continue para a seleção de texto
             }
         });
         
@@ -165,7 +173,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
-                return false;
+                return false; // Permite que o evento continue para a seleção de texto
+            }
+        });
+        
+        cardView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                return true;
             }
         });
         
@@ -221,99 +237,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (currentCardInput.hasFocus()) {
-            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
-                finishEditing();
-                return true;
-            }
-            return super.onKeyDown(keyCode, event);
-        }
-    
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_DPAD_LEFT:
-                safePrevItem();
-                return true;
-            case KeyEvent.KEYCODE_DPAD_RIGHT:
-                safeNextItem();
-                return true;
-            case KeyEvent.KEYCODE_ENTER:
-            case KeyEvent.KEYCODE_NUMPAD_ENTER:
-                toggleAnswerVisibility();
-                return true;
-            case KeyEvent.KEYCODE_SPACE:
-                toggleMenu();
-                return true;
-            default:
-                return super.onKeyDown(keyCode, event);
-        }
+    public boolean onTouchEvent(MotionEvent event) {
+        gestureDetector.onTouchEvent(event);
+        return super.onTouchEvent(event);
     }
     
     @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            int keyCode = event.getKeyCode();
-            
-            if (currentCardInput.hasFocus() && 
-               (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
-                finishEditing();
-                return true;
-            }
-            
-            if (!currentCardInput.hasFocus()) {
-                if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
-                    toggleAnswerVisibility();
-                    return true;
-                }
-                if (keyCode == KeyEvent.KEYCODE_SPACE) {
-                    toggleMenu();
-                    return true;
-                }
-            }
-        }
-        return super.dispatchKeyEvent(event);
-    }
-
-    private void setupCardInputBehavior() {
-        currentCardInput.setOnClickListener(v -> enableEditing());
-        
-        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_DONE) {
-                finishEditing();
-                return true;
-            }
-            return false;
-        });
-        
-        cardView.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (!menuVisible) {
-                    finishEditing();
-                    toggleAnswerVisibility();
-                }
-            }
-            gestureDetector.onTouchEvent(event);
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        // Primeiro deixe o GestureDetector processar o evento
+        if (gestureDetector.onTouchEvent(ev)) {
             return true;
-        });
-    }
-
-    private void enableEditing() {
-        currentCardInput.setFocusable(true);
-        currentCardInput.setFocusableInTouchMode(true);
-        currentCardInput.requestFocus();
-        currentCardInput.setCursorVisible(true);
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.showSoftInput(currentCardInput, InputMethodManager.SHOW_IMPLICIT);
-    }
-
-    private void finishEditing() {
-        currentCardInput.clearFocus();
-        currentCardInput.setFocusable(false);
-        currentCardInput.setFocusableInTouchMode(false);
-        currentCardInput.setCursorVisible(false);
-        validateAndUpdateCardNumber();
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
+        }
+        
+        // Depois deixe a seleção de texto funcionar
+        return super.dispatchTouchEvent(ev);
     }
 
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
@@ -1163,12 +1100,6 @@ public class MainActivity extends AppCompatActivity {
         } else {
             super.onBackPressed();
         }
-    }
-    
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        gestureDetector.onTouchEvent(event);
-        return super.onTouchEvent(event);
     }
 
     private static class QAItem {
