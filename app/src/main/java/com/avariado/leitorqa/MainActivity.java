@@ -93,7 +93,6 @@ public class MainActivity extends AppCompatActivity {
     private boolean menuVisible = false;
     private int baseFontSize = 20;
     private String originalSeparator = "\t";
-    private boolean isAnswerVisible = false;
     
     private List<Integer> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
@@ -110,8 +109,6 @@ public class MainActivity extends AppCompatActivity {
         
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
-        questionTextView.setTextIsSelectable(true);
-        answerTextView.setTextIsSelectable(true);
         currentCardInput = findViewById(R.id.current_card_input);
         totalCardsText = findViewById(R.id.total_cards_text);
         menuLayout = findViewById(R.id.menu_layout);
@@ -156,22 +153,21 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
-        View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
-            private final GestureDetectorCompat textGestureDetector = 
-                new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
-        
+        cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                boolean isSelection = v.onTouchEvent(event);
-                if (!isSelection) {
-                    textGestureDetector.onTouchEvent(event);
-                }
+                gestureDetector.onTouchEvent(event);
                 return true;
             }
-        };
+        });
         
-        questionTextView.setOnTouchListener(textViewTouchListener);
-        answerTextView.setOnTouchListener(textViewTouchListener);
+        textScrollView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                return false;
+            }
+        });
         
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
@@ -280,6 +276,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupCardInputBehavior() {
         currentCardInput.setOnClickListener(v -> enableEditing());
+        
         currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 finishEditing();
@@ -289,22 +286,15 @@ public class MainActivity extends AppCompatActivity {
         });
         
         cardView.setOnTouchListener((v, event) -> {
-            gestureDetector.onTouchEvent(event);
-            if (event.getAction() == MotionEvent.ACTION_UP && !isTextSelected() && !menuVisible) {
-                toggleAnswerVisibility();
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (!menuVisible) {
+                    finishEditing();
+                    toggleAnswerVisibility();
+                }
             }
+            gestureDetector.onTouchEvent(event);
             return true;
         });
-    }
-
-    private boolean isTextSelected() {
-        try {
-            return questionTextView.getSelectionStart() != questionTextView.getSelectionEnd() || 
-                   (answerTextView.getVisibility() == View.VISIBLE && 
-                    answerTextView.getSelectionStart() != answerTextView.getSelectionEnd());
-        } catch (Exception e) {
-            return false;
-        }
     }
 
     private void enableEditing() {
@@ -329,6 +319,7 @@ public class MainActivity extends AppCompatActivity {
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+        private static final float SWIPE_ANGLE_THRESHOLD = 30;
     
         @Override
         public boolean onDown(MotionEvent e) {
@@ -336,21 +327,22 @@ public class MainActivity extends AppCompatActivity {
         }
     
         @Override
-        public boolean onSingleTapConfirmed(MotionEvent e) {
-            if (!isTextSelected() && !menuVisible) {
-                toggleAnswerVisibility();
-            }
+        public boolean onSingleTapUp(MotionEvent e) {
+            toggleAnswerVisibility();
             return true;
         }
     
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            try {
-                float diffX = e2.getX() - e1.getX();
-                float diffY = e2.getY() - e1.getY();
+            float diffX = e2.getX() - e1.getX();
+            float diffY = e2.getY() - e1.getY();
+            
+            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
+            
+            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
+                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
                 
-                if (Math.abs(diffX) > Math.abs(diffY) && 
-                    Math.abs(diffX) > SWIPE_THRESHOLD && 
+                if (Math.abs(diffX) > SWIPE_THRESHOLD && 
                     Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                     
                     if (diffX > 0) {
@@ -360,8 +352,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                     return true;
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
             }
             return false;
         }
@@ -444,13 +434,10 @@ public class MainActivity extends AppCompatActivity {
     
     private void toggleAnswerVisibility() {
         if (isQAMode) {
-            isAnswerVisible = !isAnswerVisible;
-            answerTextView.setVisibility(isAnswerVisible ? View.VISIBLE : View.GONE);
-            
-            if (isAnswerVisible) {
-                textScrollView.post(() -> {
-                    textScrollView.smoothScrollTo(0, answerTextView.getBottom());
-                });
+            if (answerTextView.getVisibility() == View.VISIBLE) {
+                answerTextView.setVisibility(View.GONE);
+            } else {
+                answerTextView.setVisibility(View.VISIBLE);
             }
         }
     }
@@ -477,7 +464,7 @@ public class MainActivity extends AppCompatActivity {
         if (isQAMode) {
             questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
             answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
-            answerTextView.setVisibility(isAnswerVisible ? View.VISIBLE : View.GONE);
+            answerTextView.setVisibility(View.GONE);
         } else {
             questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
             answerTextView.setText("");
@@ -486,8 +473,6 @@ public class MainActivity extends AppCompatActivity {
     
         currentCardInput.setText(String.valueOf(currentIndex + 1));
         totalCardsText.setText("/ " + items.size());
-        
-        textScrollView.post(() -> textScrollView.scrollTo(0, 0));
     }
 
     private Spanned highlightText(String text, String searchTerm) {
@@ -727,6 +712,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void processTextContent(String fileContent, Uri uri) throws IOException {
+
         boolean hasTabs = fileContent.contains("\t");
         boolean hasDoubleSemicolon = fileContent.contains(";;");
         boolean isAlternatingLines = checkAlternatingLinesFormat(fileContent);
@@ -744,7 +730,9 @@ public class MainActivity extends AppCompatActivity {
         
         if (hasTabs || hasDoubleSemicolon) {
             parseQAContent(fileContent);
-        } else if (isAlternatingLines && !hasMultipleSentences && lines.length >= 2) {
+        } 
+
+        else if (isAlternatingLines && !hasMultipleSentences && lines.length >= 2) {
             if (lines.length % 2 != 0) {
                 Toast.makeText(this, 
                     "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.", 
@@ -1057,7 +1045,9 @@ public class MainActivity extends AppCompatActivity {
             currentSearchIndex = 0;
             currentIndex = searchResults.get(currentSearchIndex);
             updateSearchInfo();
-            isAnswerVisible = true;
+            if (isQAMode) {
+                answerTextView.setVisibility(View.VISIBLE);
+            }
         }
         
         updateDisplay();
@@ -1070,7 +1060,9 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = searchResults.get(currentSearchIndex);
         updateDisplay();
         updateSearchInfo();
-        isAnswerVisible = true;
+        if (isQAMode) {
+            answerTextView.setVisibility(View.VISIBLE);
+        }
     }
     
     private void goToNextSearchResult() {
@@ -1080,7 +1072,9 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = searchResults.get(currentSearchIndex);
         updateDisplay();
         updateSearchInfo();
-        isAnswerVisible = true;
+        if (isQAMode) {
+            answerTextView.setVisibility(View.VISIBLE);
+        }
     }
     
     private void updateSearchInfo() {
