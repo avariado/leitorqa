@@ -118,7 +118,6 @@ public class MainActivity extends AppCompatActivity {
         fontSizeText = findViewById(R.id.current_font_size);
         mainContainer = findViewById(R.id.main_container);
         cardView = findViewById(R.id.card_view);
-        horizontalScrollView = findViewById(R.id.horizontal_scroll_view);
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
 
