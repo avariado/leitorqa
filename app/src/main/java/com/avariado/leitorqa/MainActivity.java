@@ -146,39 +146,49 @@ public class MainActivity extends AppCompatActivity {
         
         menuLayout.setVisibility(View.VISIBLE);
         
-        // Configuração do detector de gestos principal
-        final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
+        // 1. Configuração do detector de gestos
+        final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                if (Math.abs(e1.getX() - e2.getX()) > 100) { // SWIPE detectado
+                    if (e1.getX() > e2.getX()) {
+                        nextItem(); // Swipe para esquerda
+                    } else {
+                        prevItem(); // Swipe para direita
+                    }
+                    return true;
+                }
+                return false;
+            }
         
-        // Configuração do touch listener para toda a área do cartão
-        View.OnTouchListener cardTouchListener = new View.OnTouchListener() {
-            private GestureDetectorCompat cardGestureDetector = new GestureDetectorCompat(
-                MainActivity.this, 
-                new GestureDetector.SimpleOnGestureListener() {
-                    @Override
-                    public boolean onSingleTapConfirmed(MotionEvent e) {
-                        toggleAnswerVisibility();
-                        return true;
-                    }
-                    
-                    @Override
-                    public boolean onDown(MotionEvent e) {
-                        return true;
-                    }
-                });
-            
+            @Override
+            public boolean onSingleTapConfirmed(MotionEvent e) {
+                toggleAnswerVisibility(); // TOQUE SIMPLES
+                return true;
+            }
+        });
+        
+        // 2. Listener unificado para todas as áreas
+        View.OnTouchListener unifiedTouchListener = new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                cardGestureDetector.onTouchEvent(event);
+                // Prioriza seleção de texto se for TextView
+                if (v instanceof TextView) {
+                    v.onTouchEvent(event); // Habilita seleção de texto
+                }
+                
+                // Processa gestos (swipe/toque)
                 gestureDetector.onTouchEvent(event);
                 return true;
             }
         };
 
         // Aplicar o listener a todos os componentes relevantes
-        cardView.setOnTouchListener(cardTouchListener);
-        textScrollView.setOnTouchListener(cardTouchListener);
-        questionTextView.setOnTouchListener(cardTouchListener);
-        answerTextView.setOnTouchListener(cardTouchListener);
+        cardView.setOnTouchListener(unifiedTouchListener);
+        questionTextView.setOnTouchListener(unifiedTouchListener);
+        answerTextView.setOnTouchListener(unifiedTouchListener);
+        questionTextView.setTextIsSelectable(true);
+        answerTextView.setTextIsSelectable(true);
 
         // Configuração especial para o swipe horizontal
         cardView.setOnTouchListener(new View.OnTouchListener() {
