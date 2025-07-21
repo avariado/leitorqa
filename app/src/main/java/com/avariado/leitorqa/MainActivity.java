@@ -23,7 +23,6 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
-import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -84,11 +83,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView fontSizeText;
     private FrameLayout mainContainer;
     private CardView cardView;
-    private HorizontalScrollView horizontalScrollView;
     private ScrollView textScrollView;
-    
-    privateprivate ScrollView verticalScroll;  // Nome consistente
-    TextView processingMessage;
+    private TextView processingMessage;
     
     private List<QAItem> items = new ArrayList<>();
     private List<QAItem> originalItems = new ArrayList<>();
@@ -102,13 +98,14 @@ public class MainActivity extends AppCompatActivity {
     private int currentSearchIndex = -1;
     private String searchTerm = "";
 
+    private GestureDetectorCompat gestureDetector;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
         PDFBoxResourceLoader.init(getApplicationContext());
-        ScrollView verticalScroll = findViewById(R.id.vertical_scroll); 
         
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
@@ -120,22 +117,9 @@ public class MainActivity extends AppCompatActivity {
         searchInfo = findViewById(R.id.search_info);
         fontSizeText = findViewById(R.id.current_font_size);
         mainContainer = findViewById(R.id.main_container);
-        cardView = findViewById(R.id.card_view);       
+        cardView = findViewById(R.id.card_view);
+        textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
-
-        // Configuração para evitar corte de texto e ajustar ao tamanho
-        questionTextView.setHorizontallyScrolling(false);
-        questionTextView.setMaxLines(Integer.MAX_VALUE);
-        questionTextView.setEllipsize(null);
-        answerTextView.setHorizontallyScrolling(false);
-        answerTextView.setMaxLines(Integer.MAX_VALUE);
-        answerTextView.setEllipsize(null);
-
-        // Habilitar seleção de texto
-        questionTextView.setTextIsSelectable(true);
-        answerTextView.setTextIsSelectable(true);
-        questionTextView.setMovementMethod(LinkMovementMethod.getInstance());
-        answerTextView.setMovementMethod(LinkMovementMethod.getInstance());
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -148,84 +132,8 @@ public class MainActivity extends AppCompatActivity {
         
         menuLayout.setVisibility(View.VISIBLE);
         
-// 1. Configurar detectores de gesto
-final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(this, new GestureDetector.SimpleOnGestureListener() {
-    private static final int SWIPE_THRESHOLD = 100;
-    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-
-    @Override
-    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        float diffX = e2.getX() - e1.getX();
-        if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-            if (diffX > 0) {
-                prevItem();
-            } else {
-                nextItem();
-            }
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public boolean onSingleTapConfirmed(MotionEvent e) {
-        toggleAnswerVisibility();
-        return true;
-    }
-});
-
-// 2. Listener unificado
-View.OnTouchListener touchListener = new View.OnTouchListener() {
-    @Override
-    public boolean onTouch(View v, MotionEvent event) {
-        // Prioriza seleção se for TextView
-        if (v instanceof TextView) {
-            v.onTouchEvent(event);
-        }
-        gestureDetector.onTouchEvent(event);
-        return true;
-    }
-};
-
-// 3. Aplicar a todos os elementos
-cardView.setOnTouchListener(touchListener);
-questionTextView.setOnTouchListener(touchListener);
-answerTextView.setOnTouchListener(touchListener);
-ScrollView verticalScroll = findViewById(R.id.vertical_scroll);
-verticalScroll.setOnTouchListener(touchListener);
-
-        // Configuração especial para o swipe horizontal
-        cardView.setOnTouchListener(new View.OnTouchListener() {
-            private float startX;
-            
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        startX = event.getX();
-                        break;
-                        
-                    case MotionEvent.ACTION_MOVE:
-                        float diffX = Math.abs(event.getX() - startX);
-                        if (diffX > 20) {
-                            questionTextView.setEnabled(false);
-                            answerTextView.setEnabled(false);
-                        }
-                        break;
-                        
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_CANCEL:
-                        questionTextView.setEnabled(true);
-                        answerTextView.setEnabled(true);
-                        break;
-                }
-                
-                return false;
-            }
-        });
-
+        gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
+        
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
         Button nextButton = findViewById(R.id.next_button);
@@ -245,6 +153,45 @@ verticalScroll.setOnTouchListener(touchListener);
         
         setupCardInputBehavior();
 
+        cardView.setOnTouchListener(new View.OnTouchListener() {
+            private final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
+            
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                
+                // Allow vertical scrolling when content overflows
+                View child = textScrollView.getChildAt(0);
+                if (child != null && child.getHeight() > textScrollView.getHeight()) {
+                    textScrollView.onTouchEvent(event);
+                }
+                return true;
+            }
+        });
+        
+        textScrollView.setOnTouchListener(new View.OnTouchListener() {
+            private final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
+            private float startY;
+            
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        startY = event.getY();
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        float diffY = event.getY() - startY;
+                        if (Math.abs(diffY) > 10) {
+                            return false; // Allow ScrollView to handle vertical scrolling
+                        }
+                        break;
+                }
+                return false;
+            }
+        });
+        
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
         nextButton.setOnClickListener(v -> safeNextItem());
@@ -307,8 +254,9 @@ verticalScroll.setOnTouchListener(touchListener);
         }
     
         @Override
-        public boolean onSingleTapConfirmed(MotionEvent e) {
-            return false;
+        public boolean onSingleTapUp(MotionEvent e) {
+            toggleAnswerVisibility();
+            return true;
         }
     
         @Override
@@ -336,29 +284,100 @@ verticalScroll.setOnTouchListener(touchListener);
         }
     }
 
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (currentCardInput.hasFocus()) {
+            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                finishEditing();
+                return true;
+            }
+            return super.onKeyDown(keyCode, event);
+        }
+    
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                safePrevItem();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                safeNextItem();
+                return true;
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_NUMPAD_ENTER:
+                toggleAnswerVisibility();
+                return true;
+            case KeyEvent.KEYCODE_SPACE:
+                toggleMenu();
+                return true;
+            default:
+                return super.onKeyDown(keyCode, event);
+        }
+    }
+    
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            int keyCode = event.getKeyCode();
+            
+            if (currentCardInput.hasFocus() && 
+               (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                finishEditing();
+                return true;
+            }
+            
+            if (!currentCardInput.hasFocus()) {
+                if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                    toggleAnswerVisibility();
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_SPACE) {
+                    toggleMenu();
+                    return true;
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
     private void setupCardInputBehavior() {
-        currentCardInput.setOnClickListener(v -> {
-            currentCardInput.setFocusable(true);
-            currentCardInput.setFocusableInTouchMode(true);
-            currentCardInput.requestFocus();
-            currentCardInput.setCursorVisible(true);
-            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.showSoftInput(currentCardInput, InputMethodManager.SHOW_IMPLICIT);
-        });
+        currentCardInput.setOnClickListener(v -> enableEditing());
         
         currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE) {
-                currentCardInput.clearFocus();
-                currentCardInput.setFocusable(false);
-                currentCardInput.setFocusableInTouchMode(false);
-                currentCardInput.setCursorVisible(false);
-                validateAndUpdateCardNumber();
-                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
+                finishEditing();
                 return true;
             }
             return false;
         });
+        
+        cardView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (!menuVisible) {
+                    finishEditing();
+                    toggleAnswerVisibility();
+                }
+            }
+            gestureDetector.onTouchEvent(event);
+            return true;
+        });
+    }
+
+    private void enableEditing() {
+        currentCardInput.setFocusable(true);
+        currentCardInput.setFocusableInTouchMode(true);
+        currentCardInput.requestFocus();
+        currentCardInput.setCursorVisible(true);
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(currentCardInput, InputMethodManager.SHOW_IMPLICIT);
+    }
+
+    private void finishEditing() {
+        currentCardInput.clearFocus();
+        currentCardInput.setFocusable(false);
+        currentCardInput.setFocusableInTouchMode(false);
+        currentCardInput.setCursorVisible(false);
+        validateAndUpdateCardNumber();
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
 
     private void safePrevItem() {
@@ -455,22 +474,32 @@ verticalScroll.setOnTouchListener(touchListener);
             return;
         }
     
+        // Adjust text width to card size
+        questionTextView.setMaxWidth(cardView.getWidth() - 40); // Account for padding
+        answerTextView.setMaxWidth(cardView.getWidth() - 40);
+        
+        if (isQAMode) {
+            questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
+            answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
+        } else {
+            questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
+        }
+    
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
         QAItem currentItem = items.get(currentIndex);
     
         if (isQAMode) {
-            questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
-            answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
-            
             questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
             answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
             answerTextView.setVisibility(View.GONE);
         } else {
-            questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
             questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
             answerTextView.setText("");
             answerTextView.setVisibility(View.GONE);
         }
+    
+        // Scroll to top when content changes
+        textScrollView.post(() -> textScrollView.scrollTo(0, 0));
     
         currentCardInput.setText(String.valueOf(currentIndex + 1));
         totalCardsText.setText("/ " + items.size());
@@ -1161,6 +1190,12 @@ verticalScroll.setOnTouchListener(touchListener);
         } else {
             super.onBackPressed();
         }
+    }
+    
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        gestureDetector.onTouchEvent(event);
+        return super.onTouchEvent(event);
     }
 
     private static class QAItem {
