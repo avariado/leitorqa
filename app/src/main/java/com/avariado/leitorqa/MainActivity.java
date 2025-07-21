@@ -177,13 +177,12 @@ public class MainActivity extends AppCompatActivity {
 
         // Aplicar o listener a todos os componentes relevantes
         cardView.setOnTouchListener(cardTouchListener);
-        horizontalScrollView.setOnTouchListener(cardTouchListener);
         textScrollView.setOnTouchListener(cardTouchListener);
         questionTextView.setOnTouchListener(cardTouchListener);
         answerTextView.setOnTouchListener(cardTouchListener);
 
         // Configuração especial para o swipe horizontal
-        horizontalScrollView.setOnTouchListener(new View.OnTouchListener() {
+        cardView.setOnTouchListener(new View.OnTouchListener() {
             private float startX;
             
             @Override
