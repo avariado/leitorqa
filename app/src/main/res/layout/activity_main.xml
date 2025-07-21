@@ -1,3 +1,4 @@
+
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -7,6 +8,7 @@
     android:background="#f5f5f5"
     tools:context=".MainActivity">
 
+    <!-- Cabeçalho (mantido igual) -->
     <LinearLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
@@ -41,6 +43,7 @@
             android:visibility="invisible" />
     </LinearLayout>
 
+    <!-- Área principal dos cards -->
     <FrameLayout
         android:id="@+id/main_container"
         android:layout_width="match_parent"
@@ -62,49 +65,54 @@
                 android:layout_height="match_parent"
                 android:padding="20dp">
 
+                <!-- ScrollView principal (vertical) -->
                 <ScrollView
                     android:id="@+id/text_scroll_view"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_above="@id/card_footer"
                     android:fillViewport="true"
-                    android:overScrollMode="never"
-                    android:scrollbars="none"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:textIsSelectable="true">
+                    android:scrollbars="vertical">
 
-                    <LinearLayout
+                    <!-- HorizontalScrollView para detectar swipes -->
+                    <HorizontalScrollView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical">
+                        android:scrollbars="none">
 
-                        <TextView
-                            android:id="@+id/question_text"
-                            android:layout_width="match_parent"
+                        <LinearLayout
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:padding="10dp"
-                            android:textIsSelectable="true" />
+                            android:orientation="vertical">
 
-                        <TextView
-                            android:id="@+id/answer_text"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:background="#f9f9f9"
-                            android:padding="10dp"
-                            android:visibility="gone"
-                            android:textIsSelectable="true" />
-                    </LinearLayout>
+                            <!-- TextView da pergunta (agora selecionável) -->
+                            <TextView
+                                android:id="@+id/question_text"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:padding="10dp"
+                                android:textIsSelectable="true" />
+
+                            <!-- TextView da resposta (selecionável e oculta inicialmente) -->
+                            <TextView
+                                android:id="@+id/answer_text"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="#f9f9f9"
+                                android:padding="10dp"
+                                android:visibility="gone"
+                                android:textIsSelectable="true" />
+                        </LinearLayout>
+                    </HorizontalScrollView>
                 </ScrollView>
 
+                <!-- Footer dos cards (botões de navegação) -->
                 <LinearLayout
                     android:id="@+id/card_footer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_alignParentBottom="true"
-                    android:orientation="horizontal"
-                    android:clickable="false"
-                    android:focusable="false">
+                    android:orientation="horizontal">
 
                     <Button
                         android:id="@+id/prev_button"
@@ -125,9 +133,7 @@
                             android:id="@+id/current_card_input"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:focusable="false"
                             android:focusableInTouchMode="true"
-                            android:cursorVisible="false"
                             android:imeOptions="actionDone"
                             android:inputType="number"
                             android:minWidth="30dp"
@@ -154,6 +160,7 @@
         </androidx.cardview.widget.CardView>
     </FrameLayout>
 
+    <!-- Overlay e menu lateral (mantidos iguais) -->
     <View
         android:id="@+id/overlay"
         android:layout_width="match_parent"
