@@ -91,7 +91,7 @@
                         android:maxLines="1000"/>
                 </LinearLayout>
             </ScrollView>
-
+</RelativeLayout>
                 <!-- Footer dos cards (botões de navegação) -->
                 <LinearLayout
                     android:id="@+id/card_footer"
