@@ -122,9 +122,17 @@ public class MainActivity extends AppCompatActivity {
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
 
+        // Configuração para evitar corte de texto
+        questionTextView.setHorizontallyScrolling(false);
+        questionTextView.setMaxLines(Integer.MAX_VALUE);
+        answerTextView.setHorizontallyScrolling(false);
+        answerTextView.setMaxLines(Integer.MAX_VALUE);
+
         // Habilitar seleção de texto
         questionTextView.setTextIsSelectable(true);
         answerTextView.setTextIsSelectable(true);
+        questionTextView.setMovementMethod(LinkMovementMethod.getInstance());
+        answerTextView.setMovementMethod(LinkMovementMethod.getInstance());
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -137,9 +145,37 @@ public class MainActivity extends AppCompatActivity {
         
         menuLayout.setVisibility(View.VISIBLE);
         
-        // Configuração dos listeners de toque modificados
+        // Configuração do detector de gestos principal
         final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
         
+        // Configuração especial para os TextViews
+        View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
+            private GestureDetectorCompat textGestureDetector = new GestureDetectorCompat(
+                MainActivity.this, 
+                new GestureDetector.SimpleOnGestureListener() {
+                    @Override
+                    public boolean onSingleTapConfirmed(MotionEvent e) {
+                        toggleAnswerVisibility();
+                        return true;
+                    }
+                    
+                    @Override
+                    public boolean onDown(MotionEvent e) {
+                        return true;
+                    }
+                });
+            
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                textGestureDetector.onTouchEvent(event);
+                v.performClick();
+                return false;
+            }
+        };
+
+        questionTextView.setOnTouchListener(textViewTouchListener);
+        answerTextView.setOnTouchListener(textViewTouchListener);
+
         horizontalScrollView.setOnTouchListener(new View.OnTouchListener() {
             private float startX;
             
@@ -269,12 +305,6 @@ public class MainActivity extends AppCompatActivity {
     
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
-            toggleAnswerVisibility();
-            return true;
-        }
-    
-        @Override
-        public boolean onDoubleTap(MotionEvent e) {
             return false;
         }
     
@@ -422,21 +452,18 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
     
-        if (isQAMode) {
-            questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
-            answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
-        } else {
-            questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
-        }
-    
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
         QAItem currentItem = items.get(currentIndex);
     
         if (isQAMode) {
+            questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
+            answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
+            
             questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
             answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
             answerTextView.setVisibility(View.GONE);
         } else {
+            questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
             questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
             answerTextView.setText("");
             answerTextView.setVisibility(View.GONE);
