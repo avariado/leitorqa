@@ -86,7 +86,9 @@ public class MainActivity extends AppCompatActivity {
     private CardView cardView;
     private HorizontalScrollView horizontalScrollView;
     private ScrollView textScrollView;
-    private TextView processingMessage;
+    
+    privateprivate ScrollView verticalScroll;  // Nome consistente
+    TextView processingMessage;
     
     private List<QAItem> items = new ArrayList<>();
     private List<QAItem> originalItems = new ArrayList<>();
@@ -106,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         
         PDFBoxResourceLoader.init(getApplicationContext());
+        ScrollView verticalScroll = findViewById(R.id.vertical_scroll); 
         
         questionTextView = findViewById(R.id.question_text);
         answerTextView = findViewById(R.id.answer_text);
@@ -117,8 +120,7 @@ public class MainActivity extends AppCompatActivity {
         searchInfo = findViewById(R.id.search_info);
         fontSizeText = findViewById(R.id.current_font_size);
         mainContainer = findViewById(R.id.main_container);
-        cardView = findViewById(R.id.card_view);
-        textScrollView = findViewById(R.id.text_scroll_view);
+        cardView = findViewById(R.id.card_view);       
         processingMessage = findViewById(R.id.processing_message);
 
         // Configuração para evitar corte de texto e ajustar ao tamanho
