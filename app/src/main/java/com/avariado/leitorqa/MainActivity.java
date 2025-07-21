@@ -122,17 +122,18 @@ public class MainActivity extends AppCompatActivity {
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
 
-        // Configuração para evitar corte de texto
+        // Configuração definitiva para evitar corte de texto
         questionTextView.setHorizontallyScrolling(false);
         questionTextView.setMaxLines(Integer.MAX_VALUE);
+        questionTextView.setMovementMethod(LinkMovementMethod.getInstance());
+        
         answerTextView.setHorizontallyScrolling(false);
         answerTextView.setMaxLines(Integer.MAX_VALUE);
+        answerTextView.setMovementMethod(LinkMovementMethod.getInstance());
 
         // Habilitar seleção de texto
         questionTextView.setTextIsSelectable(true);
         answerTextView.setTextIsSelectable(true);
-        questionTextView.setMovementMethod(LinkMovementMethod.getInstance());
-        answerTextView.setMovementMethod(LinkMovementMethod.getInstance());
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -148,10 +149,10 @@ public class MainActivity extends AppCompatActivity {
         // Configuração do detector de gestos principal
         final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
         
-        // Configuração especial para os TextViews
-        View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
-            private GestureDetectorCompat textGestureDetector = new GestureDetectorCompat(
-                MainActivity.this, 
+        // Configuração do toque para toda a área do cartão
+        cardView.setOnTouchListener(new View.OnTouchListener() {
+            private final GestureDetectorCompat cardGestureDetector = new GestureDetectorCompat(
+                MainActivity.this,
                 new GestureDetector.SimpleOnGestureListener() {
                     @Override
                     public boolean onSingleTapConfirmed(MotionEvent e) {
@@ -167,42 +168,19 @@ public class MainActivity extends AppCompatActivity {
             
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                textGestureDetector.onTouchEvent(event);
-                v.performClick();
-                return false;
+                cardGestureDetector.onTouchEvent(event);
+                gestureDetector.onTouchEvent(event);
+                
+                // Permite que os cliques nos botões ainda funcionem
+                return false; 
             }
-        };
+        });
 
-        questionTextView.setOnTouchListener(textViewTouchListener);
-        answerTextView.setOnTouchListener(textViewTouchListener);
-
+        // Configuração para os scroll views
         horizontalScrollView.setOnTouchListener(new View.OnTouchListener() {
-            private float startX;
-            
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
-                
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        startX = event.getX();
-                        break;
-                        
-                    case MotionEvent.ACTION_MOVE:
-                        float diffX = Math.abs(event.getX() - startX);
-                        if (diffX > 20) {
-                            questionTextView.setEnabled(false);
-                            answerTextView.setEnabled(false);
-                        }
-                        break;
-                        
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_CANCEL:
-                        questionTextView.setEnabled(true);
-                        answerTextView.setEnabled(true);
-                        break;
-                }
-                
                 return false;
             }
         });
@@ -212,14 +190,6 @@ public class MainActivity extends AppCompatActivity {
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
                 return false;
-            }
-        });
-
-        cardView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return true;
             }
         });
         
@@ -301,11 +271,6 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public boolean onDown(MotionEvent e) {
             return true;
-        }
-    
-        @Override
-        public boolean onSingleTapConfirmed(MotionEvent e) {
-            return false;
         }
     
         @Override
@@ -459,6 +424,7 @@ public class MainActivity extends AppCompatActivity {
             questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
             answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
             
+            // Garante que o texto quebra corretamente
             questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
             answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
             answerTextView.setVisibility(View.GONE);
