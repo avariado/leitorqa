@@ -379,39 +379,39 @@
                             android:layout_height="30dp"
                             android:layout_marginRight="10dp"
                             android:background="#6200ee"
-                        android:text="◄"
-                        android:textColor="#fff" />
+                            android:text="◄"
+                            android:textColor="#fff" />
 
-                    <Button
-                        android:id="@+id/search_next_button"
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:layout_marginLeft="10dp"
-                        android:background="#6200ee"
-                        android:text="►"
-                        android:textColor="#fff" />
+                        <Button
+                            android:id="@+id/search_next_button"
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:layout_marginLeft="10dp"
+                            android:background="#6200ee"
+                            android:text="►"
+                            android:textColor="#fff" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/search_info"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:textSize="12sp" />
                 </LinearLayout>
-
-                <TextView
-                    android:id="@+id/search_info"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:textSize="12sp" />
             </LinearLayout>
-        </LinearLayout>
-    </ScrollView>
-</LinearLayout>
+        </ScrollView>
+    </LinearLayout>
 
-<TextView
-    android:id="@+id/processing_message"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_centerInParent="true"
-    android:background="#80000000"
-    android:elevation="10dp"
-    android:padding="15dp"
-    android:textColor="#FFFFFF"
-    android:visibility="gone"
-    tools:text="Processando PDF..." />
+    <TextView
+        android:id="@+id/processing_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:background="#80000000"
+        android:elevation="10dp"
+        android:padding="15dp"
+        android:textColor="#FFFFFF"
+        android:visibility="gone"
+        tools:text="Processando PDF..." />
 </RelativeLayout>
