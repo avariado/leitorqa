@@ -146,61 +146,51 @@ public class MainActivity extends AppCompatActivity {
         
         menuLayout.setVisibility(View.VISIBLE);
         
-        // 1. Configuração do detector de gestos
-        final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(this, new GestureDetector.SimpleOnGestureListener() {
-            private static final int SWIPE_THRESHOLD = 100;
-            private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-        
-            @Override
-            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                float diffX = e2.getX() - e1.getX();
-                if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                    if (diffX > 0) {
-                        prevItem(); // Swipe para direita
-                    } else {
-                        nextItem(); // Swipe para esquerda
-                    }
-                    return true;
-                }
-                return false;
+// 1. Configurar detectores de gesto
+final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(this, new GestureDetector.SimpleOnGestureListener() {
+    private static final int SWIPE_THRESHOLD = 100;
+    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+
+    @Override
+    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        float diffX = e2.getX() - e1.getX();
+        if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+            if (diffX > 0) {
+                prevItem();
+            } else {
+                nextItem();
             }
-        
-            @Override
-            public boolean onSingleTapConfirmed(MotionEvent e) {
-                toggleAnswerVisibility();
-                return true;
-            }
-        
-            @Override
-            public boolean onDown(MotionEvent e) {
-                return true;
-            }
-        });
-        
-            // 2. Listener para área de texto (prioriza seleção)
-            View.OnTouchListener textTouchListener = new View.OnTouchListener() {
-                @Override
-                public boolean onTouch(View v, MotionEvent event) {
-                    gestureDetector.onTouchEvent(event);
-                    v.onTouchEvent(event); // Permite seleção de texto
-                    return true;
-                }
-            };
-            
-            // 3. Listener para área não-texto (apenas gestos)
-            View.OnTouchListener nonTextTouchListener = new View.OnTouchListener() {
-                @Override
-                public boolean onTouch(View v, MotionEvent event) {
-                    gestureDetector.onTouchEvent(event);
-                    return true;
-                }
-            };
-            
-            // 4. Aplicação dos listeners
-            cardView.setOnTouchListener(nonTextTouchListener);
-            textScrollView.setOnTouchListener(nonTextTouchListener);
-            questionTextView.setOnTouchListener(textTouchListener);
-            answerTextView.setOnTouchListener(textTouchListener);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean onSingleTapConfirmed(MotionEvent e) {
+        toggleAnswerVisibility();
+        return true;
+    }
+});
+
+// 2. Listener unificado
+View.OnTouchListener touchListener = new View.OnTouchListener() {
+    @Override
+    public boolean onTouch(View v, MotionEvent event) {
+        // Prioriza seleção se for TextView
+        if (v instanceof TextView) {
+            v.onTouchEvent(event);
+        }
+        gestureDetector.onTouchEvent(event);
+        return true;
+    }
+};
+
+// 3. Aplicar a todos os elementos
+cardView.setOnTouchListener(touchListener);
+questionTextView.setOnTouchListener(touchListener);
+answerTextView.setOnTouchListener(touchListener);
+ScrollView verticalScroll = findViewById(R.id.vertical_scroll);
+verticalScroll.setOnTouchListener(touchListener);
 
         // Configuração especial para o swipe horizontal
         cardView.setOnTouchListener(new View.OnTouchListener() {
