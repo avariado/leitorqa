@@ -103,6 +103,10 @@ public class MainActivity extends AppCompatActivity {
     private boolean isScrolling = false;
     private float startY = 0;
 
+    private boolean isSelectingText = false;
+    private long lastTouchTime = 0;
+    private static final int TOUCH_THRESHOLD = 200; // ms para considerar toque longo
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -147,7 +151,19 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                // Só processamos o toque se não estivermos selecionando texto
+                if (!isSelectingText && (System.currentTimeMillis() - lastTouchTime > TOUCH_THRESHOLD)) {
+                    toggleAnswerVisibility();
+                    return true;
+                }
+                return false;
+            }
+
+            @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                if (isSelectingText) return false;
+                
                 float diffX = e2.getX() - e1.getX();
                 float diffY = e2.getY() - e1.getY();
                 
@@ -166,64 +182,83 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public boolean onSingleTapConfirmed(MotionEvent e) {
-                toggleAnswerVisibility();
-                return true;
+            public void onLongPress(MotionEvent e) {
+                // Marca que estamos selecionando texto
+                isSelectingText = true;
             }
         });
         
-        // Configuração do touch listener para toda a área do cartão
-        cardTouchArea.setOnTouchListener(new View.OnTouchListener() {
+        // Configuração do touch listener para os TextViews
+        View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                // Primeiro processamos os gestos (swipe e tap)
-                boolean gestureResult = gestureDetector.onTouchEvent(event);
-                
-                // Depois lidamos com o scroll vertical
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        startY = event.getY();
-                        isScrolling = false;
-                        return true;
-                        
-                    case MotionEvent.ACTION_MOVE:
-                        float diffY = Math.abs(event.getY() - startY);
-                        if (diffY > 10) {
-                            isScrolling = true;
-                            // Delegamos o scroll vertical para o ScrollView
-                            return textScrollView.onTouchEvent(event);
-                        }
-                        return true;
-                        
-                    case MotionEvent.ACTION_UP:
-                        isScrolling = false;
-                        return true;
+                // Registra o tempo do toque
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    lastTouchTime = System.currentTimeMillis();
+                    isSelectingText = false;
                 }
                 
-                return gestureResult;
-            }
-        });
-        
-        // Configuração do ScrollView para permitir scroll vertical
-        textScrollView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                // Se houver um gesto, deixe o detector de gestos lidar com ele
-                if (gestureDetector.onTouchEvent(event)) {
+                // Se for um movimento, verifica se é seleção de texto
+                if (event.getAction() == MotionEvent.ACTION_MOVE) {
+                    if (Math.abs(event.getY() - event.getHistoricalY(0)) > 10) {
+                        isSelectingText = true;
+                    }
+                }
+                
+                // Se for um toque rápido e não estiver selecionando texto, processa o toque
+                if (event.getAction() == MotionEvent.ACTION_UP && 
+                    !isSelectingText && 
+                    (System.currentTimeMillis() - lastTouchTime < TOUCH_THRESHOLD)) {
+                    toggleAnswerVisibility();
                     return true;
                 }
                 
-                // Caso contrário, permita o scroll vertical normal
+                // Deixa o TextView processar o evento para seleção de texto
+                return false;
+            }
+        };
+
+        questionTextView.setOnTouchListener(textViewTouchListener);
+        answerTextView.setOnTouchListener(textViewTouchListener);
+
+        // Configuração do touch listener para a área do cartão sem texto
+        cardTouchArea.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                // Primeiro processa os gestos
+                gestureDetector.onTouchEvent(event);
+                
+                // Para toques simples na área sem texto
+                if (event.getAction() == MotionEvent.ACTION_UP && 
+                    !isSelectingText && 
+                    (System.currentTimeMillis() - lastTouchTime < TOUCH_THRESHOLD)) {
+                    toggleAnswerVisibility();
+                    return true;
+                }
+                
+                return true;
+            }
+        });
+
+        // Configuração do ScrollView
+        textScrollView.setOnTouchListener(new View.OnTouchListener() {
+            private float startY = 0;
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                // Primeiro dá chance ao detector de gestos
+                gestureDetector.onTouchEvent(event);
+                
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         startY = event.getY();
-                        return true;
+                        break;
                         
                     case MotionEvent.ACTION_MOVE:
                         float diffY = event.getY() - startY;
-                        // Se o conteúdo não couber na tela, permita o scroll
+                        // Se o conteúdo não couber na tela, permite o scroll
                         if (textScrollView.getChildAt(0).getHeight() > textScrollView.getHeight()) {
-                            return false; // Deixa o ScrollView lidar com o movimento
+                            return false;
                         }
                         break;
                 }
