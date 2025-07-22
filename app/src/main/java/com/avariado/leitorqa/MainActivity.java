@@ -157,14 +157,18 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
-        // Improved touch handling for the entire card
+        // Configuração do touch listener para toda a área do cartão
         cardTouchArea.setOnTouchListener(new View.OnTouchListener() {
             private final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
-            
+            private float startY = 0;
+            private boolean isScrolling = false;
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
+                // Primeiro processamos os gestos (swipe e tap)
+                boolean gestureResult = gestureDetector.onTouchEvent(event);
                 
+                // Depois lidamos com o scroll vertical
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         startY = event.getY();
@@ -175,44 +179,39 @@ public class MainActivity extends AppCompatActivity {
                         float diffY = Math.abs(event.getY() - startY);
                         if (diffY > 10) {
                             isScrolling = true;
-                            // Let the ScrollView handle vertical scrolling
+                            // Delegamos o scroll vertical para o ScrollView
                             return textScrollView.onTouchEvent(event);
                         }
                         return true;
                         
                     case MotionEvent.ACTION_UP:
-                        if (!isScrolling) {
-                            toggleAnswerVisibility();
-                        }
                         isScrolling = false;
                         return true;
                 }
-                return true;
+                
+                return gestureResult;
             }
         });
         
+        // Configuração do ScrollView para permitir scroll vertical
         textScrollView.setOnTouchListener(new View.OnTouchListener() {
-            private final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
-            
+            private float startY = 0;
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         startY = event.getY();
-                        isScrolling = false;
                         break;
                         
                     case MotionEvent.ACTION_MOVE:
-                        float diffY = Math.abs(event.getY() - startY);
-                        if (diffY > 10) {
-                            isScrolling = true;
+                        float diffY = event.getY() - startY;
+                        // Se o conteúdo não couber na tela, permita o scroll
+                        if (textScrollView.getChildAt(0).getHeight() > textScrollView.getHeight()) {
+                            return false; // Deixa o ScrollView lidar com o movimento
                         }
                         break;
                 }
-                
-                // Always let the ScrollView handle its own events
                 return false;
             }
         });
@@ -272,38 +271,36 @@ public class MainActivity extends AppCompatActivity {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
         private static final float SWIPE_ANGLE_THRESHOLD = 30;
-    
+
         @Override
         public boolean onDown(MotionEvent e) {
             return true;
         }
-    
+
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            if (isScrolling) {
-                return false;
-            }
-            
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
-            
-            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
-            
-            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
-                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
+
+            // Verificar se é um swipe horizontal
+            if (Math.abs(diffX) > Math.abs(diffY) && 
+                Math.abs(diffX) > SWIPE_THRESHOLD && 
+                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                 
-                if (Math.abs(diffX) > SWIPE_THRESHOLD && 
-                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                    
-                    if (diffX > 0) {
-                        safePrevItem();
-                    } else {
-                        safeNextItem();
-                    }
-                    return true;
+                if (diffX > 0) {
+                    safePrevItem();
+                } else {
+                    safeNextItem();
                 }
+                return true;
             }
             return false;
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            toggleAnswerVisibility();
+            return true;
         }
     }
 
@@ -492,22 +489,25 @@ public class MainActivity extends AppCompatActivity {
             totalCardsText.setText("/ 0");
             return;
         }
-    
-        // Adjust text width to card size
-        int cardWidth = cardView.getWidth() - 40; // Account for padding
+
+        // Ajustar o tamanho do texto para caber no cartão
+        int cardWidth = cardView.getWidth() - 40; // Considerando o padding
+        int cardHeight = cardView.getHeight() - cardView.getPaddingTop() - cardView.getPaddingBottom();
+        
         questionTextView.setMaxWidth(cardWidth);
         answerTextView.setMaxWidth(cardWidth);
         
+        // Configurar o espaçamento entre linhas
         if (isQAMode) {
             questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
             answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
         } else {
             questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
         }
-    
+
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
         QAItem currentItem = items.get(currentIndex);
-    
+
         if (isQAMode) {
             questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
             answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
@@ -517,10 +517,10 @@ public class MainActivity extends AppCompatActivity {
             answerTextView.setText("");
             answerTextView.setVisibility(View.GONE);
         }
-    
-        // Scroll to top when content changes
+
+        // Scroll para o topo quando o conteúdo muda
         textScrollView.post(() -> textScrollView.scrollTo(0, 0));
-    
+
         currentCardInput.setText(String.valueOf(currentIndex + 1));
         totalCardsText.setText("/ " + items.size());
     }
