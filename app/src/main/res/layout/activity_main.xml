@@ -139,16 +139,16 @@
                     </LinearLayout>
 
                     <Button
-                        android:id="@+id/next_button"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="#6200ee"
-                        android:text="►"
-                        android:textColor="#fff" />
-                </LinearLayout>
-            </RelativeLayout>
-        </androidx.cardview.widget.CardView>
-    </FrameLayout>
+                            android:id="@+id/next_button"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="#6200ee"
+                            android:text="►"
+                            android:textColor="#fff" />
+                    </LinearLayout>
+                </RelativeLayout>
+            </androidx.cardview.widget.CardView>
+        </FrameLayout>
 
     <View
         android:id="@+id/overlay"
