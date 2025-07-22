@@ -134,7 +134,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         
-        // Configuração do detector de gestos PRIORITÁRIO
         gestureDetector = new GestureDetectorCompat(this, new GestureDetector.SimpleOnGestureListener() {
             private static final int SWIPE_THRESHOLD = 100;
             private static final int SWIPE_VELOCITY_THRESHOLD = 100;
@@ -155,9 +154,9 @@ public class MainActivity extends AppCompatActivity {
                 float diffX = e2.getX() - e1.getX();
                 if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                     if (diffX > 0) {
-                        safePrevItem();
+                        prevItem();
                     } else {
-                        safeNextItem();
+                        nextItem();
                     }
                     return true;
                 }
@@ -165,13 +164,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Configuração da camada de toque transparente (SOLUÇÃO DEFINITIVA)
         touchOverlay.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
                 
-                // Permite que o ScrollView ainda funcione para rolagem vertical
                 if (event.getAction() == MotionEvent.ACTION_MOVE && 
                     textScrollView.getChildAt(0).getHeight() > textScrollView.getHeight()) {
                     textScrollView.onTouchEvent(event);
@@ -180,12 +177,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Configuração especial para os TextViews
         questionTextView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
-                return false; // Permite a seleção de texto
+                return false;
             }
         });
 
@@ -193,11 +189,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
-                return false; // Permite a seleção de texto
+                return false;
             }
         });
 
-        // Restante da configuração inicial
         menuLayout.setVisibility(View.VISIBLE);
         
         Button menuButton = findViewById(R.id.menu_button);
@@ -217,11 +212,32 @@ public class MainActivity extends AppCompatActivity {
         currentCardInput.setFocusableInTouchMode(false);
         currentCardInput.setCursorVisible(false);
         
-        setupCardInputBehavior();
+        currentCardInput.setOnClickListener(v -> {
+            currentCardInput.setFocusable(true);
+            currentCardInput.setFocusableInTouchMode(true);
+            currentCardInput.requestFocus();
+            currentCardInput.setCursorVisible(true);
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.showSoftInput(currentCardInput, InputMethodManager.SHOW_IMPLICIT);
+        });
+        
+        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                currentCardInput.clearFocus();
+                currentCardInput.setFocusable(false);
+                currentCardInput.setFocusableInTouchMode(false);
+                currentCardInput.setCursorVisible(false);
+                validateAndUpdateCardNumber();
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
+                return true;
+            }
+            return false;
+        });
 
         menuButton.setOnClickListener(v -> toggleMenu());
-        prevButton.setOnClickListener(v -> safePrevItem());
-        nextButton.setOnClickListener(v -> safeNextItem());
+        prevButton.setOnClickListener(v -> prevItem());
+        nextButton.setOnClickListener(v -> nextItem());
         importButton.setOnClickListener(v -> importTextFile());
         exportButton.setOnClickListener(v -> showExportDialog());
         editButton.setOnClickListener(v -> showEditDialog());
@@ -270,12 +286,36 @@ public class MainActivity extends AppCompatActivity {
         updateFontSize();
     }
 
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        if (gestureDetector.onTouchEvent(ev)) {
-            return true;
+    private void toggleMenu() {
+        menuVisible = !menuVisible;
+        
+        if (menuVisible) {
+            if (menuLayout.getWidth() <= 0) {
+                menuLayout.measure(
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                );
+                menuLayout.layout(0, 0, menuLayout.getMeasuredWidth(), menuLayout.getMeasuredHeight());
+            }
+            
+            menuLayout.setX(-menuLayout.getWidth());
+            menuLayout.setVisibility(View.VISIBLE);
+            overlay.setVisibility(View.VISIBLE);
+            
+            menuLayout.animate()
+                .translationX(0)
+                .setDuration(300)
+                .start();
+        } else {
+            menuLayout.animate()
+                .translationX(-menuLayout.getWidth())
+                .setDuration(300)
+                .withEndAction(() -> {
+                    menuLayout.setVisibility(View.GONE);
+                    overlay.setVisibility(View.GONE);
+                })
+                .start();
         }
-        return super.dispatchTouchEvent(ev);
     }
 
     private void toggleAnswerVisibility() {
@@ -293,7 +333,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-    
+
     private void updateDisplay() {
         if (items.isEmpty()) {
             questionTextView.setText("Nenhum conteúdo carregado.");
@@ -304,7 +344,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         int cardWidth = cardView.getWidth() - 40;
-        int cardHeight = cardView.getHeight() - cardView.getPaddingTop() - cardView.getPaddingBottom();
         
         questionTextView.setMaxWidth(cardWidth);
         answerTextView.setMaxWidth(cardWidth);
@@ -361,6 +400,29 @@ public class MainActivity extends AppCompatActivity {
         saveState();
     }
     
+    private void validateAndUpdateCardNumber() {
+        try {
+            String input = currentCardInput.getText().toString().trim();
+            if (input.isEmpty()) {
+                currentCardInput.setText(String.valueOf(currentIndex + 1));
+                return;
+            }
+            
+            int num = Integer.parseInt(input);
+            if (num >= 1 && num <= items.size()) {
+                currentIndex = num - 1;
+                updateDisplay();
+                saveState();
+            } else {
+                currentCardInput.setText(String.valueOf(currentIndex + 1));
+                Toast.makeText(this, "Número de cartão inválido", Toast.LENGTH_SHORT).show();
+            }
+        } catch (NumberFormatException e) {
+            currentCardInput.setText(String.valueOf(currentIndex + 1));
+            Toast.makeText(this, "Por favor insira um número válido", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void shuffleItems() {
         if (items.isEmpty()) return;
         
@@ -397,7 +459,7 @@ public class MainActivity extends AppCompatActivity {
         answerTextView.setTextSize(baseFontSize - 2);
         fontSizeText.setText(String.valueOf(baseFontSize));
     }
-    
+
     private void loadSampleData() {
         try {
             InputStream is = getAssets().open("sample_qa.txt");
@@ -415,7 +477,7 @@ public class MainActivity extends AppCompatActivity {
             parseQAContent(sampleData);
         }
     }
-    
+
     private void parseQAContent(String text) {
         if (text == null) return;
         
@@ -460,7 +522,7 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = 0;
         isQAMode = !items.isEmpty() && items.get(0).isQA();
     }
-    
+
     private boolean hasMultipleSentences(String line) {
         if (line == null || line.trim().isEmpty()) return false;
         
@@ -473,7 +535,7 @@ public class MainActivity extends AppCompatActivity {
         int punctuationCount = line.replaceAll("[^.!?…]", "").length();
         return punctuationCount > 1;
     }
-    
+
     private void parseTextContent(String text) {
         if (text == null) return;
         
@@ -534,7 +596,7 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = 0;
         isQAMode = false;
     }
-    
+
     private void importTextFile() {
         toggleMenu();
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
@@ -683,7 +745,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }).start();
     }
-    
+
     private boolean checkAlternatingLinesFormat(String text) {
         String[] lines = text.split("\n");
         if (lines.length < 2) return false;
@@ -747,7 +809,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean hasInvalidUTF8Characters(String content) {
         return content.contains("�");
     }
-    
+
     private void showExportDialog() {
         toggleMenu();
         
@@ -764,7 +826,7 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra(Intent.EXTRA_TITLE, filename);
         startActivityForResult(intent, CREATE_FILE);
     }
-    
+
     private void exportFile(Uri uri) {
         if (items.isEmpty()) return;
         
@@ -789,7 +851,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Erro ao exportar ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
-    
+
     private void showEditDialog() {
         toggleMenu();
         
@@ -844,7 +906,7 @@ public class MainActivity extends AppCompatActivity {
         builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
         builder.show();
     }
-    
+
     private void parseAlternatingLinesContent(String text) {
         String[] lines = text.split("\n");
         items.clear();
@@ -875,7 +937,7 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = 0;
         isQAMode = true;
     }
-    
+
     private void performSearch() {
         searchTerm = searchInput.getText().toString().trim();
         if (searchTerm.isEmpty()) {
@@ -909,7 +971,7 @@ public class MainActivity extends AppCompatActivity {
         
         updateDisplay();
     }
-    
+
     private void goToPrevSearchResult() {
         if (searchResults.isEmpty()) return;
         
@@ -921,7 +983,7 @@ public class MainActivity extends AppCompatActivity {
             answerTextView.setVisibility(View.VISIBLE);
         }
     }
-    
+
     private void goToNextSearchResult() {
         if (searchResults.isEmpty()) return;
         
@@ -933,7 +995,7 @@ public class MainActivity extends AppCompatActivity {
             answerTextView.setVisibility(View.VISIBLE);
         }
     }
-    
+
     private void updateSearchInfo() {
         if (searchResults.isEmpty()) {
             searchInfo.setText("");
@@ -941,7 +1003,7 @@ public class MainActivity extends AppCompatActivity {
             searchInfo.setText("Resultado " + (currentSearchIndex + 1) + " de " + searchResults.size());
         }
     }
-    
+
     private void clearSearch() {
         searchTerm = "";
         searchResults.clear();
@@ -949,7 +1011,7 @@ public class MainActivity extends AppCompatActivity {
         searchInfo.setText("");
         updateDisplay();
     }
-    
+
     private void saveState() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
@@ -980,7 +1042,7 @@ public class MainActivity extends AppCompatActivity {
         editor.putString(ORIGINAL_SEPARATOR_KEY, originalSeparator);
         editor.apply();
     }
-    
+
     private void loadState() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         
@@ -1012,7 +1074,7 @@ public class MainActivity extends AppCompatActivity {
         baseFontSize = prefs.getInt(FONT_SIZE_KEY, 20);
         originalSeparator = prefs.getString(ORIGINAL_SEPARATOR_KEY, "\t");
     }
-    
+
     @Override
     public void onBackPressed() {
         if (menuVisible) {
@@ -1021,11 +1083,13 @@ public class MainActivity extends AppCompatActivity {
             super.onBackPressed();
         }
     }
-    
+
     @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        gestureDetector.onTouchEvent(event);
-        return super.onTouchEvent(event);
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (gestureDetector.onTouchEvent(ev)) {
+            return true;
+        }
+        return super.dispatchTouchEvent(ev);
     }
 
     private static class QAItem {
