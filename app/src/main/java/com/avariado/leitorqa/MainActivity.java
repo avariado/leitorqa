@@ -85,7 +85,6 @@ public class MainActivity extends AppCompatActivity {
     private CardView cardView;
     private ScrollView textScrollView;
     private TextView processingMessage;
-    private View touchOverlay;
     
     private List<QAItem> items = new ArrayList<>();
     private List<QAItem> originalItems = new ArrayList<>();
@@ -100,8 +99,6 @@ public class MainActivity extends AppCompatActivity {
     private String searchTerm = "";
 
     private GestureDetectorCompat gestureDetector;
-    private boolean isScrolling = false;
-    private float startX = 0, startY = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,7 +120,6 @@ public class MainActivity extends AppCompatActivity {
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
-        touchOverlay = findViewById(R.id.touch_overlay);
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -134,66 +130,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         
-        gestureDetector = new GestureDetectorCompat(this, new GestureDetector.SimpleOnGestureListener() {
-            private static final int SWIPE_THRESHOLD = 100;
-            private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-
-            @Override
-            public boolean onDown(MotionEvent e) {
-                return true;
-            }
-
-            @Override
-            public boolean onSingleTapConfirmed(MotionEvent e) {
-                toggleAnswerVisibility();
-                return true;
-            }
-
-            @Override
-            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                float diffX = e2.getX() - e1.getX();
-                if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                    if (diffX > 0) {
-                        prevItem();
-                    } else {
-                        nextItem();
-                    }
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        touchOverlay.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                
-                if (event.getAction() == MotionEvent.ACTION_MOVE && 
-                    textScrollView.getChildAt(0).getHeight() > textScrollView.getHeight()) {
-                    textScrollView.onTouchEvent(event);
-                }
-                return true;
-            }
-        });
-
-        questionTextView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return false;
-            }
-        });
-
-        answerTextView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                return false;
-            }
-        });
-
         menuLayout.setVisibility(View.VISIBLE);
+        
+        gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
         
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
@@ -212,32 +151,27 @@ public class MainActivity extends AppCompatActivity {
         currentCardInput.setFocusableInTouchMode(false);
         currentCardInput.setCursorVisible(false);
         
-        currentCardInput.setOnClickListener(v -> {
-            currentCardInput.setFocusable(true);
-            currentCardInput.setFocusableInTouchMode(true);
-            currentCardInput.requestFocus();
-            currentCardInput.setCursorVisible(true);
-            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.showSoftInput(currentCardInput, InputMethodManager.SHOW_IMPLICIT);
-        });
-        
-        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_DONE) {
-                currentCardInput.clearFocus();
-                currentCardInput.setFocusable(false);
-                currentCardInput.setFocusableInTouchMode(false);
-                currentCardInput.setCursorVisible(false);
-                validateAndUpdateCardNumber();
-                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
+        setupCardInputBehavior();
+
+        cardView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
                 return true;
             }
-            return false;
         });
-
+        
+        textScrollView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                return false;
+            }
+        });
+        
         menuButton.setOnClickListener(v -> toggleMenu());
-        prevButton.setOnClickListener(v -> prevItem());
-        nextButton.setOnClickListener(v -> nextItem());
+        prevButton.setOnClickListener(v -> safePrevItem());
+        nextButton.setOnClickListener(v -> safeNextItem());
         importButton.setOnClickListener(v -> importTextFile());
         exportButton.setOnClickListener(v -> showExportDialog());
         editButton.setOnClickListener(v -> showEditDialog());
@@ -286,6 +220,186 @@ public class MainActivity extends AppCompatActivity {
         updateFontSize();
     }
 
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (currentCardInput.hasFocus()) {
+            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                finishEditing();
+                return true;
+            }
+            return super.onKeyDown(keyCode, event);
+        }
+    
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                safePrevItem();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                safeNextItem();
+                return true;
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_NUMPAD_ENTER:
+                toggleAnswerVisibility();
+                return true;
+            case KeyEvent.KEYCODE_SPACE:
+                toggleMenu();
+                return true;
+            default:
+                return super.onKeyDown(keyCode, event);
+        }
+    }
+    
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            int keyCode = event.getKeyCode();
+            
+            if (currentCardInput.hasFocus() && 
+               (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                finishEditing();
+                return true;
+            }
+            
+            if (!currentCardInput.hasFocus()) {
+                if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                    toggleAnswerVisibility();
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_SPACE) {
+                    toggleMenu();
+                    return true;
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    private void setupCardInputBehavior() {
+        currentCardInput.setOnClickListener(v -> enableEditing());
+        
+        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                finishEditing();
+                return true;
+            }
+            return false;
+        });
+        
+        cardView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (!menuVisible) {
+                    finishEditing();
+                    toggleAnswerVisibility();
+                }
+            }
+            gestureDetector.onTouchEvent(event);
+            return true;
+        });
+    }
+
+    private void enableEditing() {
+        currentCardInput.setFocusable(true);
+        currentCardInput.setFocusableInTouchMode(true);
+        currentCardInput.requestFocus();
+        currentCardInput.setCursorVisible(true);
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(currentCardInput, InputMethodManager.SHOW_IMPLICIT);
+    }
+
+    private void finishEditing() {
+        currentCardInput.clearFocus();
+        currentCardInput.setFocusable(false);
+        currentCardInput.setFocusableInTouchMode(false);
+        currentCardInput.setCursorVisible(false);
+        validateAndUpdateCardNumber();
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
+    }
+
+    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
+        private static final int SWIPE_THRESHOLD = 100;
+        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+        private static final float SWIPE_ANGLE_THRESHOLD = 30;
+    
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
+    
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            toggleAnswerVisibility();
+            return true;
+        }
+    
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            float diffX = e2.getX() - e1.getX();
+            float diffY = e2.getY() - e1.getY();
+            
+            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
+            
+            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
+                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
+                
+                if (Math.abs(diffX) > SWIPE_THRESHOLD && 
+                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                    
+                    if (diffX > 0) {
+                        safePrevItem();
+                    } else {
+                        safeNextItem();
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    private void safePrevItem() {
+        try {
+            prevItem();
+        } catch (Exception e) {
+            showError("Erro ao navegar para o cartão anterior");
+        }
+    }
+    
+    private void safeNextItem() {
+        try {
+            nextItem();
+        } catch (Exception e) {
+            showError("Erro ao navegar para o próximo cartão");
+        }
+    }
+    
+    private void showError(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+    
+    private void validateAndUpdateCardNumber() {
+        try {
+            String input = currentCardInput.getText().toString().trim();
+            if (input.isEmpty()) {
+                currentCardInput.setText(String.valueOf(currentIndex + 1));
+                return;
+            }
+            
+            int num = Integer.parseInt(input);
+            if (num >= 1 && num <= items.size()) {
+                currentIndex = num - 1;
+                updateDisplay();
+                saveState();
+            } else {
+                currentCardInput.setText(String.valueOf(currentIndex + 1));
+                showError("Número de cartão inválido");
+            }
+        } catch (NumberFormatException e) {
+            currentCardInput.setText(String.valueOf(currentIndex + 1));
+            showError("Por favor insira um número válido");
+        }
+    }
+    
     private void toggleMenu() {
         menuVisible = !menuVisible;
         
@@ -317,23 +431,17 @@ public class MainActivity extends AppCompatActivity {
                 .start();
         }
     }
-
+    
     private void toggleAnswerVisibility() {
         if (isQAMode) {
             if (answerTextView.getVisibility() == View.VISIBLE) {
                 answerTextView.setVisibility(View.GONE);
             } else {
                 answerTextView.setVisibility(View.VISIBLE);
-                textScrollView.post(() -> {
-                    int scrollAmount = answerTextView.getTop() - textScrollView.getScrollY();
-                    if (scrollAmount > 0) {
-                        textScrollView.smoothScrollTo(0, scrollAmount);
-                    }
-                });
             }
         }
     }
-
+    
     private void updateDisplay() {
         if (items.isEmpty()) {
             questionTextView.setText("Nenhum conteúdo carregado.");
@@ -342,22 +450,17 @@ public class MainActivity extends AppCompatActivity {
             totalCardsText.setText("/ 0");
             return;
         }
-
-        int cardWidth = cardView.getWidth() - 40;
-        
-        questionTextView.setMaxWidth(cardWidth);
-        answerTextView.setMaxWidth(cardWidth);
-        
+    
         if (isQAMode) {
             questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
             answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
         } else {
             questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
         }
-
+    
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
         QAItem currentItem = items.get(currentIndex);
-
+    
         if (isQAMode) {
             questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
             answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
@@ -367,9 +470,7 @@ public class MainActivity extends AppCompatActivity {
             answerTextView.setText("");
             answerTextView.setVisibility(View.GONE);
         }
-
-        textScrollView.post(() -> textScrollView.scrollTo(0, 0));
-
+    
         currentCardInput.setText(String.valueOf(currentIndex + 1));
         totalCardsText.setText("/ " + items.size());
     }
@@ -400,29 +501,6 @@ public class MainActivity extends AppCompatActivity {
         saveState();
     }
     
-    private void validateAndUpdateCardNumber() {
-        try {
-            String input = currentCardInput.getText().toString().trim();
-            if (input.isEmpty()) {
-                currentCardInput.setText(String.valueOf(currentIndex + 1));
-                return;
-            }
-            
-            int num = Integer.parseInt(input);
-            if (num >= 1 && num <= items.size()) {
-                currentIndex = num - 1;
-                updateDisplay();
-                saveState();
-            } else {
-                currentCardInput.setText(String.valueOf(currentIndex + 1));
-                Toast.makeText(this, "Número de cartão inválido", Toast.LENGTH_SHORT).show();
-            }
-        } catch (NumberFormatException e) {
-            currentCardInput.setText(String.valueOf(currentIndex + 1));
-            Toast.makeText(this, "Por favor insira um número válido", Toast.LENGTH_SHORT).show();
-        }
-    }
-
     private void shuffleItems() {
         if (items.isEmpty()) return;
         
@@ -459,7 +537,7 @@ public class MainActivity extends AppCompatActivity {
         answerTextView.setTextSize(baseFontSize - 2);
         fontSizeText.setText(String.valueOf(baseFontSize));
     }
-
+    
     private void loadSampleData() {
         try {
             InputStream is = getAssets().open("sample_qa.txt");
@@ -477,7 +555,7 @@ public class MainActivity extends AppCompatActivity {
             parseQAContent(sampleData);
         }
     }
-
+    
     private void parseQAContent(String text) {
         if (text == null) return;
         
@@ -522,7 +600,7 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = 0;
         isQAMode = !items.isEmpty() && items.get(0).isQA();
     }
-
+    
     private boolean hasMultipleSentences(String line) {
         if (line == null || line.trim().isEmpty()) return false;
         
@@ -535,7 +613,7 @@ public class MainActivity extends AppCompatActivity {
         int punctuationCount = line.replaceAll("[^.!?…]", "").length();
         return punctuationCount > 1;
     }
-
+    
     private void parseTextContent(String text) {
         if (text == null) return;
         
@@ -596,7 +674,7 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = 0;
         isQAMode = false;
     }
-
+    
     private void importTextFile() {
         toggleMenu();
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
@@ -634,6 +712,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void processTextContent(String fileContent, Uri uri) throws IOException {
+
         boolean hasTabs = fileContent.contains("\t");
         boolean hasDoubleSemicolon = fileContent.contains(";;");
         boolean isAlternatingLines = checkAlternatingLinesFormat(fileContent);
@@ -651,7 +730,9 @@ public class MainActivity extends AppCompatActivity {
         
         if (hasTabs || hasDoubleSemicolon) {
             parseQAContent(fileContent);
-        } else if (isAlternatingLines && !hasMultipleSentences && lines.length >= 2) {
+        } 
+
+        else if (isAlternatingLines && !hasMultipleSentences && lines.length >= 2) {
             if (lines.length % 2 != 0) {
                 Toast.makeText(this, 
                     "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.", 
@@ -745,7 +826,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }).start();
     }
-
+    
     private boolean checkAlternatingLinesFormat(String text) {
         String[] lines = text.split("\n");
         if (lines.length < 2) return false;
@@ -809,7 +890,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean hasInvalidUTF8Characters(String content) {
         return content.contains("�");
     }
-
+    
     private void showExportDialog() {
         toggleMenu();
         
@@ -826,7 +907,7 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra(Intent.EXTRA_TITLE, filename);
         startActivityForResult(intent, CREATE_FILE);
     }
-
+    
     private void exportFile(Uri uri) {
         if (items.isEmpty()) return;
         
@@ -851,7 +932,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Erro ao exportar ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
-
+    
     private void showEditDialog() {
         toggleMenu();
         
@@ -906,7 +987,7 @@ public class MainActivity extends AppCompatActivity {
         builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
         builder.show();
     }
-
+    
     private void parseAlternatingLinesContent(String text) {
         String[] lines = text.split("\n");
         items.clear();
@@ -937,7 +1018,7 @@ public class MainActivity extends AppCompatActivity {
         currentIndex = 0;
         isQAMode = true;
     }
-
+    
     private void performSearch() {
         searchTerm = searchInput.getText().toString().trim();
         if (searchTerm.isEmpty()) {
@@ -971,7 +1052,7 @@ public class MainActivity extends AppCompatActivity {
         
         updateDisplay();
     }
-
+    
     private void goToPrevSearchResult() {
         if (searchResults.isEmpty()) return;
         
@@ -983,7 +1064,7 @@ public class MainActivity extends AppCompatActivity {
             answerTextView.setVisibility(View.VISIBLE);
         }
     }
-
+    
     private void goToNextSearchResult() {
         if (searchResults.isEmpty()) return;
         
@@ -995,7 +1076,7 @@ public class MainActivity extends AppCompatActivity {
             answerTextView.setVisibility(View.VISIBLE);
         }
     }
-
+    
     private void updateSearchInfo() {
         if (searchResults.isEmpty()) {
             searchInfo.setText("");
@@ -1003,7 +1084,7 @@ public class MainActivity extends AppCompatActivity {
             searchInfo.setText("Resultado " + (currentSearchIndex + 1) + " de " + searchResults.size());
         }
     }
-
+    
     private void clearSearch() {
         searchTerm = "";
         searchResults.clear();
@@ -1011,7 +1092,7 @@ public class MainActivity extends AppCompatActivity {
         searchInfo.setText("");
         updateDisplay();
     }
-
+    
     private void saveState() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
@@ -1042,7 +1123,7 @@ public class MainActivity extends AppCompatActivity {
         editor.putString(ORIGINAL_SEPARATOR_KEY, originalSeparator);
         editor.apply();
     }
-
+    
     private void loadState() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         
@@ -1074,7 +1155,7 @@ public class MainActivity extends AppCompatActivity {
         baseFontSize = prefs.getInt(FONT_SIZE_KEY, 20);
         originalSeparator = prefs.getString(ORIGINAL_SEPARATOR_KEY, "\t");
     }
-
+    
     @Override
     public void onBackPressed() {
         if (menuVisible) {
@@ -1083,13 +1164,11 @@ public class MainActivity extends AppCompatActivity {
             super.onBackPressed();
         }
     }
-
+    
     @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        if (gestureDetector.onTouchEvent(ev)) {
-            return true;
-        }
-        return super.dispatchTouchEvent(ev);
+    public boolean onTouchEvent(MotionEvent event) {
+        gestureDetector.onTouchEvent(event);
+        return super.onTouchEvent(event);
     }
 
     private static class QAItem {
