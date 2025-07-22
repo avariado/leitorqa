@@ -233,7 +233,40 @@ public class MainActivity extends AppCompatActivity {
         setupTextViewTouchHandling(questionTextView);
         setupTextViewTouchHandling(answerTextView);
 
-    private void setupTextViewTouchHandling(TextView textView) {
+        // Configuração do touch listener para a área do cartão sem texto
+        cardTouchArea.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                
+                if (event.getAction() == MotionEvent.ACTION_UP && !isSelectingText) {
+                    float diffX = Math.abs(event.getX() - startX);
+                    float diffY = Math.abs(event.getY() - startY);
+                    
+                    if (diffX < TOUCH_SLOP && diffY < TOUCH_SLOP) {
+                        toggleAnswerVisibility();
+                        return true;
+                    }
+                }
+                return true;
+            }
+        });
+
+        // Configuração do ScrollView
+        textScrollView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                
+                // Permite scroll apenas se o conteúdo for maior que a view
+                if (textScrollView.getChildAt(0).getHeight() > textScrollView.getHeight()) {
+                    return false;
+                }
+                return true;
+            }
+        });
+
+            private void setupTextViewTouchHandling(TextView textView) {
         textView.setOnTouchListener(new View.OnTouchListener() {
             private Handler longPressHandler = new Handler();
             private Runnable longPressRunnable = new Runnable() {
