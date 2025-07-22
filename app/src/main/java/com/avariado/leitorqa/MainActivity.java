@@ -229,41 +229,61 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        questionTextView.setOnTouchListener(textViewTouchListener);
-        answerTextView.setOnTouchListener(textViewTouchListener);
+        // Configuração especial para os TextViews
+        setupTextViewTouchHandling(questionTextView);
+        setupTextViewTouchHandling(answerTextView);
 
-        // Configuração do touch listener para a área do cartão sem texto
-        cardTouchArea.setOnTouchListener(new View.OnTouchListener() {
+    private void setupTextViewTouchHandling(TextView textView) {
+        textView.setOnTouchListener(new View.OnTouchListener() {
+            private Handler longPressHandler = new Handler();
+            private Runnable longPressRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    isSelectingText = true;
+                    // Habilita a seleção de texto apenas após o longo toque
+                    textView.setFocusable(true);
+                    textView.setFocusableInTouchMode(true);
+                    textView.requestFocus();
+                }
+            };
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
                 
-                if (event.getAction() == MotionEvent.ACTION_UP && !isSelectingText) {
-                    float diffX = Math.abs(event.getX() - startX);
-                    float diffY = Math.abs(event.getY() - startY);
-                    
-                    if (diffX < TOUCH_SLOP && diffY < TOUCH_SLOP) {
-                        toggleAnswerVisibility();
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        // Desativa temporariamente a seleção de texto
+                        textView.setFocusable(false);
+                        textView.setFocusableInTouchMode(false);
+                        longPressHandler.postDelayed(longPressRunnable, LONG_PRESS_THRESHOLD);
                         return true;
-                    }
+                        
+                    case MotionEvent.ACTION_MOVE:
+                        if (Math.abs(event.getX() - startX) > TOUCH_SLOP || 
+                            Math.abs(event.getY() - startY) > TOUCH_SLOP) {
+                            longPressHandler.removeCallbacks(longPressRunnable);
+                        }
+                        break;
+                        
+                    case MotionEvent.ACTION_UP:
+                        longPressHandler.removeCallbacks(longPressRunnable);
+                        if (!isSelectingText && 
+                            Math.abs(event.getX() - startX) < TOUCH_SLOP && 
+                            Math.abs(event.getY() - startY) < TOUCH_SLOP) {
+                            toggleAnswerVisibility();
+                        }
+                        isSelectingText = false;
+                        // Restaura a capacidade de seleção para o próximo toque
+                        textView.setFocusable(true);
+                        textView.setFocusableInTouchMode(true);
+                        textView.setTextIsSelectable(true);
+                        break;
                 }
-                return true;
+                return false;
             }
         });
-
-        // Configuração do ScrollView
-        textScrollView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                
-                // Permite scroll apenas se o conteúdo for maior que a view
-                if (textScrollView.getChildAt(0).getHeight() > textScrollView.getHeight()) {
-                    return false;
-                }
-                return true;
-            }
-        });
+    }
         
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
