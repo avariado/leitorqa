@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
     private CardView cardView;
     private ScrollView textScrollView;
     private TextView processingMessage;
-    private RelativeLayout mainContentArea;
+    private RelativeLayout cardTouchArea;
     
     private List<QAItem> items = new ArrayList<>();
     private List<QAItem> originalItems = new ArrayList<>();
@@ -100,6 +100,8 @@ public class MainActivity extends AppCompatActivity {
     private String searchTerm = "";
 
     private GestureDetectorCompat gestureDetector;
+    private boolean isScrolling = false;
+    private float startY = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -121,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
         cardView = findViewById(R.id.card_view);
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
-        mainContentArea = findViewById(R.id.main_content_area);
+        cardTouchArea = findViewById(R.id.card_touch_area);
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -156,30 +158,8 @@ public class MainActivity extends AppCompatActivity {
         setupCardInputBehavior();
 
         // Improved touch handling for the entire card
-        mainContentArea.setOnTouchListener(new View.OnTouchListener() {
+        cardTouchArea.setOnTouchListener(new View.OnTouchListener() {
             private final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
-            
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                
-                // Handle tap to toggle answer
-                if (event.getAction() == MotionEvent.ACTION_UP) {
-                    toggleAnswerVisibility();
-                }
-                
-                // Allow vertical scrolling when content overflows
-                View child = textScrollView.getChildAt(0);
-                if (child != null && child.getHeight() > textScrollView.getHeight()) {
-                    textScrollView.onTouchEvent(event);
-                }
-                return true;
-            }
-        });
-        
-        textScrollView.setOnTouchListener(new View.OnTouchListener() {
-            private final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
-            private float startY;
             
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -188,14 +168,51 @@ public class MainActivity extends AppCompatActivity {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         startY = event.getY();
-                        break;
+                        isScrolling = false;
+                        return true;
+                        
                     case MotionEvent.ACTION_MOVE:
-                        float diffY = event.getY() - startY;
-                        if (Math.abs(diffY) > 10) {
-                            return false; // Allow ScrollView to handle vertical scrolling
+                        float diffY = Math.abs(event.getY() - startY);
+                        if (diffY > 10) {
+                            isScrolling = true;
+                            // Let the ScrollView handle vertical scrolling
+                            return textScrollView.onTouchEvent(event);
+                        }
+                        return true;
+                        
+                    case MotionEvent.ACTION_UP:
+                        if (!isScrolling) {
+                            toggleAnswerVisibility();
+                        }
+                        isScrolling = false;
+                        return true;
+                }
+                return true;
+            }
+        });
+        
+        textScrollView.setOnTouchListener(new View.OnTouchListener() {
+            private final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
+            
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        startY = event.getY();
+                        isScrolling = false;
+                        break;
+                        
+                    case MotionEvent.ACTION_MOVE:
+                        float diffY = Math.abs(event.getY() - startY);
+                        if (diffY > 10) {
+                            isScrolling = true;
                         }
                         break;
                 }
+                
+                // Always let the ScrollView handle its own events
                 return false;
             }
         });
@@ -263,6 +280,10 @@ public class MainActivity extends AppCompatActivity {
     
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            if (isScrolling) {
+                return false;
+            }
+            
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
             
@@ -452,6 +473,13 @@ public class MainActivity extends AppCompatActivity {
                 answerTextView.setVisibility(View.GONE);
             } else {
                 answerTextView.setVisibility(View.VISIBLE);
+                // Scroll to show the answer if needed
+                textScrollView.post(() -> {
+                    int scrollAmount = answerTextView.getTop() - textScrollView.getScrollY();
+                    if (scrollAmount > 0) {
+                        textScrollView.smoothScrollTo(0, scrollAmount);
+                    }
+                });
             }
         }
     }
