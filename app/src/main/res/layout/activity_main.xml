@@ -7,6 +7,7 @@
     android:background="#f5f5f5"
     tools:context=".MainActivity">
 
+    <!-- Cabeçalho inalterado -->
     <LinearLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
@@ -62,6 +63,7 @@
                 android:layout_height="match_parent"
                 android:padding="20dp">
 
+                <!-- ScrollView modificado para permitir seleção de texto -->
                 <ScrollView
                     android:id="@+id/text_scroll_view"
                     android:layout_width="match_parent"
@@ -70,22 +72,26 @@
                     android:fillViewport="true"
                     android:overScrollMode="never"
                     android:scrollbars="none"
-                    android:clickable="true"
-                    android:focusable="true">
+                    android:focusable="true"
+                    android:focusableInTouchMode="true">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical">
 
+                        <!-- TextView da pergunta com seleção de texto -->
                         <TextView
                             android:id="@+id/question_text"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:padding="10dp"
                             android:textIsSelectable="true"
-                            android:textColor="#000000" />
+                            android:textColor="#000000"
+                            android:focusable="true"
+                            android:focusableInTouchMode="true" />
 
+                        <!-- TextView da resposta com seleção de texto -->
                         <TextView
                             android:id="@+id/answer_text"
                             android:layout_width="match_parent"
@@ -94,10 +100,13 @@
                             android:padding="10dp"
                             android:visibility="gone"
                             android:textIsSelectable="true"
-                            android:textColor="#000000" />
+                            android:textColor="#000000"
+                            android:focusable="true"
+                            android:focusableInTouchMode="true" />
                     </LinearLayout>
                 </ScrollView>
 
+                <!-- Rodapé inalterado -->
                 <LinearLayout
                     android:id="@+id/card_footer"
                     android:layout_width="match_parent"
@@ -155,6 +164,7 @@
         </androidx.cardview.widget.CardView>
     </FrameLayout>
 
+    <!-- Restante do layout permanece EXATAMENTE igual -->
     <View
         android:id="@+id/overlay"
         android:layout_width="match_parent"
