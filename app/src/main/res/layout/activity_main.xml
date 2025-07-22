@@ -7,7 +7,7 @@
     android:background="#f5f5f5"
     tools:context=".MainActivity">
 
-    <!-- Cabeçalho (inalterado) -->
+    <!-- HEADER (EXATAMENTE IGUAL AO ORIGINAL) -->
     <LinearLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
@@ -42,7 +42,7 @@
             android:visibility="invisible" />
     </LinearLayout>
 
-    <!-- Área principal do cartão -->
+    <!-- MAIN CARD CONTENT (COM MODIFICAÇÕES PARA SELEÇÃO) -->
     <FrameLayout
         android:id="@+id/main_container"
         android:layout_width="match_parent"
@@ -58,14 +58,13 @@
             app:cardCornerRadius="10dp"
             app:cardElevation="4dp">
 
-            <!-- Layout de conteúdo principal com camadas sobrepostas -->
             <RelativeLayout
                 android:id="@+id/main_content_area"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:padding="20dp">
 
-                <!-- 1ª Camada: Conteúdo de texto (selecionável) -->
+                <!-- SCROLLVIEW COM TEXTO SELECIONÁVEL -->
                 <ScrollView
                     android:id="@+id/text_scroll_view"
                     android:layout_width="match_parent"
@@ -104,7 +103,7 @@
                     </LinearLayout>
                 </ScrollView>
 
-                <!-- 2ª Camada: Overlay de toque transparente -->
+                <!-- OVERLAY TRANSPARENTE PARA GESTOS -->
                 <View
                     android:id="@+id/touch_overlay"
                     android:layout_width="match_parent"
@@ -114,7 +113,7 @@
                     android:clickable="true"
                     android:focusable="true" />
 
-                <!-- Rodapé (inalterado) -->
+                <!-- FOOTER (EXATAMENTE IGUAL AO ORIGINAL) -->
                 <LinearLayout
                     android:id="@+id/card_footer"
                     android:layout_width="match_parent"
@@ -170,7 +169,7 @@
         </androidx.cardview.widget.CardView>
     </FrameLayout>
 
-    <!-- Menu lateral (inalterado) -->
+    <!-- MENU LATERAL (EXATAMENTE IGUAL AO ORIGINAL) -->
     <View
         android:id="@+id/overlay"
         android:layout_width="match_parent"
@@ -199,13 +198,234 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <!-- ... (conteúdo do menu IDÊNTICO ao original) ... -->
-                
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingVertical="8dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginRight="16dp"
+                        android:src="@drawable/ic_file_import" />
+
+                    <Button
+                        android:id="@+id/import_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@android:color/transparent"
+                        android:gravity="start|center_vertical"
+                        android:text="Importar ficheiro"
+                        android:textAllCaps="false"
+                        android:textColor="#6200ee"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingVertical="8dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginRight="16dp"
+                        android:src="@drawable/ic_file_export" />
+
+                    <Button
+                        android:id="@+id/export_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@android:color/transparent"
+                        android:gravity="start|center_vertical"
+                        android:text="Exportar ficheiro"
+                        android:textAllCaps="false"
+                        android:textColor="#6200ee"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingVertical="8dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginRight="16dp"
+                        android:src="@drawable/ic_edit" />
+
+                    <Button
+                        android:id="@+id/edit_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@android:color/transparent"
+                        android:gravity="start|center_vertical"
+                        android:text="Editar conteúdo"
+                        android:textAllCaps="false"
+                        android:textColor="#6200ee"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingVertical="8dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginRight="16dp"
+                        android:src="@drawable/ic_shuffle" />
+
+                    <Button
+                        android:id="@+id/shuffle_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@android:color/transparent"
+                        android:gravity="start|center_vertical"
+                        android:text="Baralhar perguntas"
+                        android:textAllCaps="false"
+                        android:textColor="#6200ee"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingVertical="8dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginRight="16dp"
+                        android:src="@drawable/ic_reset" />
+
+                    <Button
+                        android:id="@+id/reset_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@android:color/transparent"
+                        android:gravity="start|center_vertical"
+                        android:text="Voltar à ordem inicial"
+                        android:textAllCaps="false"
+                        android:textColor="#6200ee"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="15dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginRight="16dp"
+                        android:src="@drawable/ic_text_size" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Tamanho"
+                        android:textSize="16sp" />
+
+                    <Button
+                        android:id="@+id/decrease_font_button"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:layout_marginLeft="10dp"
+                        android:background="#6200ee"
+                        android:text="-"
+                        android:textColor="#fff" />
+
+                    <TextView
+                        android:id="@+id/current_font_size"
+                        android:layout_width="30dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="20"
+                        android:textSize="18sp" />
+
+                    <Button
+                        android:id="@+id/increase_font_button"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:background="#6200ee"
+                        android:text="+"
+                        android:textColor="#fff" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="15dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_marginRight="16dp"
+                            android:src="@drawable/ic_search" />
+
+                        <EditText
+                            android:id="@+id/search_input"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Procurar..."
+                            android:inputType="text"
+                            android:padding="8dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/search_prev_button"
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:layout_marginRight="10dp"
+                            android:background="#6200ee"
+                            android:text="◄"
+                            android:textColor="#fff" />
+
+                        <Button
+                            android:id="@+id/search_next_button"
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:layout_marginLeft="10dp"
+                            android:background="#6200ee"
+                            android:text="►"
+                            android:textColor="#fff" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/search_info"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:textSize="12sp" />
+                </LinearLayout>
             </LinearLayout>
         </ScrollView>
     </LinearLayout>
 
-    <!-- Mensagem de processamento (inalterada) -->
+    <!-- MENSAGEM DE PROCESSAMENTO (EXATAMENTE IGUAL AO ORIGINAL) -->
     <TextView
         android:id="@+id/processing_message"
         android:layout_width="wrap_content"
