@@ -136,33 +136,44 @@ public class MainActivity extends AppCompatActivity {
         
         menuLayout.setVisibility(View.VISIBLE);
         
-        gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
-        
-        Button menuButton = findViewById(R.id.menu_button);
-        Button prevButton = findViewById(R.id.prev_button);
-        Button nextButton = findViewById(R.id.next_button);
-        Button importButton = findViewById(R.id.import_button);
-        Button exportButton = findViewById(R.id.export_button);
-        Button editButton = findViewById(R.id.edit_button);
-        Button shuffleButton = findViewById(R.id.shuffle_button);
-        Button resetButton = findViewById(R.id.reset_button);
-        Button increaseFontButton = findViewById(R.id.increase_font_button);
-        Button decreaseFontButton = findViewById(R.id.decrease_font_button);
-        Button searchPrevButton = findViewById(R.id.search_prev_button);
-        Button searchNextButton = findViewById(R.id.search_next_button);
-        
-        currentCardInput.setFocusable(false);
-        currentCardInput.setFocusableInTouchMode(false);
-        currentCardInput.setCursorVisible(false);
-        
-        setupCardInputBehavior();
+        // Configuração do detector de gestos
+        gestureDetector = new GestureDetectorCompat(this, new GestureDetector.SimpleOnGestureListener() {
+            private static final int SWIPE_THRESHOLD = 100;
+            private static final int SWIPE_VELOCITY_THRESHOLD = 100;
 
+            @Override
+            public boolean onDown(MotionEvent e) {
+                return true;
+            }
+
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                float diffX = e2.getX() - e1.getX();
+                float diffY = e2.getY() - e1.getY();
+                
+                if (Math.abs(diffX) > Math.abs(diffY) && 
+                    Math.abs(diffX) > SWIPE_THRESHOLD && 
+                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                    
+                    if (diffX > 0) {
+                        safePrevItem();
+                    } else {
+                        safeNextItem();
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            @Override
+            public boolean onSingleTapConfirmed(MotionEvent e) {
+                toggleAnswerVisibility();
+                return true;
+            }
+        });
+        
         // Configuração do touch listener para toda a área do cartão
         cardTouchArea.setOnTouchListener(new View.OnTouchListener() {
-            private final GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
-            private float startY = 0;
-            private boolean isScrolling = false;
-
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 // Primeiro processamos os gestos (swipe e tap)
@@ -195,14 +206,18 @@ public class MainActivity extends AppCompatActivity {
         
         // Configuração do ScrollView para permitir scroll vertical
         textScrollView.setOnTouchListener(new View.OnTouchListener() {
-            private float startY = 0;
-
             @Override
             public boolean onTouch(View v, MotionEvent event) {
+                // Se houver um gesto, deixe o detector de gestos lidar com ele
+                if (gestureDetector.onTouchEvent(event)) {
+                    return true;
+                }
+                
+                // Caso contrário, permita o scroll vertical normal
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         startY = event.getY();
-                        break;
+                        return true;
                         
                     case MotionEvent.ACTION_MOVE:
                         float diffY = event.getY() - startY;
@@ -216,6 +231,25 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         
+        Button menuButton = findViewById(R.id.menu_button);
+        Button prevButton = findViewById(R.id.prev_button);
+        Button nextButton = findViewById(R.id.next_button);
+        Button importButton = findViewById(R.id.import_button);
+        Button exportButton = findViewById(R.id.export_button);
+        Button editButton = findViewById(R.id.edit_button);
+        Button shuffleButton = findViewById(R.id.shuffle_button);
+        Button resetButton = findViewById(R.id.reset_button);
+        Button increaseFontButton = findViewById(R.id.increase_font_button);
+        Button decreaseFontButton = findViewById(R.id.decrease_font_button);
+        Button searchPrevButton = findViewById(R.id.search_prev_button);
+        Button searchNextButton = findViewById(R.id.search_next_button);
+        
+        currentCardInput.setFocusable(false);
+        currentCardInput.setFocusableInTouchMode(false);
+        currentCardInput.setCursorVisible(false);
+        
+        setupCardInputBehavior();
+
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
         nextButton.setOnClickListener(v -> safeNextItem());
@@ -265,43 +299,6 @@ public class MainActivity extends AppCompatActivity {
         }
         updateDisplay();
         updateFontSize();
-    }
-
-    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
-        private static final int SWIPE_THRESHOLD = 100;
-        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-        private static final float SWIPE_ANGLE_THRESHOLD = 30;
-
-        @Override
-        public boolean onDown(MotionEvent e) {
-            return true;
-        }
-
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            float diffX = e2.getX() - e1.getX();
-            float diffY = e2.getY() - e1.getY();
-
-            // Verificar se é um swipe horizontal
-            if (Math.abs(diffX) > Math.abs(diffY) && 
-                Math.abs(diffX) > SWIPE_THRESHOLD && 
-                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                
-                if (diffX > 0) {
-                    safePrevItem();
-                } else {
-                    safeNextItem();
-                }
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            toggleAnswerVisibility();
-            return true;
-        }
     }
 
     @Override
