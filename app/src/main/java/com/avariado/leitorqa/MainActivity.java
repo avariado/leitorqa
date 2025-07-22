@@ -101,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
 
     private GestureDetectorCompat gestureDetector;
     private boolean isScrolling = false;
-    private float startY = 0;
+    private float startX = 0, startY = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -136,7 +136,6 @@ public class MainActivity extends AppCompatActivity {
         
         menuLayout.setVisibility(View.VISIBLE);
         
-        // Configuração do detector de gestos
         gestureDetector = new GestureDetectorCompat(this, new GestureDetector.SimpleOnGestureListener() {
             private static final int SWIPE_THRESHOLD = 100;
             private static final int SWIPE_VELOCITY_THRESHOLD = 100;
@@ -172,28 +171,28 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         
-        // Configuração do touch listener para toda a área do cartão
         cardTouchArea.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                // Primeiro processamos os gestos (swipe e tap)
                 boolean gestureResult = gestureDetector.onTouchEvent(event);
                 
-                // Depois lidamos com o scroll vertical
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        startX = event.getX();
                         startY = event.getY();
                         isScrolling = false;
                         return true;
                         
                     case MotionEvent.ACTION_MOVE:
+                        float diffX = Math.abs(event.getX() - startX);
                         float diffY = Math.abs(event.getY() - startY);
-                        if (diffY > 10) {
+                        
+                        if (diffY > diffX && diffY > 10) {
                             isScrolling = true;
-                            // Delegamos o scroll vertical para o ScrollView
-                            return textScrollView.onTouchEvent(event);
+                            textScrollView.onTouchEvent(event);
+                            return true;
                         }
-                        return true;
+                        return gestureResult;
                         
                     case MotionEvent.ACTION_UP:
                         isScrolling = false;
@@ -204,16 +203,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         
-        // Configuração do ScrollView para permitir scroll vertical
         textScrollView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                // Se houver um gesto, deixe o detector de gestos lidar com ele
                 if (gestureDetector.onTouchEvent(event)) {
                     return true;
                 }
                 
-                // Caso contrário, permita o scroll vertical normal
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         startY = event.getY();
@@ -221,16 +217,15 @@ public class MainActivity extends AppCompatActivity {
                         
                     case MotionEvent.ACTION_MOVE:
                         float diffY = event.getY() - startY;
-                        // Se o conteúdo não couber na tela, permita o scroll
                         if (textScrollView.getChildAt(0).getHeight() > textScrollView.getHeight()) {
-                            return false; // Deixa o ScrollView lidar com o movimento
+                            return false;
                         }
                         break;
                 }
                 return false;
             }
         });
-        
+
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
         Button nextButton = findViewById(R.id.next_button);
@@ -467,7 +462,6 @@ public class MainActivity extends AppCompatActivity {
                 answerTextView.setVisibility(View.GONE);
             } else {
                 answerTextView.setVisibility(View.VISIBLE);
-                // Scroll to show the answer if needed
                 textScrollView.post(() -> {
                     int scrollAmount = answerTextView.getTop() - textScrollView.getScrollY();
                     if (scrollAmount > 0) {
@@ -487,14 +481,12 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // Ajustar o tamanho do texto para caber no cartão
-        int cardWidth = cardView.getWidth() - 40; // Considerando o padding
+        int cardWidth = cardView.getWidth() - 40;
         int cardHeight = cardView.getHeight() - cardView.getPaddingTop() - cardView.getPaddingBottom();
         
         questionTextView.setMaxWidth(cardWidth);
         answerTextView.setMaxWidth(cardWidth);
         
-        // Configurar o espaçamento entre linhas
         if (isQAMode) {
             questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
             answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
@@ -515,7 +507,6 @@ public class MainActivity extends AppCompatActivity {
             answerTextView.setVisibility(View.GONE);
         }
 
-        // Scroll para o topo quando o conteúdo muda
         textScrollView.post(() -> textScrollView.scrollTo(0, 0));
 
         currentCardInput.setText(String.valueOf(currentIndex + 1));
