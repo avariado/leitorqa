@@ -100,12 +100,10 @@ public class MainActivity extends AppCompatActivity {
     private String searchTerm = "";
 
     private GestureDetectorCompat gestureDetector;
-    private boolean isScrolling = false;
-    private float startY = 0;
-
     private boolean isSelectingText = false;
-    private long lastTouchTime = 0;
-    private static final int TOUCH_THRESHOLD = 200; // ms para considerar toque longo
+    private float startX, startY;
+    private static final int TOUCH_SLOP = 20; // pixels para considerar movimento
+    private static final int LONG_PRESS_THRESHOLD = 500; // ms para considerar toque longo
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -147,13 +145,15 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean onDown(MotionEvent e) {
+                isSelectingText = false;
+                startX = e.getX();
+                startY = e.getY();
                 return true;
             }
 
             @Override
-            public boolean onSingleTapUp(MotionEvent e) {
-                // Só processamos o toque se não estivermos selecionando texto
-                if (!isSelectingText && (System.currentTimeMillis() - lastTouchTime > TOUCH_THRESHOLD)) {
+            public boolean onSingleTapConfirmed(MotionEvent e) {
+                if (!isSelectingText) {
                     toggleAnswerVisibility();
                     return true;
                 }
@@ -183,37 +183,47 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onLongPress(MotionEvent e) {
-                // Marca que estamos selecionando texto
                 isSelectingText = true;
             }
         });
         
         // Configuração do touch listener para os TextViews
         View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
+            private Handler longPressHandler = new Handler();
+            private Runnable longPressRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    isSelectingText = true;
+                }
+            };
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                // Registra o tempo do toque
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    lastTouchTime = System.currentTimeMillis();
-                    isSelectingText = false;
-                }
+                gestureDetector.onTouchEvent(event);
                 
-                // Se for um movimento, verifica se é seleção de texto
-                if (event.getAction() == MotionEvent.ACTION_MOVE) {
-                    if (Math.abs(event.getY() - event.getHistoricalY(0)) > 10) {
-                        isSelectingText = true;
-                    }
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        longPressHandler.postDelayed(longPressRunnable, LONG_PRESS_THRESHOLD);
+                        return false; // Permite que o TextView processe o toque
+                        
+                    case MotionEvent.ACTION_MOVE:
+                        if (Math.abs(event.getX() - startX) > TOUCH_SLOP || 
+                            Math.abs(event.getY() - startY) > TOUCH_SLOP) {
+                            longPressHandler.removeCallbacks(longPressRunnable);
+                        }
+                        break;
+                        
+                    case MotionEvent.ACTION_UP:
+                        longPressHandler.removeCallbacks(longPressRunnable);
+                        if (!isSelectingText && 
+                            Math.abs(event.getX() - startX) < TOUCH_SLOP && 
+                            Math.abs(event.getY() - startY) < TOUCH_SLOP) {
+                            toggleAnswerVisibility();
+                            return true;
+                        }
+                        isSelectingText = false;
+                        break;
                 }
-                
-                // Se for um toque rápido e não estiver selecionando texto, processa o toque
-                if (event.getAction() == MotionEvent.ACTION_UP && 
-                    !isSelectingText && 
-                    (System.currentTimeMillis() - lastTouchTime < TOUCH_THRESHOLD)) {
-                    toggleAnswerVisibility();
-                    return true;
-                }
-                
-                // Deixa o TextView processar o evento para seleção de texto
                 return false;
             }
         };
@@ -225,44 +235,32 @@ public class MainActivity extends AppCompatActivity {
         cardTouchArea.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                // Primeiro processa os gestos
                 gestureDetector.onTouchEvent(event);
                 
-                // Para toques simples na área sem texto
-                if (event.getAction() == MotionEvent.ACTION_UP && 
-                    !isSelectingText && 
-                    (System.currentTimeMillis() - lastTouchTime < TOUCH_THRESHOLD)) {
-                    toggleAnswerVisibility();
-                    return true;
+                if (event.getAction() == MotionEvent.ACTION_UP && !isSelectingText) {
+                    float diffX = Math.abs(event.getX() - startX);
+                    float diffY = Math.abs(event.getY() - startY);
+                    
+                    if (diffX < TOUCH_SLOP && diffY < TOUCH_SLOP) {
+                        toggleAnswerVisibility();
+                        return true;
+                    }
                 }
-                
                 return true;
             }
         });
 
         // Configuração do ScrollView
         textScrollView.setOnTouchListener(new View.OnTouchListener() {
-            private float startY = 0;
-
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                // Primeiro dá chance ao detector de gestos
                 gestureDetector.onTouchEvent(event);
                 
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        startY = event.getY();
-                        break;
-                        
-                    case MotionEvent.ACTION_MOVE:
-                        float diffY = event.getY() - startY;
-                        // Se o conteúdo não couber na tela, permite o scroll
-                        if (textScrollView.getChildAt(0).getHeight() > textScrollView.getHeight()) {
-                            return false;
-                        }
-                        break;
+                // Permite scroll apenas se o conteúdo for maior que a view
+                if (textScrollView.getChildAt(0).getHeight() > textScrollView.getHeight()) {
+                    return false;
                 }
-                return false;
+                return true;
             }
         });
         
