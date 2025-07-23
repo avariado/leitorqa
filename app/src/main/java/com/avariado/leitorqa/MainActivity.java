@@ -172,26 +172,26 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        menuButton.setOnClickListener(v - > toggleMenu());
-        prevButton.setOnClickListener(v - > safePrevItem());
-        nextButton.setOnClickListener(v - > safeNextItem());
-        importButton.setOnClickListener(v - > importTextFile());
-        exportButton.setOnClickListener(v - > showExportDialog());
-        editButton.setOnClickListener(v - > showEditDialog());
-        shuffleButton.setOnClickListener(v - > shuffleItems());
-        resetButton.setOnClickListener(v - > resetOrder());
-        increaseFontButton.setOnClickListener(v - > increaseFontSize());
-        decreaseFontButton.setOnClickListener(v - > decreaseFontSize());
-        searchPrevButton.setOnClickListener(v - > goToPrevSearchResult());
-        searchNextButton.setOnClickListener(v - > goToNextSearchResult());
+        menuButton.setOnClickListener(v -> toggleMenu());
+        prevButton.setOnClickListener(v -> safePrevItem());
+        nextButton.setOnClickListener(v -> safeNextItem());
+        importButton.setOnClickListener(v -> importTextFile());
+        exportButton.setOnClickListener(v -> showExportDialog());
+        editButton.setOnClickListener(v -> showEditDialog());
+        shuffleButton.setOnClickListener(v -> shuffleItems());
+        resetButton.setOnClickListener(v -> resetOrder());
+        increaseFontButton.setOnClickListener(v -> increaseFontSize());
+        decreaseFontButton.setOnClickListener(v -> decreaseFontSize());
+        searchPrevButton.setOnClickListener(v -> goToPrevSearchResult());
+        searchNextButton.setOnClickListener(v -> goToNextSearchResult());
 
-        overlay.setOnClickListener(v - > {
+        overlay.setOnClickListener(v -> {
             if (menuVisible) {
                 toggleMenu();
             }
         });
 
-        currentCardInput.setOnFocusChangeListener((v, hasFocus) - > {
+        currentCardInput.setOnFocusChangeListener((v, hasFocus) -> {
             if (!hasFocus) {
                 validateAndUpdateCardNumber();
             }
@@ -278,9 +278,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupCardInputBehavior() {
-        currentCardInput.setOnClickListener(v - > enableEditing());
+        currentCardInput.setOnClickListener(v -> enableEditing());
 
-        currentCardInput.setOnEditorActionListener((v, actionId, event) - > {
+        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 finishEditing();
                 return true;
@@ -288,7 +288,7 @@ public class MainActivity extends AppCompatActivity {
             return false;
         });
 
-        cardView.setOnTouchListener((v, event) - > {
+        cardView.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_UP) {
                 if (!menuVisible) {
                     finishEditing();
@@ -427,7 +427,7 @@ public class MainActivity extends AppCompatActivity {
             menuLayout.animate()
                 .translationX(-menuLayout.getWidth())
                 .setDuration(300)
-                .withEndAction(() - > {
+                .withEndAction(() -> {
                     menuLayout.setVisibility(View.GONE);
                     overlay.setVisibility(View.GONE);
                 })
@@ -818,7 +818,7 @@ public class MainActivity extends AppCompatActivity {
         processingMessage.setVisibility(View.VISIBLE);
         processingMessage.setText("Processando PDF, aguarde...");
 
-        new Thread(() - > {
+        new Thread(() -> {
             try {
                 InputStream inputStream = getContentResolver().openInputStream(uri);
                 PDDocument document = PDDocument.load(inputStream);
@@ -853,7 +853,7 @@ public class MainActivity extends AppCompatActivity {
 
                 if (isAlternatingQa && !hasMultipleSentences && lines.length >= 2) {
                     if (lines.length % 2 != 0) {
-                        runOnUiThread(() - > {
+                        runOnUiThread(() -> {
                             Toast.makeText(this,
                                 "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.",
                                 Toast.LENGTH_LONG).show();
@@ -868,14 +868,14 @@ public class MainActivity extends AppCompatActivity {
                     parseTextContent(pdfContent);
                 }
 
-                runOnUiThread(() - > {
+                runOnUiThread(() -> {
                     updateDisplay();
                     saveState();
                     processingMessage.setVisibility(View.GONE);
                     Toast.makeText(this, "PDF importado com sucesso!", Toast.LENGTH_SHORT).show();
                 });
             } catch (Exception e) {
-                runOnUiThread(() - > {
+                runOnUiThread(() -> {
                     processingMessage.setVisibility(View.GONE);
                     Toast.makeText(this, "Erro ao processar PDF: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     e.printStackTrace();
@@ -1024,7 +1024,7 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setView(dialogView);
         builder.setTitle("Editar Conteúdo");
-        builder.setPositiveButton("Guardar", (dialog, which) - > {
+        builder.setPositiveButton("Guardar", (dialog, which) -> {
             String text = contentEditor.getText().toString();
             if (text.trim().isEmpty()) {
                 Toast.makeText(this, "O conteúdo não pode estar vazio!", Toast.LENGTH_SHORT).show();
@@ -1046,7 +1046,7 @@ public class MainActivity extends AppCompatActivity {
             updateDisplay();
             saveState();
         });
-        builder.setNegativeButton("Cancelar", (dialog, which) - > dialog.dismiss());
+        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
         builder.show();
     }
 
