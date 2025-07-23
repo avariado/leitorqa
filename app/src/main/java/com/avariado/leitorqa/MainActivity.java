@@ -73,8 +73,7 @@ public class MainActivity extends AppCompatActivity {
     private static final float QA_LINE_SPACING_MULTIPLIER = 1.3f;
     private static final float TEXT_LINE_SPACING_MULTIPLIER = 1.2f;
 
-    private static final int MAX_TAP_TIME = 100; 
-    private static final int MAX_TAP_MOVEMENT = 15; 
+    private static final int TAP_TIMEOUT = ViewConfiguration.getDoubleTapTimeout(); 
 
     private TextView questionTextView;
     private TextView answerTextView;
@@ -471,49 +470,51 @@ public class MainActivity extends AppCompatActivity {
             private long touchStartTime;
             private float touchStartX;
             private float touchStartY;
+            private boolean isSwiping = false;
             private boolean isPotentialTap = true;
-            private final int MAX_TAP_DURATION = 120; 
-            private final int MAX_TAP_MOVEMENT = 10; 
+            private final int tapTimeout = ViewConfiguration.getTapTimeout();
+            private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
         
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                boolean handledByGesture = gestureDetector.onTouchEvent(event);
+                gestureDetector.onTouchEvent(event);
         
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         touchStartTime = System.currentTimeMillis();
                         touchStartX = event.getX();
                         touchStartY = event.getY();
+                        isSwiping = false;
                         isPotentialTap = true;
-                        v.onTouchEvent(event); 
+                        v.onTouchEvent(event);
                         return true;
         
                     case MotionEvent.ACTION_MOVE:
-                        if (isPotentialTap && (Math.abs(event.getX() - touchStartX) > MAX_TAP_MOVEMENT || 
-                                              Math.abs(event.getY() - touchStartY) > MAX_TAP_MOVEMENT)) {
-                            isPotentialTap = false;
+                        if (isPotentialTap) {
+                            float dx = Math.abs(event.getX() - touchStartX);
+                            float dy = Math.abs(event.getY() - touchStartY);
+                            if (dx > touchSlop || dy > touchSlop) {
+                                isPotentialTap = false;
+                                if (dx > dy && dx > touchSlop) {
+                                    isSwiping = true;
+                                }
+                            }
                         }
                         break;
         
                     case MotionEvent.ACTION_UP:
-                        if (isPotentialTap && !handledByGesture && 
-                            (System.currentTimeMillis() - touchStartTime < MAX_TAP_DURATION)) {
-                            
+                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
                             toggleAnswerVisibility();
-                            
                             v.cancelLongPress();
-                            questionTextView.setPressed(false);
-                            answerTextView.setPressed(false);
-                            
-                            questionTextView.setSelected(false);
-                            answerTextView.setSelected(false);
-                            
-                            return true; 
+                            return true;
                         }
                         break;
                 }
         
-                return v.onTouchEvent(event);
+                if (!isSwiping) {
+                    v.onTouchEvent(event);
+                }
+                return true;
             }
         };
         
