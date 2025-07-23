@@ -73,7 +73,8 @@ public class MainActivity extends AppCompatActivity {
     private static final float QA_LINE_SPACING_MULTIPLIER = 1.3f;
     private static final float TEXT_LINE_SPACING_MULTIPLIER = 1.2f;
 
-    private static final int TAP_TIMEOUT = ViewConfiguration.getDoubleTapTimeout();
+    private static final int MAX_TAP_TIME = 100; 
+    private static final int MAX_TAP_MOVEMENT = 15; 
 
     private TextView questionTextView;
     private TextView answerTextView;
@@ -465,9 +466,6 @@ public class MainActivity extends AppCompatActivity {
         answerTextView.setTextIsSelectable(true);
         questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-        
-        private static final int MAX_TAP_TIME = 100; 
-        private static final int MAX_TAP_MOVEMENT = 15; 
         
         View.OnTouchListener touchListener = new View.OnTouchListener() {
             private long touchStartTime;
