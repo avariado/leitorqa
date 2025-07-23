@@ -467,33 +467,37 @@ public class MainActivity extends AppCompatActivity {
         View.OnTouchListener touchListener = new View.OnTouchListener() {
             private long lastTouchTime = 0;
             private float startX = 0;
-            
+            private boolean isPotentialTap = true;
+        
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                
+                gestureDetector.onTouchEvent(event); 
+        
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         startX = event.getX();
                         lastTouchTime = System.currentTimeMillis();
-                        v.onTouchEvent(event);
+                        isPotentialTap = true;
                         return true;
-                        
+        
                     case MotionEvent.ACTION_MOVE:
                         if (Math.abs(event.getX() - startX) > ViewConfiguration.get(v.getContext()).getScaledTouchSlop()) {
-                            return true; 
+                            isPotentialTap = false;
                         }
                         break;
-                        
+        
                     case MotionEvent.ACTION_UP:
-                        if (System.currentTimeMillis() - lastTouchTime < 200) {
+                        if (isPotentialTap && (System.currentTimeMillis() - lastTouchTime < 200)) {
                             toggleAnswerVisibility();
                             return true;
                         }
                         break;
                 }
-                
-                return v.onTouchEvent(event);
+        
+                if (event.getAction() != MotionEvent.ACTION_UP || !isPotentialTap) {
+                    v.onTouchEvent(event);
+                }
+                return true;
             }
         };
         
