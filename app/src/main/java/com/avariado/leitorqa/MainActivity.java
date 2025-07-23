@@ -68,10 +68,10 @@ public class MainActivity extends AppCompatActivity {
     private static final String FONT_SIZE_KEY = "fontSize";
     private static final String ORIGINAL_SEPARATOR_KEY = "originalSeparator";
 
-    private static final float QA_LINE_SPACING_EXTRA = 10 f;
-    private static final float TEXT_LINE_SPACING_EXTRA = 6 f;
-    private static final float QA_LINE_SPACING_MULTIPLIER = 1.3 f;
-    private static final float TEXT_LINE_SPACING_MULTIPLIER = 1.2 f;
+    private static final float QA_LINE_SPACING_EXTRA = 10f;
+    private static final float TEXT_LINE_SPACING_EXTRA = 6f;
+    private static final float QA_LINE_SPACING_MULTIPLIER = 1.3f;
+    private static final float TEXT_LINE_SPACING_MULTIPLIER = 1.2f;
 
     private static final int TAP_TIMEOUT = ViewConfiguration.getDoubleTapTimeout();
 
