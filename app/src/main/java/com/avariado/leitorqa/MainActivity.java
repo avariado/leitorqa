@@ -467,46 +467,45 @@ public class MainActivity extends AppCompatActivity {
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         
         View.OnTouchListener touchListener = new View.OnTouchListener() {
-            private long lastTouchTime = 0;
-            private float startX = 0;
-            private float startY = 0;
+            private long touchStartTime;
+            private float touchStartX;
+            private float touchStartY;
             private boolean isSwiping = false;
-            private GestureDetector.SimpleOnGestureListener tapDetector = new GestureDetector.SimpleOnGestureListener() {
-                @Override
-                public boolean onSingleTapConfirmed(MotionEvent e) {
-                    toggleAnswerVisibility();
-                    return true;
-                }
-            };
-            private GestureDetector tapGestureDetector = new GestureDetector(getApplicationContext(), tapDetector);
+            private boolean isPotentialTap = true;
+            private final int tapTimeout = ViewConfiguration.getTapTimeout();
+            private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
         
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
-                
-                tapGestureDetector.onTouchEvent(event);
         
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        startX = event.getX();
-                        startY = event.getY();
-                        lastTouchTime = System.currentTimeMillis();
+                        touchStartTime = System.currentTimeMillis();
+                        touchStartX = event.getX();
+                        touchStartY = event.getY();
                         isSwiping = false;
+                        isPotentialTap = true;
                         v.onTouchEvent(event);
                         return true;
         
                     case MotionEvent.ACTION_MOVE:
-                        if (!isSwiping) {
-                            float dx = Math.abs(event.getX() - startX);
-                            float dy = Math.abs(event.getY() - startY);
-                            if (dx > ViewConfiguration.get(v.getContext()).getScaledTouchSlop() && dx > dy) {
-                                isSwiping = true;
+                        if (isPotentialTap) {
+                            float dx = Math.abs(event.getX() - touchStartX);
+                            float dy = Math.abs(event.getY() - touchStartY);
+                            if (dx > touchSlop || dy > touchSlop) {
+                                isPotentialTap = false;
+                                if (dx > dy && dx > touchSlop) {
+                                    isSwiping = true;
+                                }
                             }
                         }
                         break;
         
                     case MotionEvent.ACTION_UP:
-                        if (!isSwiping && (System.currentTimeMillis() - lastTouchTime < ViewConfiguration.getLongPressTimeout())) {
+                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
+                            toggleAnswerVisibility();
+                            v.cancelLongPress();
                             return true;
                         }
                         break;
