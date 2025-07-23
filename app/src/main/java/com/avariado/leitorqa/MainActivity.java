@@ -471,32 +471,43 @@ public class MainActivity extends AppCompatActivity {
             private long touchStartTime;
             private float touchStartX;
             private float touchStartY;
-            private boolean isTap = false;
+            private boolean isPotentialTap = true;
+            private final int MAX_TAP_DURATION = 120; 
+            private final int MAX_TAP_MOVEMENT = 10; 
         
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
+                boolean handledByGesture = gestureDetector.onTouchEvent(event);
         
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         touchStartTime = System.currentTimeMillis();
                         touchStartX = event.getX();
                         touchStartY = event.getY();
-                        isTap = true;
+                        isPotentialTap = true;
                         v.onTouchEvent(event); 
                         return true;
         
                     case MotionEvent.ACTION_MOVE:
-                        if (isTap && (Math.abs(event.getX() - touchStartX) > 10 || 
-                                      Math.abs(event.getY() - touchStartY) > 10)) {
-                            isTap = false; 
+                        if (isPotentialTap && (Math.abs(event.getX() - touchStartX) > MAX_TAP_MOVEMENT || 
+                                              Math.abs(event.getY() - touchStartY) > MAX_TAP_MOVEMENT)) {
+                            isPotentialTap = false;
                         }
                         break;
         
                     case MotionEvent.ACTION_UP:
-                        if (isTap && (System.currentTimeMillis() - touchStartTime < 120)) {
+                        if (isPotentialTap && !handledByGesture && 
+                            (System.currentTimeMillis() - touchStartTime < MAX_TAP_DURATION)) {
+                            
                             toggleAnswerVisibility();
-                            v.cancelLongPress(); 
+                            
+                            v.cancelLongPress();
+                            questionTextView.setPressed(false);
+                            answerTextView.setPressed(false);
+                            
+                            questionTextView.setSelected(false);
+                            answerTextView.setSelected(false);
+                            
                             return true; 
                         }
                         break;
