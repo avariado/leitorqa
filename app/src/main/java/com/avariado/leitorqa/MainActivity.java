@@ -457,6 +457,11 @@ public class MainActivity extends AppCompatActivity {
         } else {
             questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
         }
+
+        questionTextView.setTextIsSelectable(true);
+        answerTextView.setTextIsSelectable(true);
+        questionTextView.setHighlightColor(Color.parseColor("#80FF5722")); 
+        answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
     
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
         QAItem currentItem = items.get(currentIndex);
