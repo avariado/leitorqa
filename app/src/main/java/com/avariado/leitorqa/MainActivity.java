@@ -460,8 +460,24 @@ public class MainActivity extends AppCompatActivity {
 
         questionTextView.setTextIsSelectable(true);
         answerTextView.setTextIsSelectable(true);
-        questionTextView.setHighlightColor(Color.parseColor("#80FF5722")); 
+        questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
+        
+        View.OnTouchListener touchListener = new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                boolean handledByGesture = gestureDetector.onTouchEvent(event);
+                
+                if (!handledByGesture) {
+                    v.onTouchEvent(event); 
+                    return true;
+                }
+                return true; 
+            }
+        };
+        
+        questionTextView.setOnTouchListener(touchListener);
+        answerTextView.setOnTouchListener(touchListener);
     
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
         QAItem currentItem = items.get(currentIndex);
