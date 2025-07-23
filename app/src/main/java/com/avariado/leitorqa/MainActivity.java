@@ -471,25 +471,30 @@ public class MainActivity extends AppCompatActivity {
             private long touchStartTime;
             private float touchStartX;
             private float touchStartY;
+            private boolean isTap = false;
         
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                boolean handledBySwipe = gestureDetector.onTouchEvent(event);
+                gestureDetector.onTouchEvent(event);
         
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         touchStartTime = System.currentTimeMillis();
                         touchStartX = event.getX();
                         touchStartY = event.getY();
+                        isTap = true;
                         v.onTouchEvent(event); 
                         return true;
         
+                    case MotionEvent.ACTION_MOVE:
+                        if (isTap && (Math.abs(event.getX() - touchStartX) > 10 || 
+                                      Math.abs(event.getY() - touchStartY) > 10)) {
+                            isTap = false; 
+                        }
+                        break;
+        
                     case MotionEvent.ACTION_UP:
-                        long tapDuration = System.currentTimeMillis() - touchStartTime;
-                        float dx = Math.abs(event.getX() - touchStartX);
-                        float dy = Math.abs(event.getY() - touchStartY);
-                        
-                        if (!handledBySwipe && tapDuration <= MAX_TAP_TIME && dx <= MAX_TAP_MOVEMENT && dy <= MAX_TAP_MOVEMENT) {
+                        if (isTap && (System.currentTimeMillis() - touchStartTime < 120)) {
                             toggleAnswerVisibility();
                             v.cancelLongPress(); 
                             return true; 
