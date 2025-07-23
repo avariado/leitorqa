@@ -330,7 +330,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
             toggleAnswerVisibility();
-            return true;
+            return false;
         }
     
         @Override
