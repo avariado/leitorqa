@@ -471,13 +471,13 @@ public class MainActivity extends AppCompatActivity {
             private float touchStartX;
             private float touchStartY;
             private boolean isSwiping = false;
-            private boolean isPotentialTap = true;
             private final int tapTimeout = ViewConfiguration.getTapTimeout();
             private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
+            private boolean shouldHandleTap = true;
         
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
+                boolean handledByGesture = gestureDetector.onTouchEvent(event);
         
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
@@ -485,16 +485,16 @@ public class MainActivity extends AppCompatActivity {
                         touchStartX = event.getX();
                         touchStartY = event.getY();
                         isSwiping = false;
-                        isPotentialTap = true;
+                        shouldHandleTap = true;
                         v.onTouchEvent(event);
                         return true;
         
                     case MotionEvent.ACTION_MOVE:
-                        if (isPotentialTap) {
+                        if (shouldHandleTap) {
                             float dx = Math.abs(event.getX() - touchStartX);
                             float dy = Math.abs(event.getY() - touchStartY);
                             if (dx > touchSlop || dy > touchSlop) {
-                                isPotentialTap = false;
+                                shouldHandleTap = false;
                                 if (dx > dy && dx > touchSlop) {
                                     isSwiping = true;
                                 }
@@ -503,7 +503,8 @@ public class MainActivity extends AppCompatActivity {
                         break;
         
                     case MotionEvent.ACTION_UP:
-                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
+                        if (shouldHandleTap && !handledByGesture && 
+                            (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
                             toggleAnswerVisibility();
                             v.cancelLongPress();
                             return true;
