@@ -331,14 +331,12 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
-            // Clear any text selection first
             if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
                 questionTextView.clearFocus();
                 answerTextView.clearFocus();
                 return true;
             }
             
-            // Then handle the tap
             toggleAnswerVisibility();
             return true;
         }
@@ -512,13 +510,11 @@ public class MainActivity extends AppCompatActivity {
 
                     case MotionEvent.ACTION_UP:
                         if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
-                            // Clear any text selection first
                             if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
                                 questionTextView.clearFocus();
                                 answerTextView.clearFocus();
                                 return true;
                             }
-                            // Then handle the tap
                             toggleAnswerVisibility();
                             v.cancelLongPress();
                             return true;
