@@ -179,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
         });
         
         // Setup text view touch listeners
-        questionTextView.setOnTouchListener(new View.OnTouchListener() {
+questionTextView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 textGestureDetector.onTouchEvent(event);
@@ -251,26 +251,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // New method to clear text selection
-    private void clearTextSelection() {
+private void clearTextSelection() {
         questionTextView.clearFocus();
         answerTextView.clearFocus();
         
-        // Clear selection programmatically
-        questionTextView.setSelected(false);
-        answerTextView.setSelected(false);
-        
-        // Move cursor to start to clear selection highlight
-        if (questionTextView.hasSelection()) {
-            questionTextView.setSelection(0);
-        }
-        if (answerTextView.hasSelection()) {
-            answerTextView.setSelection(0);
+        // Clear selection highlight by setting text again
+        if (isQAMode) {
+            questionTextView.setText(highlightText(items.get(currentIndex).getQuestion(), searchTerm));
+            answerTextView.setText(highlightText(items.get(currentIndex).getAnswer(), searchTerm));
+        } else {
+            questionTextView.setText(highlightText(items.get(currentIndex).getText(), searchTerm));
         }
         
         // Request focus for the main container to clear text selection
         mainContainer.requestFocus();
     }
-
+    
     // New GestureListener for text areas
     private class TextTapGestureListener extends GestureDetector.SimpleOnGestureListener {
         @Override
@@ -295,9 +291,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Check if any text is currently selected
     private boolean hasTextSelection() {
-        return (questionTextView.hasSelection() || answerTextView.hasSelection());
+        // For TextView, we can't directly check selection, so we'll assume if it has focus it might have selection
+        return (questionTextView.hasFocus() || answerTextView.hasFocus());
     }
 
     @Override
