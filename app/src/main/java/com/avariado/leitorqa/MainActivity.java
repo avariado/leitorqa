@@ -156,44 +156,60 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
-        cardView.setOnTouchListener(new View.OnTouchListener() {
-            private long touchStartTime;
-            private boolean isPotentialTap = false;
-            
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
+// Add touch listener to main container to handle text selection and show/hide text
+mainContainer.setOnTouchListener(new View.OnTouchListener() {
+    private long startClickTime;
+    private static final int MAX_CLICK_DURATION = 200; // Maximum duration for a "very short" touch
+    
+    @Override
+    public boolean onTouch(View v, MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                startClickTime = System.currentTimeMillis();
+                // Let the event propagate so swipe/scroll can work
+                return false;
                 
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        touchStartTime = System.currentTimeMillis();
-                        isPotentialTap = true;
-                        // Clear text selection if exists
-                        if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                            questionTextView.clearFocus();
-                            answerTextView.clearFocus();
-                            return true;
-                        }
-                        break;
-                        
-                    case MotionEvent.ACTION_UP:
-                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < TAP_TIMEOUT)) {
-                            toggleAnswerVisibility();
-                            return true;
-                        }
-                        break;
-                        
-                    case MotionEvent.ACTION_MOVE:
-                        // If user moves finger too much, it's not a tap
-                        if (isPotentialTap && (Math.abs(event.getX() - event.getHistoricalX(0)) > 10 || 
-                                             Math.abs(event.getY() - event.getHistoricalY(0)) > 10)) {
-                            isPotentialTap = false;
-                        }
-                        break;
+            case MotionEvent.ACTION_UP:
+                long clickDuration = System.currentTimeMillis() - startClickTime;
+                
+                // Check if there's text selection
+                boolean hasSelection = questionTextView.hasSelection() || answerTextView.hasSelection();
+                
+                if (hasSelection) {
+                    // Clear selection for both short and very short touches
+                    questionTextView.clearFocus();
+                    answerTextView.clearFocus();
+                    return true;
+                } else if (clickDuration < MAX_CLICK_DURATION) {
+                    // Very short touch with no selection - toggle text visibility
+                    if (answerTextView.getVisibility() == View.VISIBLE) {
+                        answerTextView.setVisibility(View.GONE);
+                    } else {
+                        answerTextView.setVisibility(View.VISIBLE);
+                    }
+                    return true;
                 }
-                return true;
-            }
-        });
+                return false;
+        }
+        return false;
+    }
+});
+
+currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
+QAItem currentItem = items.get(currentIndex);
+
+if (isQAMode) {
+    questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
+    answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
+    answerTextView.setVisibility(View.GONE);
+} else {
+    questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
+    answerTextView.setText("");
+    answerTextView.setVisibility(View.GONE);
+}
+
+currentCardInput.setText(String.valueOf(currentIndex + 1));
+totalCardsText.setText("/ " + items.size());
         
         textScrollView.setOnTouchListener(new View.OnTouchListener() {
             @Override
