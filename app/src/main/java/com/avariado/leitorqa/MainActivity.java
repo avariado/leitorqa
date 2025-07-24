@@ -157,9 +157,40 @@ public class MainActivity extends AppCompatActivity {
         setupCardInputBehavior();
 
         cardView.setOnTouchListener(new View.OnTouchListener() {
+            private long touchStartTime;
+            private boolean isPotentialTap = false;
+            
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
+                
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        touchStartTime = System.currentTimeMillis();
+                        isPotentialTap = true;
+                        // Clear text selection if exists
+                        if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                            questionTextView.clearFocus();
+                            answerTextView.clearFocus();
+                            return true;
+                        }
+                        break;
+                        
+                    case MotionEvent.ACTION_UP:
+                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < TAP_TIMEOUT)) {
+                            toggleAnswerVisibility();
+                            return true;
+                        }
+                        break;
+                        
+                    case MotionEvent.ACTION_MOVE:
+                        // If user moves finger too much, it's not a tap
+                        if (isPotentialTap && (Math.abs(event.getX() - event.getHistoricalX(0)) > 10 || 
+                                             Math.abs(event.getY() - event.getHistoricalY(0)) > 10)) {
+                            isPotentialTap = false;
+                        }
+                        break;
+                }
                 return true;
             }
         });
@@ -474,64 +505,62 @@ public class MainActivity extends AppCompatActivity {
             private boolean isPotentialTap = true;
             private final int tapTimeout = ViewConfiguration.getTapTimeout();
             private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
+
+            // Add this new touch listener for the text views
+            View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
+            private long touchStartTime;
+            private float touchStartX;
+            private float touchStartY;
+            private boolean isPotentialTap = false;
+            private final int touchSlop = ViewConfiguration.get(MainActivity.this).getScaledTouchSlop();
         
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
-        
+                
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         touchStartTime = System.currentTimeMillis();
                         touchStartX = event.getX();
                         touchStartY = event.getY();
-                        isSwiping = false;
                         isPotentialTap = true;
-                        // Clear text selection on any tap
+                        // Clear text selection if exists
                         if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
                             questionTextView.clearFocus();
                             answerTextView.clearFocus();
                             return true;
                         }
+                        // Let the TextView handle the touch for selection
                         v.onTouchEvent(event);
                         return true;
-        
+                        
+                    case MotionEvent.ACTION_UP:
+                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < TAP_TIMEOUT)) {
+                            // If it was a very short tap, toggle answer visibility
+                            toggleAnswerVisibility();
+                            return true;
+                        }
+                        break;
+                        
                     case MotionEvent.ACTION_MOVE:
                         if (isPotentialTap) {
                             float dx = Math.abs(event.getX() - touchStartX);
                             float dy = Math.abs(event.getY() - touchStartY);
                             if (dx > touchSlop || dy > touchSlop) {
                                 isPotentialTap = false;
-                                if (dx > dy && dx > touchSlop) {
-                                    isSwiping = true;
-                                }
                             }
                         }
                         break;
-        
-                    case MotionEvent.ACTION_UP:
-                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
-                            // Clear text selection first if any
-                            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                                questionTextView.clearFocus();
-                                answerTextView.clearFocus();
-                                return true;
-                            }
-                            toggleAnswerVisibility();
-                            v.cancelLongPress();
-                            return true;
-                        }
-                        break;
                 }
-        
-                if (!isSwiping) {
-                    v.onTouchEvent(event);
-                }
+                
+                // Let the TextView handle the touch for scrolling/selection
+                v.onTouchEvent(event);
                 return true;
             }
         };
         
-        questionTextView.setOnTouchListener(touchListener);
-        answerTextView.setOnTouchListener(touchListener);
+        questionTextView.setOnTouchListener(textViewTouchListener);
+        answerTextView.setOnTouchListener(textViewTouchListener);
         
         // Add touch listener to main container to clear text selection
         mainContainer.setOnTouchListener(new View.OnTouchListener() {
