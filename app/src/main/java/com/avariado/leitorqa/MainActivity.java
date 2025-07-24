@@ -165,6 +165,7 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
     });
+    }
     
     // Scroll view touch listener - allows scrolling while still detecting gestures
     textScrollView.setOnTouchListener(new View.OnTouchListener() {
@@ -313,18 +314,6 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
     });
-        
-        cardView.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (!menuVisible) {
-                    finishEditing();
-                    toggleAnswerVisibility();
-                }
-            }
-            gestureDetector.onTouchEvent(event);
-            return true;
-        });
-    }
 
     private void enableEditing() {
         currentCardInput.setFocusable(true);
