@@ -161,6 +161,8 @@ public class MainActivity extends AppCompatActivity {
             private GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
             private boolean isSwiping = false;
             private boolean isLongPress = false;
+            private float touchStartX;
+            private float touchStartY;
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -169,6 +171,8 @@ public class MainActivity extends AppCompatActivity {
 
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        touchStartX = event.getX();
+                        touchStartY = event.getY();
                         isSwiping = false;
                         isLongPress = false;
                         break;
@@ -376,7 +380,7 @@ public class MainActivity extends AppCompatActivity {
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
 
-            if (Math.abs(diffX) > Math.abs(diffY) {
+            if (Math.abs(diffX) > Math.abs(diffY)) {
                 if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                     if (diffX > 0) {
                         safePrevItem();
@@ -387,14 +391,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             return false;
-        }
-    }
-
-    private void safePrevItem() {
-        try {
-            prevItem();
-        } catch (Exception e) {
-            showError("Erro ao navegar para o cartão anterior");
         }
     }
     
