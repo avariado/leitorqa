@@ -156,10 +156,21 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
+        // Configuração do touch listener para o cartão inteiro
         cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
+                
+                // Verifica se há seleção de texto e limpa se necessário
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                        questionTextView.clearFocus();
+                        answerTextView.clearFocus();
+                        return true;
+                    }
+                }
+                
                 return true;
             }
         });
@@ -331,8 +342,16 @@ public class MainActivity extends AppCompatActivity {
     
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
+            // Verifica se há seleção de texto primeiro
+            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                questionTextView.clearFocus();
+                answerTextView.clearFocus();
+                return true;
+            }
+            
+            // Caso contrário, alterna a visibilidade da resposta
             toggleAnswerVisibility();
-            return false;
+            return true;
         }
     
         @Override
@@ -359,6 +378,7 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
     }
+}
 
     private void safePrevItem() {
         try {
@@ -466,7 +486,8 @@ public class MainActivity extends AppCompatActivity {
         questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         
-        View.OnTouchListener touchListener = new View.OnTouchListener() {
+        // Configuração do touch listener para o texto da pergunta e resposta
+        View.OnTouchListener textTouchListener = new View.OnTouchListener() {
             private long touchStartTime;
             private float touchStartX;
             private float touchStartY;
@@ -486,13 +507,6 @@ public class MainActivity extends AppCompatActivity {
                         touchStartY = event.getY();
                         isSwiping = false;
                         isPotentialTap = true;
-                        // Clear text selection on any tap
-                        if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                            questionTextView.clearFocus();
-                            answerTextView.clearFocus();
-                            return true;
-                        }
-                        v.onTouchEvent(event);
                         return true;
         
                     case MotionEvent.ACTION_MOVE:
@@ -510,12 +524,6 @@ public class MainActivity extends AppCompatActivity {
         
                     case MotionEvent.ACTION_UP:
                         if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
-                            // Clear text selection first if any
-                            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                                questionTextView.clearFocus();
-                                answerTextView.clearFocus();
-                                return true;
-                            }
                             toggleAnswerVisibility();
                             v.cancelLongPress();
                             return true;
@@ -530,10 +538,10 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         
-        questionTextView.setOnTouchListener(touchListener);
-        answerTextView.setOnTouchListener(touchListener);
+        questionTextView.setOnTouchListener(textTouchListener);
+        answerTextView.setOnTouchListener(textTouchListener);
         
-        // Add touch listener to main container to clear text selection
+        // Configuração do touch listener para o container principal para limpar seleção de texto
         mainContainer.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -547,6 +555,23 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
+    
+        currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
+        QAItem currentItem = items.get(currentIndex);
+    
+        if (isQAMode) {
+            questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
+            answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
+            answerTextView.setVisibility(View.GONE);
+        } else {
+            questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
+            answerTextView.setText("");
+            answerTextView.setVisibility(View.GONE);
+        }
+    
+        currentCardInput.setText(String.valueOf(currentIndex + 1));
+        totalCardsText.setText("/ " + items.size());
+    }
     
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
         QAItem currentItem = items.get(currentIndex);
