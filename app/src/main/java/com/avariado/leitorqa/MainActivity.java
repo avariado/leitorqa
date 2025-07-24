@@ -103,6 +103,8 @@ public class MainActivity extends AppCompatActivity {
 
     private GestureDetectorCompat gestureDetector;
     private GestureDetectorCompat textGestureDetector;
+    private boolean isTextSelected = false;
+    private boolean isSwipe = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -161,11 +163,11 @@ public class MainActivity extends AppCompatActivity {
         cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                // Clear text selection when tapping outside text areas
-                if (event.getAction() == MotionEvent.ACTION_UP) {
-                    clearTextSelection();
-                }
                 gestureDetector.onTouchEvent(event);
+                
+                if (event.getAction() == MotionEvent.ACTION_UP && !isSwipe) {
+                    return false;
+                }
                 return true;
             }
         });
@@ -177,23 +179,74 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
-        
-        // Setup text view touch listeners
-questionTextView.setOnTouchListener(new View.OnTouchListener() {
+
+        questionTextView.setOnTouchListener(new View.OnTouchListener() {
+            private float startX;
+            private boolean isPotentialTap = true;
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        startX = event.getX();
+                        isPotentialTap = true;
+                        break;
+                        
+                    case MotionEvent.ACTION_MOVE:
+                        if (Math.abs(event.getX() - startX) > ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop()) {
+                            isPotentialTap = false;
+                        }
+                        break;
+                        
+                    case MotionEvent.ACTION_UP:
+                        if (isPotentialTap) {
+                            if (isTextSelected) {
+                                clearTextSelection();
+                            } else {
+                                toggleAnswerVisibility();
+                            }
+                            return true;
+                        }
+                        break;
+                }
+                
                 textGestureDetector.onTouchEvent(event);
-                // Pass event to text view for text selection
                 v.onTouchEvent(event);
                 return true;
             }
         });
-        
+
         answerTextView.setOnTouchListener(new View.OnTouchListener() {
+            private float startX;
+            private boolean isPotentialTap = true;
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        startX = event.getX();
+                        isPotentialTap = true;
+                        break;
+                        
+                    case MotionEvent.ACTION_MOVE:
+                        if (Math.abs(event.getX() - startX) > ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop()) {
+                            isPotentialTap = false;
+                        }
+                        break;
+                        
+                    case MotionEvent.ACTION_UP:
+                        if (isPotentialTap) {
+                            if (isTextSelected) {
+                                clearTextSelection();
+                            } else {
+                                toggleAnswerVisibility();
+                            }
+                            return true;
+                        }
+                        break;
+                }
+                
                 textGestureDetector.onTouchEvent(event);
-                // Pass event to text view for text selection
                 v.onTouchEvent(event);
                 return true;
             }
@@ -250,170 +303,26 @@ questionTextView.setOnTouchListener(new View.OnTouchListener() {
         updateFontSize();
     }
 
-    // New method to clear text selection
-private void clearTextSelection() {
-        questionTextView.clearFocus();
-        answerTextView.clearFocus();
-        
-        // Clear selection highlight by setting text again
-        if (isQAMode) {
-            questionTextView.setText(highlightText(items.get(currentIndex).getQuestion(), searchTerm));
-            answerTextView.setText(highlightText(items.get(currentIndex).getAnswer(), searchTerm));
-        } else {
-            questionTextView.setText(highlightText(items.get(currentIndex).getText(), searchTerm));
-        }
-        
-        // Request focus for the main container to clear text selection
-        mainContainer.requestFocus();
-    }
-    
-    // New GestureListener for text areas
-    private class TextTapGestureListener extends GestureDetector.SimpleOnGestureListener {
-        @Override
-        public boolean onDown(MotionEvent e) {
-            return true;
-        }
-
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            // Handle short taps on text areas
-            if (hasTextSelection()) {
-                clearTextSelection();
-            } else {
-                toggleAnswerVisibility();
-            }
-            return true;
-        }
-
-        @Override
-        public void onLongPress(MotionEvent e) {
-            // Let the default long press behavior handle text selection
-        }
-    }
-
-    private boolean hasTextSelection() {
-        // For TextView, we can't directly check selection, so we'll assume if it has focus it might have selection
-        return (questionTextView.hasFocus() || answerTextView.hasFocus());
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (currentCardInput.hasFocus()) {
-            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
-                finishEditing();
-                return true;
-            }
-            return super.onKeyDown(keyCode, event);
-        }
-    
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_DPAD_LEFT:
-                safePrevItem();
-                return true;
-            case KeyEvent.KEYCODE_DPAD_RIGHT:
-                safeNextItem();
-                return true;
-            case KeyEvent.KEYCODE_ENTER:
-            case KeyEvent.KEYCODE_NUMPAD_ENTER:
-                toggleAnswerVisibility();
-                return true;
-            case KeyEvent.KEYCODE_SPACE:
-                toggleMenu();
-                return true;
-            default:
-                return super.onKeyDown(keyCode, event);
-        }
-    }
-    
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            int keyCode = event.getKeyCode();
-            
-            if (currentCardInput.hasFocus() && 
-               (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
-                finishEditing();
-                return true;
-            }
-            
-            if (!currentCardInput.hasFocus()) {
-                if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
-                    toggleAnswerVisibility();
-                    return true;
-                }
-                if (keyCode == KeyEvent.KEYCODE_SPACE) {
-                    toggleMenu();
-                    return true;
-                }
-            }
-        }
-        return super.dispatchKeyEvent(event);
-    }
-
-    private void setupCardInputBehavior() {
-        currentCardInput.setOnClickListener(v -> enableEditing());
-        
-        currentCardInput.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_DONE) {
-                finishEditing();
-                return true;
-            }
-            return false;
-        });
-        
-        cardView.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (!menuVisible) {
-                    finishEditing();
-                    toggleAnswerVisibility();
-                }
-            }
-            gestureDetector.onTouchEvent(event);
-            return true;
-        });
-    }
-
-    private void enableEditing() {
-        currentCardInput.setFocusable(true);
-        currentCardInput.setFocusableInTouchMode(true);
-        currentCardInput.requestFocus();
-        currentCardInput.setCursorVisible(true);
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.showSoftInput(currentCardInput, InputMethodManager.SHOW_IMPLICIT);
-    }
-
-    private void finishEditing() {
-        currentCardInput.clearFocus();
-        currentCardInput.setFocusable(false);
-        currentCardInput.setFocusableInTouchMode(false);
-        currentCardInput.setCursorVisible(false);
-        validateAndUpdateCardNumber();
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
-    }
-
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
         private static final float SWIPE_ANGLE_THRESHOLD = 30;
-    
+
         @Override
         public boolean onDown(MotionEvent e) {
+            isSwipe = false;
             return true;
         }
-    
+
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
-            // Clear text selection when tapping outside text areas
-            if (hasTextSelection()) {
+            if (isTextSelected) {
                 clearTextSelection();
                 return true;
             }
-            
-            toggleAnswerVisibility();
-            return true;
+            return false;
         }
-    
+
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             float diffX = e2.getX() - e1.getX();
@@ -427,6 +336,7 @@ private void clearTextSelection() {
                 if (Math.abs(diffX) > SWIPE_THRESHOLD && 
                     Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                     
+                    isSwipe = true;
                     if (diffX > 0) {
                         safePrevItem();
                     } else {
@@ -436,6 +346,38 @@ private void clearTextSelection() {
                 }
             }
             return false;
+        }
+    }
+
+    private class TextTapGestureListener extends GestureDetector.SimpleOnGestureListener {
+        @Override
+        public void onLongPress(MotionEvent e) {
+            isTextSelected = true;
+        }
+    }
+
+    private void clearTextSelection() {
+        questionTextView.clearFocus();
+        answerTextView.clearFocus();
+        
+        if (isQAMode) {
+            questionTextView.setText(highlightText(items.get(currentIndex).getQuestion(), searchTerm));
+            answerTextView.setText(highlightText(items.get(currentIndex).getAnswer(), searchTerm));
+        } else {
+            questionTextView.setText(highlightText(items.get(currentIndex).getText(), searchTerm));
+        }
+        
+        isTextSelected = false;
+        mainContainer.requestFocus();
+    }
+
+    private void toggleAnswerVisibility() {
+        if (isQAMode) {
+            if (answerTextView.getVisibility() == View.VISIBLE) {
+                answerTextView.setVisibility(View.GONE);
+            } else {
+                answerTextView.setVisibility(View.VISIBLE);
+            }
         }
     }
 
