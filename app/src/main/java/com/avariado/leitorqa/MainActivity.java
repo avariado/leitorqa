@@ -156,50 +156,65 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
+        // Configuração do touch listener para o cartão inteiro
         cardView.setOnTouchListener(new View.OnTouchListener() {
-            private long touchStartTime;
-            private float touchStartX;
-            private float touchStartY;
-            private boolean isPotentialTap = true;
-            private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
+            private GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
+            private boolean isSwiping = false;
+            private boolean isLongPress = false;
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                // Primeiro verifica se há seleção de texto para limpar
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                        questionTextView.clearFocus();
-                        answerTextView.clearFocus();
-                        return true;
-                    }
-                    
-                    touchStartTime = System.currentTimeMillis();
-                    touchStartX = event.getX();
-                    touchStartY = event.getY();
-                    isPotentialTap = true;
+                // Primeiro passa para o gesture detector para detectar swipes
+                boolean gestureHandled = gestureDetector.onTouchEvent(event);
+
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        isSwiping = false;
+                        isLongPress = false;
+                        break;
+
+                    case MotionEvent.ACTION_MOVE:
+                        if (!isSwiping && !isLongPress) {
+                            float dx = Math.abs(event.getX() - touchStartX);
+                            float dy = Math.abs(event.getY() - touchStartY);
+                            if (dx > ViewConfiguration.get(v.getContext()).getScaledTouchSlop()) {
+                                isSwiping = true;
+                            }
+                        }
+                        break;
+
+                    case MotionEvent.ACTION_UP:
+                        if (!isSwiping && !isLongPress && !gestureHandled) {
+                            // Toque curto - alterna visibilidade da resposta ou limpa seleção
+                            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                                questionTextView.clearFocus();
+                                answerTextView.clearFocus();
+                            } else {
+                                toggleAnswerVisibility();
+                            }
+                        }
+                        break;
                 }
 
-                // Passa o evento para o gesture detector
-                boolean handled = gestureDetector.onTouchEvent(event);
-
-                // Trata toques curtos para mostrar/ocultar resposta
-                if (event.getAction() == MotionEvent.ACTION_UP) {
-                    if (!handled && isPotentialTap && 
-                        (System.currentTimeMillis() - touchStartTime < TAP_TIMEOUT) &&
-                        !menuVisible) {
-                        
-                        float dx = Math.abs(event.getX() - touchStartX);
-                        float dy = Math.abs(event.getY() - touchStartY);
-                        
-                        if (dx < touchSlop && dy < touchSlop) {
-                            toggleAnswerVisibility();
-                            return true;
-                        }
-                    }
+                // Se não for um swipe, passa o evento para os TextViews para permitir seleção de texto
+                if (!isSwiping) {
+                    questionTextView.onTouchEvent(event);
+                    answerTextView.onTouchEvent(event);
                 }
 
                 return true;
             }
+        });
+
+        // Configuração dos TextViews para permitir seleção de texto
+        questionTextView.setOnLongClickListener(v -> {
+            isLongPress = true;
+            return false;
+        });
+
+        answerTextView.setOnLongClickListener(v -> {
+            isLongPress = true;
+            return false;
         });
         
         textScrollView.setOnTouchListener(new View.OnTouchListener() {
@@ -346,34 +361,23 @@ public class MainActivity extends AppCompatActivity {
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
 
+    // Classe interna do gesture detector modificada
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-        private static final float SWIPE_ANGLE_THRESHOLD = 30;
-    
+
         @Override
         public boolean onDown(MotionEvent e) {
             return true;
         }
-    
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            return false;
-        }
-    
+
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
-            
-            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
-            
-            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
-                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
-                
-                if (Math.abs(diffX) > SWIPE_THRESHOLD && 
-                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                    
+
+            if (Math.abs(diffX) > Math.abs(diffY) {
+                if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                     if (diffX > 0) {
                         safePrevItem();
                     } else {
