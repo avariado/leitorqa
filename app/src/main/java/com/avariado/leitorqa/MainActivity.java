@@ -155,39 +155,22 @@ public class MainActivity extends AppCompatActivity {
         currentCardInput.setCursorVisible(false);
         
         setupCardInputBehavior();
-        setupTouchListeners();
 
-    // Card view touch listener
-    cardView.setOnTouchListener(new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            gestureDetector.onTouchEvent(event);
-            return true;
-        }
-    });
-    }
-    
-    // Scroll view touch listener - allows scrolling while still detecting gestures
-    textScrollView.setOnTouchListener(new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            gestureDetector.onTouchEvent(event);
-            return false; // Let the scroll view handle the event
-        }
-    });
-    
-    // Text views touch listeners - allow text selection while still detecting gestures
-    View.OnTouchListener textTouchListener = new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            gestureDetector.onTouchEvent(event);
-            return false; // Let the text view handle the event
-        }
-    };
-    
-    questionTextView.setOnTouchListener(textTouchListener);
-    answerTextView.setOnTouchListener(textTouchListener);
-}
+        cardView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                return true;
+            }
+        });
+        
+        textScrollView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                return false;
+            }
+        });
         
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
@@ -304,16 +287,18 @@ public class MainActivity extends AppCompatActivity {
             }
             return false;
         });
-
-        private void setupTouchListeners() {
-    // Main container touch listener - handles taps anywhere on screen
-    mainContainer.setOnTouchListener(new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
+        
+        cardView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (!menuVisible) {
+                    finishEditing();
+                    toggleAnswerVisibility();
+                }
+            }
             gestureDetector.onTouchEvent(event);
             return true;
-        }
-    });
+        });
+    }
 
     private void enableEditing() {
         currentCardInput.setFocusable(true);
@@ -334,70 +319,46 @@ public class MainActivity extends AppCompatActivity {
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
 
-private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
-    private static final int SWIPE_THRESHOLD = 100;
-    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-    private static final float SWIPE_ANGLE_THRESHOLD = 30;
+    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
+        private static final int SWIPE_THRESHOLD = 100;
+        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+        private static final float SWIPE_ANGLE_THRESHOLD = 30;
     
-    @Override
-    public boolean onDown(MotionEvent e) {
-        return true;
-    }
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
     
-    @Override
-    public boolean onSingleTapConfirmed(MotionEvent e) {
-        // This handles very short taps
-        handleTapEvent();
-        return true;
-    }
-    
-    @Override
-    public boolean onSingleTapUp(MotionEvent e) {
-        // This handles regular short taps
-        handleTapEvent();
-        return true;
-    }
-    
-    private void handleTapEvent() {
-        // Check if text is selected in either TextView
-        boolean isTextSelected = (questionTextView.hasSelection() || answerTextView.hasSelection());
-        
-        if (isTextSelected) {
-            // Cancel any text selection
-            questionTextView.setTextIsSelectable(false);
-            answerTextView.setTextIsSelectable(false);
-            questionTextView.setTextIsSelectable(true);
-            answerTextView.setTextIsSelectable(true);
-        } else {
-            // No text selected - toggle answer visibility
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
             toggleAnswerVisibility();
+            return false;
         }
-    }
     
-    @Override
-    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        float diffX = e2.getX() - e1.getX();
-        float diffY = e2.getY() - e1.getY();
-        
-        float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
-        
-        if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
-            Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            float diffX = e2.getX() - e1.getX();
+            float diffY = e2.getY() - e1.getY();
             
-            if (Math.abs(diffX) > SWIPE_THRESHOLD && 
-                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
+            
+            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD || 
+                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
                 
-                if (diffX > 0) {
-                    safePrevItem();
-                } else {
-                    safeNextItem();
+                if (Math.abs(diffX) > SWIPE_THRESHOLD && 
+                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                    
+                    if (diffX > 0) {
+                        safePrevItem();
+                    } else {
+                        safeNextItem();
+                    }
+                    return true;
                 }
-                return true;
             }
+            return false;
         }
-        return false;
     }
-}
 
     private void safePrevItem() {
         try {
