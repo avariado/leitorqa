@@ -476,123 +476,114 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     
-    private void updateDisplay() {
-        if (items.isEmpty()) {
-            questionTextView.setText("Nenhum conteúdo carregado.");
-            answerTextView.setText("");
-            currentCardInput.setText("0");
-            totalCardsText.setText("/ 0");
-            return;
-        }
+private void updateDisplay() {
+    if (items.isEmpty()) {
+        questionTextView.setText("Nenhum conteúdo carregado.");
+        answerTextView.setText("");
+        currentCardInput.setText("0");
+        totalCardsText.setText("/ 0");
+        return;
+    }
+
+    if (isQAMode) {
+        questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
+        answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
+    } else {
+        questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
+    }
+
+    questionTextView.setTextIsSelectable(true);
+    answerTextView.setTextIsSelectable(true);
+    questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
+    answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
     
-        if (isQAMode) {
-            questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
-            answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
-        } else {
-            questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
-        }
-
-        questionTextView.setTextIsSelectable(true);
-        answerTextView.setTextIsSelectable(true);
-        questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-        answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-        
-        View.OnTouchListener touchListener = new View.OnTouchListener() {
-            private long touchStartTime;
-            private float touchStartX;
-            private float touchStartY;
-            private boolean isSwiping = false;
-            private boolean isPotentialTap = true;
-            private final int tapTimeout = ViewConfiguration.getTapTimeout();
-            private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
-
-            // Add this new touch listener for the text views
-            View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
-            private long touchStartTime;
-            private float touchStartX;
-            private float touchStartY;
-            private boolean isPotentialTap = false;
-            private final int touchSlop = ViewConfiguration.get(MainActivity.this).getScaledTouchSlop();
-        
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-                
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        touchStartTime = System.currentTimeMillis();
-                        touchStartX = event.getX();
-                        touchStartY = event.getY();
-                        isPotentialTap = true;
-                        // Clear text selection if exists
-                        if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                            questionTextView.clearFocus();
-                            answerTextView.clearFocus();
-                            return true;
-                        }
-                        // Let the TextView handle the touch for selection
-                        v.onTouchEvent(event);
-                        return true;
-                        
-                    case MotionEvent.ACTION_UP:
-                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < TAP_TIMEOUT)) {
-                            // If it was a very short tap, toggle answer visibility
-                            toggleAnswerVisibility();
-                            return true;
-                        }
-                        break;
-                        
-                    case MotionEvent.ACTION_MOVE:
-                        if (isPotentialTap) {
-                            float dx = Math.abs(event.getX() - touchStartX);
-                            float dy = Math.abs(event.getY() - touchStartY);
-                            if (dx > touchSlop || dy > touchSlop) {
-                                isPotentialTap = false;
-                            }
-                        }
-                        break;
-                }
-                
-                // Let the TextView handle the touch for scrolling/selection
-                v.onTouchEvent(event);
-                return true;
-            }
-        };
-        
-        questionTextView.setOnTouchListener(textViewTouchListener);
-        answerTextView.setOnTouchListener(textViewTouchListener);
-        
-        // Add touch listener to main container to clear text selection
-        mainContainer.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+    // Create the touch listener for text views
+    View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
+        private long touchStartTime;
+        private float touchStartX;
+        private float touchStartY;
+        private boolean isPotentialTap = false;
+        private final int touchSlop = ViewConfiguration.get(MainActivity.this).getScaledTouchSlop();
+    
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            gestureDetector.onTouchEvent(event);
+            
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    touchStartTime = System.currentTimeMillis();
+                    touchStartX = event.getX();
+                    touchStartY = event.getY();
+                    isPotentialTap = true;
+                    // Clear text selection if exists
                     if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
                         questionTextView.clearFocus();
                         answerTextView.clearFocus();
                         return true;
                     }
-                }
-                return false;
+                    // Let the TextView handle the touch for selection
+                    v.onTouchEvent(event);
+                    return true;
+                    
+                case MotionEvent.ACTION_UP:
+                    if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < TAP_TIMEOUT)) {
+                        // If it was a very short tap, toggle answer visibility
+                        toggleAnswerVisibility();
+                        return true;
+                    }
+                    break;
+                    
+                case MotionEvent.ACTION_MOVE:
+                    if (isPotentialTap) {
+                        float dx = Math.abs(event.getX() - touchStartX);
+                        float dy = Math.abs(event.getY() - touchStartY);
+                        if (dx > touchSlop || dy > touchSlop) {
+                            isPotentialTap = false;
+                        }
+                    }
+                    break;
             }
-        });
-    
-        currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
-        QAItem currentItem = items.get(currentIndex);
-    
-        if (isQAMode) {
-            questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
-            answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
-            answerTextView.setVisibility(View.GONE);
-        } else {
-            questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
-            answerTextView.setText("");
-            answerTextView.setVisibility(View.GONE);
+            
+            // Let the TextView handle the touch for scrolling/selection
+            v.onTouchEvent(event);
+            return true;
         }
+    };
     
-        currentCardInput.setText(String.valueOf(currentIndex + 1));
-        totalCardsText.setText("/ " + items.size());
+    questionTextView.setOnTouchListener(textViewTouchListener);
+    answerTextView.setOnTouchListener(textViewTouchListener);
+        
+    // Add touch listener to main container to clear text selection
+    mainContainer.setOnTouchListener(new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                    questionTextView.clearFocus();
+                    answerTextView.clearFocus();
+                    return true;
+                }
+            }
+            return false;
+        }
+    });
+
+    currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
+    QAItem currentItem = items.get(currentIndex);
+
+    if (isQAMode) {
+        questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
+        answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
+        answerTextView.setVisibility(View.GONE);
+    } else {
+        questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
+        answerTextView.setText("");
+        answerTextView.setVisibility(View.GONE);
     }
+
+    currentCardInput.setText(String.valueOf(currentIndex + 1));
+    totalCardsText.setText("/ " + items.size());
+}
 
     private Spanned highlightText(String text, String searchTerm) {
         if (text == null || searchTerm == null || searchTerm.isEmpty()) {
