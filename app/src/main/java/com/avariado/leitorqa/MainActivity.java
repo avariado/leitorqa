@@ -103,6 +103,10 @@ public class MainActivity extends AppCompatActivity {
 
     private GestureDetectorCompat gestureDetector;
 
+    private boolean isLongPress = false;
+    private float touchStartX;
+    private float touchStartY;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -156,15 +160,15 @@ public class MainActivity extends AppCompatActivity {
         
         setupCardInputBehavior();
 
-        // Configuração do touch listener para o cartão inteiro
+        // Configuração do touch listener corrigida
         cardView.setOnTouchListener(new View.OnTouchListener() {
-            private GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
+            private final GestureDetectorCompat gestureDetector = 
+                new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
             private boolean isSwiping = false;
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                // Primeiro passa para o gesture detector
-                boolean gestureHandled = gestureDetector.onTouchEvent(event);
+                gestureDetector.onTouchEvent(event);
 
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
@@ -184,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
                         break;
 
                     case MotionEvent.ACTION_UP:
-                        if (!isSwiping && !isLongPress && !gestureHandled) {
+                        if (!isSwiping && !isLongPress) {
                             if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
                                 questionTextView.clearFocus();
                                 answerTextView.clearFocus();
@@ -204,16 +208,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Configuração dos listeners de toque longo
-        questionTextView.setOnLongClickListener(v -> {
+        // Listeners de toque longo
+        View.OnLongClickListener longClickListener = v -> {
             isLongPress = true;
             return false;
-        });
-
-        answerTextView.setOnLongClickListener(v -> {
-            isLongPress = true;
-            return false;
-        });
+        };
+        questionTextView.setOnLongClickListener(longClickListener);
+        answerTextView.setOnLongClickListener(longClickListener);
 
         // Configuração dos botões com métodos existentes
         prevButton.setOnClickListener(v -> prevItem());
@@ -378,12 +379,12 @@ public class MainActivity extends AppCompatActivity {
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
 
-            if (Math.abs(diffX) > Math.abs(diffY) {
+            if (Math.abs(diffX) > Math.abs(diffY)) {
                 if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                     if (diffX > 0) {
-                        prevItem(); // Chamando o método diretamente
+                        prevItem();
                     } else {
-                        nextItem(); // Chamando o método diretamente
+                        nextItem();
                     }
                     return true;
                 }
@@ -519,14 +520,14 @@ public class MainActivity extends AppCompatActivity {
         return Html.fromHtml(highlighted);
     }
 
-    // Métodos de navegação corrigidos
+    // Métodos de navegação
     private void prevItem() {
         if (items.isEmpty()) return;
         currentIndex = (currentIndex - 1 + items.size()) % items.size();
         updateDisplay();
         saveState();
     }
-    
+
     private void nextItem() {
         if (items.isEmpty()) return;
         currentIndex = (currentIndex + 1) % items.size();
