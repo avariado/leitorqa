@@ -16,7 +16,6 @@ import android.text.method.LinkMovementMethod;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewTreeObserver;
 import android.view.inputmethod.EditorInfo;
@@ -102,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
     private String searchTerm = "";
 
     private GestureDetectorCompat gestureDetector;
+    private GestureDetectorCompat textGestureDetector;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -136,6 +136,7 @@ public class MainActivity extends AppCompatActivity {
         menuLayout.setVisibility(View.VISIBLE);
         
         gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
+        textGestureDetector = new GestureDetectorCompat(this, new TextTapGestureListener());
         
         Button menuButton = findViewById(R.id.menu_button);
         Button prevButton = findViewById(R.id.prev_button);
@@ -159,6 +160,10 @@ public class MainActivity extends AppCompatActivity {
         cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
+                // Clear text selection when tapping outside text areas
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    clearTextSelection();
+                }
                 gestureDetector.onTouchEvent(event);
                 return true;
             }
@@ -169,6 +174,27 @@ public class MainActivity extends AppCompatActivity {
             public boolean onTouch(View v, MotionEvent event) {
                 gestureDetector.onTouchEvent(event);
                 return false;
+            }
+        });
+        
+        // Setup text view touch listeners
+        questionTextView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                textGestureDetector.onTouchEvent(event);
+                // Pass event to text view for text selection
+                v.onTouchEvent(event);
+                return true;
+            }
+        });
+        
+        answerTextView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                textGestureDetector.onTouchEvent(event);
+                // Pass event to text view for text selection
+                v.onTouchEvent(event);
+                return true;
             }
         });
         
@@ -221,6 +247,56 @@ public class MainActivity extends AppCompatActivity {
         }
         updateDisplay();
         updateFontSize();
+    }
+
+    // New method to clear text selection
+    private void clearTextSelection() {
+        questionTextView.clearFocus();
+        answerTextView.clearFocus();
+        
+        // Clear selection programmatically
+        questionTextView.setSelected(false);
+        answerTextView.setSelected(false);
+        
+        // Move cursor to start to clear selection highlight
+        if (questionTextView.hasSelection()) {
+            questionTextView.setSelection(0);
+        }
+        if (answerTextView.hasSelection()) {
+            answerTextView.setSelection(0);
+        }
+        
+        // Request focus for the main container to clear text selection
+        mainContainer.requestFocus();
+    }
+
+    // New GestureListener for text areas
+    private class TextTapGestureListener extends GestureDetector.SimpleOnGestureListener {
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            // Handle short taps on text areas
+            if (hasTextSelection()) {
+                clearTextSelection();
+            } else {
+                toggleAnswerVisibility();
+            }
+            return true;
+        }
+
+        @Override
+        public void onLongPress(MotionEvent e) {
+            // Let the default long press behavior handle text selection
+        }
+    }
+
+    // Check if any text is currently selected
+    private boolean hasTextSelection() {
+        return (questionTextView.hasSelection() || answerTextView.hasSelection());
     }
 
     @Override
@@ -331,8 +407,14 @@ public class MainActivity extends AppCompatActivity {
     
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
+            // Clear text selection when tapping outside text areas
+            if (hasTextSelection()) {
+                clearTextSelection();
+                return true;
+            }
+            
             toggleAnswerVisibility();
-            return false;
+            return true;
         }
     
         @Override
@@ -465,61 +547,6 @@ public class MainActivity extends AppCompatActivity {
         answerTextView.setTextIsSelectable(true);
         questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-        
-        View.OnTouchListener touchListener = new View.OnTouchListener() {
-            private long touchStartTime;
-            private float touchStartX;
-            private float touchStartY;
-            private boolean isSwiping = false;
-            private boolean isPotentialTap = true;
-            private final int tapTimeout = ViewConfiguration.getTapTimeout();
-            private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
-        
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-        
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        touchStartTime = System.currentTimeMillis();
-                        touchStartX = event.getX();
-                        touchStartY = event.getY();
-                        isSwiping = false;
-                        isPotentialTap = true;
-                        v.onTouchEvent(event);
-                        return true;
-        
-                    case MotionEvent.ACTION_MOVE:
-                        if (isPotentialTap) {
-                            float dx = Math.abs(event.getX() - touchStartX);
-                            float dy = Math.abs(event.getY() - touchStartY);
-                            if (dx > touchSlop || dy > touchSlop) {
-                                isPotentialTap = false;
-                                if (dx > dy && dx > touchSlop) {
-                                    isSwiping = true;
-                                }
-                            }
-                        }
-                        break;
-        
-                    case MotionEvent.ACTION_UP:
-                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
-                            toggleAnswerVisibility();
-                            v.cancelLongPress();
-                            return true;
-                        }
-                        break;
-                }
-        
-                if (!isSwiping) {
-                    v.onTouchEvent(event);
-                }
-                return true;
-            }
-        };
-        
-        questionTextView.setOnTouchListener(touchListener);
-        answerTextView.setOnTouchListener(touchListener);
     
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
         QAItem currentItem = items.get(currentIndex);
