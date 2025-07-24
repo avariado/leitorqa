@@ -160,13 +160,10 @@ public class MainActivity extends AppCompatActivity {
         cardView.setOnTouchListener(new View.OnTouchListener() {
             private GestureDetectorCompat gestureDetector = new GestureDetectorCompat(MainActivity.this, new SwipeGestureListener());
             private boolean isSwiping = false;
-            private boolean isLongPress = false;
-            private float touchStartX;
-            private float touchStartY;
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                // Primeiro passa para o gesture detector para detectar swipes
+                // Primeiro passa para o gesture detector
                 boolean gestureHandled = gestureDetector.onTouchEvent(event);
 
                 switch (event.getAction()) {
@@ -180,7 +177,6 @@ public class MainActivity extends AppCompatActivity {
                     case MotionEvent.ACTION_MOVE:
                         if (!isSwiping && !isLongPress) {
                             float dx = Math.abs(event.getX() - touchStartX);
-                            float dy = Math.abs(event.getY() - touchStartY);
                             if (dx > ViewConfiguration.get(v.getContext()).getScaledTouchSlop()) {
                                 isSwiping = true;
                             }
@@ -189,7 +185,6 @@ public class MainActivity extends AppCompatActivity {
 
                     case MotionEvent.ACTION_UP:
                         if (!isSwiping && !isLongPress && !gestureHandled) {
-                            // Toque curto - alterna visibilidade da resposta ou limpa seleção
                             if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
                                 questionTextView.clearFocus();
                                 answerTextView.clearFocus();
@@ -200,7 +195,6 @@ public class MainActivity extends AppCompatActivity {
                         break;
                 }
 
-                // Se não for um swipe, passa o evento para os TextViews para permitir seleção de texto
                 if (!isSwiping) {
                     questionTextView.onTouchEvent(event);
                     answerTextView.onTouchEvent(event);
@@ -210,7 +204,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Configuração dos TextViews para permitir seleção de texto
+        // Configuração dos listeners de toque longo
         questionTextView.setOnLongClickListener(v -> {
             isLongPress = true;
             return false;
@@ -220,6 +214,10 @@ public class MainActivity extends AppCompatActivity {
             isLongPress = true;
             return false;
         });
+
+        // Configuração dos botões com métodos existentes
+        prevButton.setOnClickListener(v -> prevItem());
+        nextButton.setOnClickListener(v -> nextItem());
         
         textScrollView.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -365,7 +363,7 @@ public class MainActivity extends AppCompatActivity {
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
 
-    // Classe interna do gesture detector modificada
+    // Classe do gesture detector corrigida
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
@@ -380,12 +378,12 @@ public class MainActivity extends AppCompatActivity {
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
 
-            if (Math.abs(diffX) > Math.abs(diffY)) {
+            if (Math.abs(diffX) > Math.abs(diffY) {
                 if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                     if (diffX > 0) {
-                        safePrevItem();
+                        prevItem(); // Chamando o método diretamente
                     } else {
-                        safeNextItem();
+                        nextItem(); // Chamando o método diretamente
                     }
                     return true;
                 }
@@ -521,6 +519,7 @@ public class MainActivity extends AppCompatActivity {
         return Html.fromHtml(highlighted);
     }
 
+    // Métodos de navegação corrigidos
     private void prevItem() {
         if (items.isEmpty()) return;
         currentIndex = (currentIndex - 1 + items.size()) % items.size();
