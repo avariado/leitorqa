@@ -485,6 +485,11 @@ public class MainActivity extends AppCompatActivity {
         View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
             private GestureDetectorCompat textGestureDetector = new GestureDetectorCompat(MainActivity.this, new GestureDetector.SimpleOnGestureListener() {
                 @Override
+                public boolean onDown(MotionEvent e) {
+                    return true;
+                }
+
+                @Override
                 public boolean onSingleTapUp(MotionEvent e) {
                     // Se há seleção de texto, limpa a seleção
                     if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
@@ -496,16 +501,24 @@ public class MainActivity extends AppCompatActivity {
                     toggleAnswerVisibility();
                     return true;
                 }
+
+                @Override
+                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                    // Delega o swipe para o detector de gestos principal
+                    return gestureDetector.onTouchEvent(e2);
+                }
             });
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 // Primeiro processa os gestos
-                textGestureDetector.onTouchEvent(event);
+                boolean gestureHandled = textGestureDetector.onTouchEvent(event);
                 
                 // Depois permite o comportamento padrão para seleção de texto
-                v.onTouchEvent(event);
-                return true;
+                boolean textSelectionHandled = v.onTouchEvent(event);
+                
+                // Retorna true se algum dos handlers processou o evento
+                return gestureHandled || textSelectionHandled;
             }
         };
 
