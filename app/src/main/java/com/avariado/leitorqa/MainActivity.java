@@ -226,54 +226,94 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupTextViewTouchListeners() {
         View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
-            private GestureDetector gestureDetector = new GestureDetector(MainActivity.this, new GestureDetector.SimpleOnGestureListener() {
-                @Override
-                public boolean onSingleTapUp(MotionEvent e) {
-                    toggleAnswerVisibility();
-                    return true;
-                }
-
-                @Override
-                public boolean onDown(MotionEvent e) {
-                    return true;
-                }
-
-                @Override
-                public void onLongPress(MotionEvent e) {
-                    TextView textView = (TextView) ((View) e.getSource());
-                    textView.performLongClick();
-                }
-            });
-
+            private GestureDetectorCompat textGestureDetector = new GestureDetectorCompat(
+                MainActivity.this, new TextGestureListener());
+            
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                TextView textView = (TextView) v;
-                gestureDetector.onTouchEvent(event);
+                textGestureDetector.onTouchEvent(event);
                 
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        if (!gestureDetector.onTouchEvent(event)) {
-                            textView.cancelLongPress();
-                        }
-                        break;
-                    case MotionEvent.ACTION_UP:
-                        if (textView.hasSelection()) {
-                            textView.clearFocus();
-                            textView.clearComposingText();
-                        }
-                        break;
+                // Permitir a seleção de texto quando for um toque longo
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    TextView textView = (TextView) v;
+                    if (textView.hasSelection()) {
+                        textView.clearFocus();
+                        return true;
+                    }
                 }
-                
-                return textView.onTouchEvent(event);
+                return false;
             }
         };
 
         questionTextView.setOnTouchListener(textViewTouchListener);
         answerTextView.setOnTouchListener(textViewTouchListener);
-        questionTextView.setTextIsSelectable(true);
-        answerTextView.setTextIsSelectable(true);
-        questionTextView.setMovementMethod(LinkMovementMethod.getInstance());
-        answerTextView.setMovementMethod(LinkMovementMethod.getInstance());
+    }
+
+    private class TextGestureListener extends GestureDetector.SimpleOnGestureListener {
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            // Tratar toque muito curto
+            toggleAnswerVisibility();
+            return true;
+        }
+
+        @Override
+        public void onLongPress(MotionEvent e) {
+            // Permitir a seleção de texto com toque longo
+            TextView textView = (TextView) (e.getX() < questionTextView.getWidth() ? 
+                questionTextView : answerTextView);
+            textView.performLongClick();
+        }
+    }
+
+    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
+        private static final int SWIPE_THRESHOLD = 100;
+        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+        private static final float SWIPE_ANGLE_THRESHOLD = 30;
+
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            // Toque muito curto em áreas sem texto
+            if (!menuVisible) {
+                finishEditing();
+                toggleAnswerVisibility();
+            }
+            return true;
+        }
+
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            float diffX = e2.getX() - e1.getX();
+            float diffY = e2.getY() - e1.getY();
+
+            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
+
+            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD ||
+                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
+
+                if (Math.abs(diffX) > SWIPE_THRESHOLD &&
+                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+
+                    if (diffX > 0) {
+                        safePrevItem();
+                    } else {
+                        safeNextItem();
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     @Override
@@ -377,53 +417,6 @@ public class MainActivity extends AppCompatActivity {
         validateAndUpdateCardNumber();
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
-    }
-
-    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
-        private static final int SWIPE_THRESHOLD = 100;
-        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-        private static final float SWIPE_ANGLE_THRESHOLD = 30;
-
-        @Override
-        public boolean onDown(MotionEvent e) {
-            return true;
-        }
-
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                questionTextView.clearFocus();
-                answerTextView.clearFocus();
-                return true;
-            }
-            
-            toggleAnswerVisibility();
-            return true;
-        }
-
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            float diffX = e2.getX() - e1.getX();
-            float diffY = e2.getY() - e1.getY();
-
-            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
-
-            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD ||
-                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
-
-                if (Math.abs(diffX) > SWIPE_THRESHOLD &&
-                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-
-                    if (diffX > 0) {
-                        safePrevItem();
-                    } else {
-                        safeNextItem();
-                    }
-                    return true;
-                }
-            }
-            return false;
-        }
     }
 
     private void safePrevItem() {
