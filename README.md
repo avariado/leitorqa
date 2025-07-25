@@ -1,3 +1,3 @@
-# leitor k
+# leitor qa
 
-Icon by Laisa Islam Ani (https://www.flaticon.com/authors/laisa-islam-ani)
+Icon by Iconsea (https://www.freepik.com/author/iconsea/icons)
