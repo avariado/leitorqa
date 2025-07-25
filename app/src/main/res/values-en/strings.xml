@@ -1,1 +1,20 @@
-
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Q&amp;A</string>
+    <string name="app_long_name">Q&amp;A Reader</string>
+    
+    <!-- Interface texts -->
+    <string name="menu_button">☰</string>
+    <string name="import_button">Import file</string>
+    <string name="export_button">Export file</string>
+    <string name="edit_button">Edit content</string>
+    <string name="shuffle_button">Shuffle questions</string>
+    <string name="reset_button">Reset to initial order</string>
+    <string name="font_size_label">Size</string>
+    <string name="search_hint">Search\u2026</string>
+    <string name="prev_button">◄</string>
+    <string name="next_button">►</string>
+    <string name="decrease_font_button">-</string>
+    <string name="increase_font_button">+</string>
+    <string name="processing_message">Processing PDF\u2026</string>
+</resources>
