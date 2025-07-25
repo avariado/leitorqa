@@ -26,7 +26,6 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
-import android.view.View;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.view.KeyEvent;
@@ -102,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
     private String searchTerm = "";
 
     private GestureDetectorCompat gestureDetector;
+    private boolean isTextSelected = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -326,40 +326,51 @@ public class MainActivity extends AppCompatActivity {
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
 
-private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
-    private static final int SWIPE_THRESHOLD = 100;
-    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-    private static final float SWIPE_ANGLE_THRESHOLD = 30;
+    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
+        private static final int SWIPE_THRESHOLD = 100;
+        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+        private static final float SWIPE_ANGLE_THRESHOLD = 30;
 
-    @Override
-    public boolean onDown(MotionEvent e) {
-        return true;
-    }
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
 
-    @Override
-    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        float diffX = e2.getX() - e1.getX();
-        float diffY = e2.getY() - e1.getY();
-
-        float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
-
-        if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD ||
-            Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
-
-            if (Math.abs(diffX) > SWIPE_THRESHOLD &&
-                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-
-                if (diffX > 0) {
-                    safePrevItem();
-                } else {
-                    safeNextItem();
-                }
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            if (isTextSelected) {
+                isTextSelected = false;
                 return true;
             }
+            
+            toggleAnswerVisibility();
+            return true;
         }
-        return false;
+
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            float diffX = e2.getX() - e1.getX();
+            float diffY = e2.getY() - e1.getY();
+
+            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
+
+            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD ||
+                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
+
+                if (Math.abs(diffX) > SWIPE_THRESHOLD &&
+                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+
+                    if (diffX > 0) {
+                        safePrevItem();
+                    } else {
+                        safeNextItem();
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
     }
-}
 
     private void safePrevItem() {
         try {
@@ -466,58 +477,65 @@ private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListen
         answerTextView.setTextIsSelectable(true);
         questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-    
-        // Configuração do OnTouchListener para os TextViews
-        View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
+
+        View.OnTouchListener touchListener = new View.OnTouchListener() {
             private long touchStartTime;
             private float touchStartX;
             private float touchStartY;
+            private boolean isSwiping = false;
             private boolean isPotentialTap = true;
-            private final int touchSlop = ViewConfiguration.get(MainActivity.this).getScaledTouchSlop();
-    
+            private final int tapTimeout = ViewConfiguration.getTapTimeout();
+            private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                // Primeiro processa os gestos principais (swipes)
                 gestureDetector.onTouchEvent(event);
-    
+
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         touchStartTime = System.currentTimeMillis();
                         touchStartX = event.getX();
                         touchStartY = event.getY();
+                        isSwiping = false;
                         isPotentialTap = true;
-                        break;
-    
+                        isTextSelected = false;
+                        return true;
+
                     case MotionEvent.ACTION_MOVE:
                         if (isPotentialTap) {
                             float dx = Math.abs(event.getX() - touchStartX);
                             float dy = Math.abs(event.getY() - touchStartY);
                             if (dx > touchSlop || dy > touchSlop) {
                                 isPotentialTap = false;
+                                if (dx > dy && dx > touchSlop) {
+                                    isSwiping = true;
+                                }
                             }
                         }
                         break;
-    
+
                     case MotionEvent.ACTION_UP:
-                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < ViewConfiguration.getTapTimeout())) {
-                            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                                questionTextView.clearFocus();
-                                answerTextView.clearFocus();
+                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
+                            if (((TextView)v).hasSelection()) {
+                                isTextSelected = true;
                                 return true;
                             }
                             toggleAnswerVisibility();
+                            v.cancelLongPress();
                             return true;
                         }
                         break;
                 }
-    
-                // Permite o comportamento padrão para seleção de texto
-                return v.onTouchEvent(event);
+
+                if (!isSwiping) {
+                    v.onTouchEvent(event);
+                }
+                return true;
             }
         };
-    
-        questionTextView.setOnTouchListener(textViewTouchListener);
-        answerTextView.setOnTouchListener(textViewTouchListener);
+
+        questionTextView.setOnTouchListener(touchListener);
+        answerTextView.setOnTouchListener(touchListener);
 
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
         QAItem currentItem = items.get(currentIndex);
@@ -630,7 +648,7 @@ private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListen
         if (hasTabs || hasDoubleSemicolon) {
             originalSeparator = hasTabs ? "\t" : ";;";
 
-            for (String line: lines) {
+            for (String line : lines) {
                 if (line.trim().isEmpty()) continue;
 
                 String[] parts = line.split(originalSeparator);
@@ -712,7 +730,7 @@ private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListen
         List<QAItem> processedItems = new ArrayList<>();
         StringBuilder currentChunk = new StringBuilder();
 
-        for (String sentence: sentences) {
+        for (String sentence : sentences) {
             if (currentChunk.length() == 0) {
                 currentChunk.append(sentence);
             } else if (currentChunk.length() + sentence.length() < 75) {
@@ -838,441 +856,441 @@ private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListen
                 boolean isAlternatingQa = true;
                 boolean hasMultipleSentences = false;
 
+                int linesToCheck = Math.min(lines.length, 50);
+                for (int i = 0; i < linesToCheck; i++) {
+                    String line = lines[i].trim();
+                    if (!line.isEmpty()) {
+                        if (hasMultipleSentences(line)) {
+                            hasMultipleSentences = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (isAlternatingQa && !hasMultipleSentences && lines.length >= 2) {
+                    if (lines.length % 2 != 0) {
+                        runOnUiThread(() -> {
+                            Toast.makeText(this,
+                                "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.",
+                                Toast.LENGTH_LONG).show();
+                        });
+                        parseTextContent(pdfContent);
+                    } else {
+                        parseAlternatingLinesContent(pdfContent);
+                    }
+                } else if (pdfContent.contains("\t") || pdfContent.contains(";;")) {
+                    parseQAContent(pdfContent);
+                } else {
+                    parseTextContent(pdfContent);
+                }
+
+                runOnUiThread(() -> {
+                    updateDisplay();
+                    saveState();
+                    processingMessage.setVisibility(View.GONE);
+                    Toast.makeText(this, "PDF importado com sucesso!", Toast.LENGTH_SHORT).show();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    processingMessage.setVisibility(View.GONE);
+                    Toast.makeText(this, "Erro ao processar PDF: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    e.printStackTrace();
+
+                    try {
+                        String fileContent = readTextFileWithEncodingDetection(uri);
+                        processTextContent(fileContent, uri);
+                    } catch (IOException ex) {
+                        Toast.makeText(this, "Erro ao ler ficheiro: " + ex.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private boolean checkAlternatingLinesFormat(String text) {
+        String[] lines = text.split("\n");
+        if (lines.length < 2) return false;
+
         int linesToCheck = Math.min(lines.length, 50);
+
         for (int i = 0; i < linesToCheck; i++) {
             String line = lines[i].trim();
-            if (!line.isEmpty()) {
-                if (hasMultipleSentences(line)) {
-                    hasMultipleSentences = true;
-                    break;
-                }
+            if (line.isEmpty()) continue;
+
+            Pattern pattern = Pattern.compile("[.!?…](?![.!?…]*$)");
+            Matcher matcher = pattern.matcher(line);
+            if (matcher.find()) {
+                return false;
+            }
+
+            int punctuationCount = line.replaceAll("[^.!?…]", "").length();
+            if (punctuationCount > 1) {
+                return false;
             }
         }
 
-        if (isAlternatingQa && !hasMultipleSentences && lines.length >= 2) {
-            if (lines.length % 2 != 0) {
-                runOnUiThread(() -> {
-                    Toast.makeText(this,
-                        "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.",
-                        Toast.LENGTH_LONG).show();
-                });
-                parseTextContent(pdfContent);
-            } else {
-                parseAlternatingLinesContent(pdfContent);
-            }
-        } else if (pdfContent.contains("\t") || pdfContent.contains(";;")) {
-            parseQAContent(pdfContent);
-        } else {
-            parseTextContent(pdfContent);
-        }
-
-        runOnUiThread(() -> {
-            updateDisplay();
-            saveState();
-            processingMessage.setVisibility(View.GONE);
-            Toast.makeText(this, "PDF importado com sucesso!", Toast.LENGTH_SHORT).show();
-        });
-    } catch (Exception e) {
-        runOnUiThread(() -> {
-            processingMessage.setVisibility(View.GONE);
-            Toast.makeText(this, "Erro ao processar PDF: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            e.printStackTrace();
-
-            try {
-                String fileContent = readTextFileWithEncodingDetection(uri);
-                processTextContent(fileContent, uri);
-            } catch (IOException ex) {
-                Toast.makeText(this, "Erro ao ler ficheiro: " + ex.getMessage(), Toast.LENGTH_LONG).show();
-            }
-        });
-    }
-}).start();
-}
-
-private boolean checkAlternatingLinesFormat(String text) {
-    String[] lines = text.split("\n");
-    if (lines.length < 2) return false;
-
-    int linesToCheck = Math.min(lines.length, 50);
-
-    for (int i = 0; i < linesToCheck; i++) {
-        String line = lines[i].trim();
-        if (line.isEmpty()) continue;
-
-        Pattern pattern = Pattern.compile("[.!?…](?![.!?…]*$)");
-        Matcher matcher = pattern.matcher(line);
-        if (matcher.find()) {
+        if (lines.length % 2 != 0) {
             return false;
         }
 
-        int punctuationCount = line.replaceAll("[^.!?…]", "").length();
-        if (punctuationCount > 1) {
-            return false;
+        return true;
+    }
+
+    private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
+        InputStream inputStream = getContentResolver().openInputStream(uri);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int length;
+        while ((length = inputStream.read(buffer)) != -1) {
+            byteArrayOutputStream.write(buffer, 0, length);
         }
-    }
+        byte[] fileContentBytes = byteArrayOutputStream.toByteArray();
+        inputStream.close();
 
-    if (lines.length % 2 != 0) {
-        return false;
-    }
-
-    return true;
-}
-
-private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
-    InputStream inputStream = getContentResolver().openInputStream(uri);
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    byte[] buffer = new byte[1024];
-    int length;
-    while ((length = inputStream.read(buffer)) != -1) {
-        byteArrayOutputStream.write(buffer, 0, length);
-    }
-    byte[] fileContentBytes = byteArrayOutputStream.toByteArray();
-    inputStream.close();
-
-    try {
-        String content = new String(fileContentBytes, StandardCharsets.UTF_8);
-        if (!hasInvalidUTF8Characters(content)) {
-            return content;
-        }
-    } catch (Exception e) {}
-
-    try {
-        return new String(fileContentBytes, "ISO-8859-1");
-    } catch (Exception e) {}
-
-    try {
-        return new String(fileContentBytes, "Windows-1252");
-    } catch (Exception e) {
-        return new String(fileContentBytes);
-    }
-}
-
-private boolean hasInvalidUTF8Characters(String content) {
-    return content.contains("�");
-}
-
-private void showExportDialog() {
-    toggleMenu();
-
-    if (items.isEmpty()) {
-        Toast.makeText(this, "Nenhum conteúdo para exportar", Toast.LENGTH_SHORT).show();
-        return;
-    }
-
-    String filename = isQAMode ? "perguntas_respostas.txt" : "documento.txt";
-
-    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-    intent.addCategory(Intent.CATEGORY_OPENABLE);
-    intent.setType("text/plain");
-    intent.putExtra(Intent.EXTRA_TITLE, filename);
-    startActivityForResult(intent, CREATE_FILE);
-}
-
-private void exportFile(Uri uri) {
-    if (items.isEmpty()) return;
-
-    StringBuilder content = new StringBuilder();
-    if (isQAMode) {
-        for (QAItem item: items) {
-            content.append(item.getOriginalLine()).append("\n");
-        }
-    } else {
-        for (QAItem item: items) {
-            content.append(item.getOriginalLine() != null ? item.getOriginalLine() : item.getText()).append("\n");
-        }
-    }
-
-    try {
-        OutputStream fos = getContentResolver().openOutputStream(uri);
-        fos.write(content.toString().getBytes());
-        fos.close();
-
-        Toast.makeText(this, "Ficheiro exportado com sucesso!", Toast.LENGTH_LONG).show();
-    } catch (IOException e) {
-        Toast.makeText(this, "Erro ao exportar ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
-    }
-}
-
-private void showEditDialog() {
-    toggleMenu();
-
-    LayoutInflater inflater = getLayoutInflater();
-    View dialogView = inflater.inflate(R.layout.edit_dialog, null);
-    EditText contentEditor = dialogView.findViewById(R.id.content_editor);
-
-    StringBuilder content = new StringBuilder();
-
-    if (isQAMode) {
-        for (QAItem item: originalItems) {
-            if (item.isQA()) {
-                content.append(item.getOriginalLine()).append("\n");
-            } else {
-                content.append(item.getText()).append("\n");
+        try {
+            String content = new String(fileContentBytes, StandardCharsets.UTF_8);
+            if (!hasInvalidUTF8Characters(content)) {
+                return content;
             }
-        }
-    } else {
-        for (QAItem item: originalItems) {
-            content.append(item.getOriginalLine() != null ?
-                item.getOriginalLine() : item.getText()).append("\n");
+        } catch (Exception e) {}
+
+        try {
+            return new String(fileContentBytes, "ISO-8859-1");
+        } catch (Exception e) {}
+
+        try {
+            return new String(fileContentBytes, "Windows-1252");
+        } catch (Exception e) {
+            return new String(fileContentBytes);
         }
     }
 
-    contentEditor.setText(content.toString());
+    private boolean hasInvalidUTF8Characters(String content) {
+        return content.contains("�");
+    }
 
-    AlertDialog.Builder builder = new AlertDialog.Builder(this);
-    builder.setView(dialogView);
-    builder.setTitle("Editar Conteúdo");
-    builder.setPositiveButton("Guardar", (dialog, which) -> {
-        String text = contentEditor.getText().toString();
-        if (text.trim().isEmpty()) {
-            Toast.makeText(this, "O conteúdo não pode estar vazio!", Toast.LENGTH_SHORT).show();
+    private void showExportDialog() {
+        toggleMenu();
+
+        if (items.isEmpty()) {
+            Toast.makeText(this, "Nenhum conteúdo para exportar", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        boolean hasTabs = text.contains("\t");
-        boolean hasDoubleSemicolon = text.contains(";;");
-        boolean isAlternatingLines = checkAlternatingLinesFormat(text);
+        String filename = isQAMode ? "perguntas_respostas.txt" : "documento.txt";
 
-        if (hasTabs || hasDoubleSemicolon) {
-            parseQAContent(text);
-        } else if (isAlternatingLines) {
-            parseAlternatingLinesContent(text);
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("text/plain");
+        intent.putExtra(Intent.EXTRA_TITLE, filename);
+        startActivityForResult(intent, CREATE_FILE);
+    }
+
+    private void exportFile(Uri uri) {
+        if (items.isEmpty()) return;
+
+        StringBuilder content = new StringBuilder();
+        if (isQAMode) {
+            for (QAItem item : items) {
+                content.append(item.getOriginalLine()).append("\n");
+            }
         } else {
+            for (QAItem item : items) {
+                content.append(item.getOriginalLine() != null ? item.getOriginalLine() : item.getText()).append("\n");
+            }
+        }
+
+        try {
+            OutputStream fos = getContentResolver().openOutputStream(uri);
+            fos.write(content.toString().getBytes());
+            fos.close();
+
+            Toast.makeText(this, "Ficheiro exportado com sucesso!", Toast.LENGTH_LONG).show();
+        } catch (IOException e) {
+            Toast.makeText(this, "Erro ao exportar ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void showEditDialog() {
+        toggleMenu();
+
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.edit_dialog, null);
+        EditText contentEditor = dialogView.findViewById(R.id.content_editor);
+
+        StringBuilder content = new StringBuilder();
+
+        if (isQAMode) {
+            for (QAItem item : originalItems) {
+                if (item.isQA()) {
+                    content.append(item.getOriginalLine()).append("\n");
+                } else {
+                    content.append(item.getText()).append("\n");
+                }
+            }
+        } else {
+            for (QAItem item : originalItems) {
+                content.append(item.getOriginalLine() != null ?
+                    item.getOriginalLine() : item.getText()).append("\n");
+            }
+        }
+
+        contentEditor.setText(content.toString());
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        builder.setTitle("Editar Conteúdo");
+        builder.setPositiveButton("Guardar", (dialog, which) -> {
+            String text = contentEditor.getText().toString();
+            if (text.trim().isEmpty()) {
+                Toast.makeText(this, "O conteúdo não pode estar vazio!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            boolean hasTabs = text.contains("\t");
+            boolean hasDoubleSemicolon = text.contains(";;");
+            boolean isAlternatingLines = checkAlternatingLinesFormat(text);
+
+            if (hasTabs || hasDoubleSemicolon) {
+                parseQAContent(text);
+            } else if (isAlternatingLines) {
+                parseAlternatingLinesContent(text);
+            } else {
+                parseTextContent(text);
+            }
+
+            updateDisplay();
+            saveState();
+        });
+        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
+    private void parseAlternatingLinesContent(String text) {
+        String[] lines = text.split("\n");
+        items.clear();
+        originalItems.clear();
+
+        if (lines.length % 2 != 0) {
+            Toast.makeText(this,
+                "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.",
+                Toast.LENGTH_LONG).show();
             parseTextContent(text);
+            return;
+        }
+
+        for (int i = 0; i < lines.length - 1; i += 2) {
+            String question = lines[i].trim();
+            String answer = lines[i + 1].trim();
+            String originalLines = lines[i] + "\n" + lines[i + 1];
+
+            if (hasMultipleSentences(question) || hasMultipleSentences(answer)) {
+                parseTextContent(text);
+                return;
+            }
+
+            items.add(new QAItem(question, answer, originalLines));
+        }
+
+        originalItems = new ArrayList<>(items);
+        currentIndex = 0;
+        isQAMode = true;
+    }
+
+    private void performSearch() {
+        searchTerm = searchInput.getText().toString().trim();
+        if (searchTerm.isEmpty()) {
+            clearSearch();
+            return;
+        }
+
+        searchResults.clear();
+
+        for (int i = 0; i < items.size(); i++) {
+            QAItem item = items.get(i);
+            String textToSearch = isQAMode ?
+                item.getQuestion() + " " + item.getAnswer() : item.getText();
+
+            if (textToSearch.toLowerCase().contains(searchTerm.toLowerCase())) {
+                searchResults.add(i);
+            }
+        }
+
+        if (searchResults.isEmpty()) {
+            searchInfo.setText("Nenhum resultado encontrado para: " + searchTerm);
+            currentSearchIndex = -1;
+        } else {
+            currentSearchIndex = 0;
+            currentIndex = searchResults.get(currentSearchIndex);
+            updateSearchInfo();
+            if (isQAMode) {
+                answerTextView.setVisibility(View.VISIBLE);
+            }
         }
 
         updateDisplay();
-        saveState();
-    });
-    builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
-    builder.show();
-}
-
-private void parseAlternatingLinesContent(String text) {
-    String[] lines = text.split("\n");
-    items.clear();
-    originalItems.clear();
-
-    if (lines.length % 2 != 0) {
-        Toast.makeText(this,
-            "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.",
-            Toast.LENGTH_LONG).show();
-        parseTextContent(text);
-        return;
     }
 
-    for (int i = 0; i < lines.length - 1; i += 2) {
-        String question = lines[i].trim();
-        String answer = lines[i + 1].trim();
-        String originalLines = lines[i] + "\n" + lines[i + 1];
+    private void goToPrevSearchResult() {
+        if (searchResults.isEmpty()) return;
 
-        if (hasMultipleSentences(question) || hasMultipleSentences(answer)) {
-            parseTextContent(text);
-            return;
-        }
-
-        items.add(new QAItem(question, answer, originalLines));
-    }
-
-    originalItems = new ArrayList<>(items);
-    currentIndex = 0;
-    isQAMode = true;
-}
-
-private void performSearch() {
-    searchTerm = searchInput.getText().toString().trim();
-    if (searchTerm.isEmpty()) {
-        clearSearch();
-        return;
-    }
-
-    searchResults.clear();
-
-    for (int i = 0; i < items.size(); i++) {
-        QAItem item = items.get(i);
-        String textToSearch = isQAMode ?
-            item.getQuestion() + " " + item.getAnswer() : item.getText();
-
-        if (textToSearch.toLowerCase().contains(searchTerm.toLowerCase())) {
-            searchResults.add(i);
-        }
-    }
-
-    if (searchResults.isEmpty()) {
-        searchInfo.setText("Nenhum resultado encontrado para: " + searchTerm);
-        currentSearchIndex = -1;
-    } else {
-        currentSearchIndex = 0;
+        currentSearchIndex = (currentSearchIndex - 1 + searchResults.size()) % searchResults.size();
         currentIndex = searchResults.get(currentSearchIndex);
+        updateDisplay();
         updateSearchInfo();
         if (isQAMode) {
             answerTextView.setVisibility(View.VISIBLE);
         }
     }
 
-    updateDisplay();
-}
+    private void goToNextSearchResult() {
+        if (searchResults.isEmpty()) return;
 
-private void goToPrevSearchResult() {
-    if (searchResults.isEmpty()) return;
-
-    currentSearchIndex = (currentSearchIndex - 1 + searchResults.size()) % searchResults.size();
-    currentIndex = searchResults.get(currentSearchIndex);
-    updateDisplay();
-    updateSearchInfo();
-    if (isQAMode) {
-        answerTextView.setVisibility(View.VISIBLE);
+        currentSearchIndex = (currentSearchIndex + 1) % searchResults.size();
+        currentIndex = searchResults.get(currentSearchIndex);
+        updateDisplay();
+        updateSearchInfo();
+        if (isQAMode) {
+            answerTextView.setVisibility(View.VISIBLE);
+        }
     }
-}
 
-private void goToNextSearchResult() {
-    if (searchResults.isEmpty()) return;
-
-    currentSearchIndex = (currentSearchIndex + 1) % searchResults.size();
-    currentIndex = searchResults.get(currentSearchIndex);
-    updateDisplay();
-    updateSearchInfo();
-    if (isQAMode) {
-        answerTextView.setVisibility(View.VISIBLE);
+    private void updateSearchInfo() {
+        if (searchResults.isEmpty()) {
+            searchInfo.setText("");
+        } else {
+            searchInfo.setText("Resultado " + (currentSearchIndex + 1) + " de " + searchResults.size());
+        }
     }
-}
 
-private void updateSearchInfo() {
-    if (searchResults.isEmpty()) {
+    private void clearSearch() {
+        searchTerm = "";
+        searchResults.clear();
+        currentSearchIndex = -1;
         searchInfo.setText("");
-    } else {
-        searchInfo.setText("Resultado " + (currentSearchIndex + 1) + " de " + searchResults.size());
-    }
-}
-
-private void clearSearch() {
-    searchTerm = "";
-    searchResults.clear();
-    currentSearchIndex = -1;
-    searchInfo.setText("");
-    updateDisplay();
-}
-
-private void saveState() {
-    SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-    SharedPreferences.Editor editor = prefs.edit();
-
-    StringBuilder itemsStr = new StringBuilder();
-    for (QAItem item: items) {
-        if (item.isQA()) {
-            itemsStr.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
-        } else {
-            itemsStr.append(item.getText()).append("\n");
-        }
-    }
-    editor.putString(ITEMS_KEY, itemsStr.toString());
-
-    StringBuilder originalItemsStr = new StringBuilder();
-    for (QAItem item: originalItems) {
-        if (item.isQA()) {
-            originalItemsStr.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
-        } else {
-            originalItemsStr.append(item.getText()).append("\n");
-        }
-    }
-    editor.putString(ORIGINAL_ITEMS_KEY, originalItemsStr.toString());
-
-    editor.putInt(CURRENT_INDEX_KEY, currentIndex);
-    editor.putBoolean(IS_QA_MODE_KEY, isQAMode);
-    editor.putInt(FONT_SIZE_KEY, baseFontSize);
-    editor.putString(ORIGINAL_SEPARATOR_KEY, originalSeparator);
-    editor.apply();
-}
-
-private void loadState() {
-    SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-
-    String itemsStr = prefs.getString(ITEMS_KEY, "");
-    String originalItemsStr = prefs.getString(ORIGINAL_ITEMS_KEY, "");
-
-    if (!itemsStr.isEmpty()) {
-        parseQAContent(itemsStr);
+        updateDisplay();
     }
 
-    if (!originalItemsStr.isEmpty()) {
-        List<QAItem> loadedOriginalItems = new ArrayList<>();
-        String[] lines = originalItemsStr.split("\n");
-        for (String line: lines) {
-            if (line.trim().isEmpty()) continue;
+    private void saveState() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
 
-            String[] parts = line.split("\t");
-            if (parts.length >= 2) {
-                loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim(), line));
+        StringBuilder itemsStr = new StringBuilder();
+        for (QAItem item : items) {
+            if (item.isQA()) {
+                itemsStr.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
             } else {
-                loadedOriginalItems.add(new QAItem(line.trim(), line));
+                itemsStr.append(item.getText()).append("\n");
             }
         }
-        originalItems = loadedOriginalItems;
+        editor.putString(ITEMS_KEY, itemsStr.toString());
+
+        StringBuilder originalItemsStr = new StringBuilder();
+        for (QAItem item : originalItems) {
+            if (item.isQA()) {
+                originalItemsStr.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
+            } else {
+                originalItemsStr.append(item.getText()).append("\n");
+            }
+        }
+        editor.putString(ORIGINAL_ITEMS_KEY, originalItemsStr.toString());
+
+        editor.putInt(CURRENT_INDEX_KEY, currentIndex);
+        editor.putBoolean(IS_QA_MODE_KEY, isQAMode);
+        editor.putInt(FONT_SIZE_KEY, baseFontSize);
+        editor.putString(ORIGINAL_SEPARATOR_KEY, originalSeparator);
+        editor.apply();
     }
 
-    currentIndex = prefs.getInt(CURRENT_INDEX_KEY, 0);
-    isQAMode = prefs.getBoolean(IS_QA_MODE_KEY, true);
-    baseFontSize = prefs.getInt(FONT_SIZE_KEY, 20);
-    originalSeparator = prefs.getString(ORIGINAL_SEPARATOR_KEY, "\t");
-}
+    private void loadState() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 
-@Override
-public void onBackPressed() {
-    if (menuVisible) {
-        toggleMenu();
-    } else {
-        super.onBackPressed();
-    }
-}
+        String itemsStr = prefs.getString(ITEMS_KEY, "");
+        String originalItemsStr = prefs.getString(ORIGINAL_ITEMS_KEY, "");
 
-@Override
-public boolean onTouchEvent(MotionEvent event) {
-    gestureDetector.onTouchEvent(event);
-    return super.onTouchEvent(event);
-}
+        if (!itemsStr.isEmpty()) {
+            parseQAContent(itemsStr);
+        }
 
-private static class QAItem {
-    private String question;
-    private String answer;
-    private String text;
-    private String originalLine;
+        if (!originalItemsStr.isEmpty()) {
+            List<QAItem> loadedOriginalItems = new ArrayList<>();
+            String[] lines = originalItemsStr.split("\n");
+            for (String line : lines) {
+                if (line.trim().isEmpty()) continue;
 
-    public QAItem(String question, String answer, String originalLine) {
-        this.question = question;
-        this.answer = answer;
-        this.text = null;
-        this.originalLine = originalLine;
+                String[] parts = line.split("\t");
+                if (parts.length >= 2) {
+                    loadedOriginalItems.add(new QAItem(parts[0].trim(), parts[1].trim(), line));
+                } else {
+                    loadedOriginalItems.add(new QAItem(line.trim(), line));
+                }
+            }
+            originalItems = loadedOriginalItems;
+        }
+
+        currentIndex = prefs.getInt(CURRENT_INDEX_KEY, 0);
+        isQAMode = prefs.getBoolean(IS_QA_MODE_KEY, true);
+        baseFontSize = prefs.getInt(FONT_SIZE_KEY, 20);
+        originalSeparator = prefs.getString(ORIGINAL_SEPARATOR_KEY, "\t");
     }
 
-    public QAItem(String text, String originalLine) {
-        this.question = null;
-        this.answer = null;
-        this.text = text;
-        this.originalLine = originalLine;
+    @Override
+    public void onBackPressed() {
+        if (menuVisible) {
+            toggleMenu();
+        } else {
+            super.onBackPressed();
+        }
     }
 
-    public String getQuestion() {
-        return question != null ? question : "";
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        gestureDetector.onTouchEvent(event);
+        return super.onTouchEvent(event);
     }
 
-    public String getAnswer() {
-        return answer != null ? answer : "";
-    }
+    private static class QAItem {
+        private String question;
+        private String answer;
+        private String text;
+        private String originalLine;
 
-    public String getText() {
-        return text != null ? text : "";
-    }
+        public QAItem(String question, String answer, String originalLine) {
+            this.question = question;
+            this.answer = answer;
+            this.text = null;
+            this.originalLine = originalLine;
+        }
 
-    public String getOriginalLine() {
-        return originalLine;
-    }
+        public QAItem(String text, String originalLine) {
+            this.question = null;
+            this.answer = null;
+            this.text = text;
+            this.originalLine = originalLine;
+        }
 
-    public void setOriginalLine(String originalLine) {
-        this.originalLine = originalLine;
-    }
+        public String getQuestion() {
+            return question != null ? question : "";
+        }
 
-    public boolean isQA() {
-        return question != null && answer != null;
+        public String getAnswer() {
+            return answer != null ? answer : "";
+        }
+
+        public String getText() {
+            return text != null ? text : "";
+        }
+
+        public String getOriginalLine() {
+            return originalLine;
+        }
+
+        public void setOriginalLine(String originalLine) {
+            this.originalLine = originalLine;
+        }
+
+        public boolean isQA() {
+            return question != null && answer != null;
+        }
     }
-}
 }
