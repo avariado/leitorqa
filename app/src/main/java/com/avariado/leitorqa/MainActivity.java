@@ -232,7 +232,7 @@ public class MainActivity extends AppCompatActivity {
             }
             return super.onKeyDown(keyCode, event);
         }
-
+    
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 safePrevItem();
@@ -251,27 +251,34 @@ public class MainActivity extends AppCompatActivity {
                 return super.onKeyDown(keyCode, event);
         }
     }
-
+    
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             int keyCode = event.getKeyCode();
-
-            if (currentCardInput.hasFocus() &&
-                (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
-                finishEditing();
-                return true;
-            }
-
-            if (!currentCardInput.hasFocus()) {
+    
+            if (currentCardInput.hasFocus()) {
                 if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                    finishEditing();
+                    return true;
+                }
+                return super.dispatchKeyEvent(event);
+            }
+    
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_DPAD_LEFT:
+                    safePrevItem();
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                    safeNextItem();
+                    return true;
+                case KeyEvent.KEYCODE_ENTER:
+                case KeyEvent.KEYCODE_NUMPAD_ENTER:
                     toggleAnswerVisibility();
                     return true;
-                }
-                if (keyCode == KeyEvent.KEYCODE_SPACE) {
+                case KeyEvent.KEYCODE_SPACE:
                     toggleMenu();
                     return true;
-                }
             }
         }
         return super.dispatchKeyEvent(event);
