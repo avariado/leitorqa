@@ -326,54 +326,40 @@ public class MainActivity extends AppCompatActivity {
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
     }
 
-    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
-        private static final int SWIPE_THRESHOLD = 100;
-        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-        private static final float SWIPE_ANGLE_THRESHOLD = 30;
+private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
+    private static final int SWIPE_THRESHOLD = 100;
+    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+    private static final float SWIPE_ANGLE_THRESHOLD = 30;
 
-        @Override
-        public boolean onDown(MotionEvent e) {
-            return true;
-        }
+    @Override
+    public boolean onDown(MotionEvent e) {
+        return true;
+    }
 
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            // Verifica se há seleção de texto em qualquer TextView
-            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                questionTextView.clearFocus();
-                answerTextView.clearFocus();
+    @Override
+    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        float diffX = e2.getX() - e1.getX();
+        float diffY = e2.getY() - e1.getY();
+
+        float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
+
+        if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD ||
+            Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
+
+            if (Math.abs(diffX) > SWIPE_THRESHOLD &&
+                Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+
+                if (diffX > 0) {
+                    safePrevItem();
+                } else {
+                    safeNextItem();
+                }
                 return true;
             }
-            
-            // Se não há seleção, processa o toque
-            toggleAnswerVisibility();
-            return true;
         }
-
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            float diffX = e2.getX() - e1.getX();
-            float diffY = e2.getY() - e1.getY();
-
-            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
-
-            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD ||
-                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
-
-                if (Math.abs(diffX) > SWIPE_THRESHOLD &&
-                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-
-                    if (diffX > 0) {
-                        safePrevItem();
-                    } else {
-                        safeNextItem();
-                    }
-                    return true;
-                }
-            }
-            return false;
-        }
+        return false;
     }
+}
 
     private void safePrevItem() {
         try {
@@ -480,48 +466,56 @@ public class MainActivity extends AppCompatActivity {
         answerTextView.setTextIsSelectable(true);
         questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-
+    
         // Configuração do OnTouchListener para os TextViews
         View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
-            private GestureDetectorCompat textGestureDetector = new GestureDetectorCompat(MainActivity.this, new GestureDetector.SimpleOnGestureListener() {
-                @Override
-                public boolean onDown(MotionEvent e) {
-                    return true;
-                }
-
-                @Override
-                public boolean onSingleTapUp(MotionEvent e) {
-                    // Se há seleção de texto, limpa a seleção
-                    if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                        questionTextView.clearFocus();
-                        answerTextView.clearFocus();
-                        return true;
-                    }
-                    // Caso contrário, alterna a visibilidade da resposta
-                    toggleAnswerVisibility();
-                    return true;
-                }
-
-                @Override
-                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                    // Delega o swipe para o detector de gestos principal
-                    return gestureDetector.onTouchEvent(e2);
-                }
-            });
-
+            private long touchStartTime;
+            private float touchStartX;
+            private float touchStartY;
+            private boolean isPotentialTap = true;
+            private final int touchSlop = ViewConfiguration.get(MainActivity.this).getScaledTouchSlop();
+    
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                // Primeiro processa os gestos
-                boolean gestureHandled = textGestureDetector.onTouchEvent(event);
-                
-                // Depois permite o comportamento padrão para seleção de texto
-                boolean textSelectionHandled = v.onTouchEvent(event);
-                
-                // Retorna true se algum dos handlers processou o evento
-                return gestureHandled || textSelectionHandled;
+                // Primeiro processa os gestos principais (swipes)
+                gestureDetector.onTouchEvent(event);
+    
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        touchStartTime = System.currentTimeMillis();
+                        touchStartX = event.getX();
+                        touchStartY = event.getY();
+                        isPotentialTap = true;
+                        break;
+    
+                    case MotionEvent.ACTION_MOVE:
+                        if (isPotentialTap) {
+                            float dx = Math.abs(event.getX() - touchStartX);
+                            float dy = Math.abs(event.getY() - touchStartY);
+                            if (dx > touchSlop || dy > touchSlop) {
+                                isPotentialTap = false;
+                            }
+                        }
+                        break;
+    
+                    case MotionEvent.ACTION_UP:
+                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < ViewConfiguration.getTapTimeout())) {
+                            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                                questionTextView.clearFocus();
+                                answerTextView.clearFocus();
+                                return true;
+                            }
+                            toggleAnswerVisibility();
+                            return true;
+                        }
+                        break;
+                }
+    
+                // Permite o comportamento padrão para seleção de texto
+                return v.onTouchEvent(event);
             }
         };
-
+    
         questionTextView.setOnTouchListener(textViewTouchListener);
         answerTextView.setOnTouchListener(textViewTouchListener);
 
