@@ -532,7 +532,7 @@ public class MainActivity extends AppCompatActivity {
         questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
 
-        currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1);
+        currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
         QAItem currentItem = items.get(currentIndex);
 
         if (isQAMode) {
