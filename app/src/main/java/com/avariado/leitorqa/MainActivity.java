@@ -102,7 +102,6 @@ public class MainActivity extends AppCompatActivity {
     private String searchTerm = "";
 
     private GestureDetectorCompat gestureDetector;
-    private boolean isTextSelected = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -339,13 +338,19 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
-            if (isTextSelected) {
-                isTextSelected = false;
+            // Verifica se há seleção de texto ativa
+            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                questionTextView.clearFocus();
+                answerTextView.clearFocus();
                 return true;
             }
             
-            toggleAnswerVisibility();
-            return true;
+            // Verifica se o toque foi em uma área sem texto
+            if (isTouchOnEmptySpace(e.getX(), e.getY())) {
+                toggleAnswerVisibility();
+                return true;
+            }
+            return false;
         }
 
         @Override
@@ -369,6 +374,39 @@ public class MainActivity extends AppCompatActivity {
                     return true;
                 }
             }
+            return false;
+        }
+
+        private boolean isTouchOnEmptySpace(float x, float y) {
+            // Verifica se o toque foi fora do texto
+            int[] location = new int[2];
+            questionTextView.getLocationOnScreen(location);
+            int textLeft = location[0];
+            int textTop = location[1];
+            int textRight = textLeft + questionTextView.getWidth();
+            int textBottom = textTop + questionTextView.getHeight();
+
+            // Se o toque foi fora da área do texto
+            if (x < textLeft || x > textRight || y < textTop || y > textBottom) {
+                return true;
+            }
+
+            // Verifica se o toque foi em uma posição sem texto
+            Layout layout = questionTextView.getLayout();
+            if (layout != null) {
+                int line = layout.getLineForVertical((int) y - textTop);
+                int offset = layout.getOffsetForHorizontal(line, x - textLeft);
+                
+                // Se o offset está no final da linha (espaço vazio)
+                if (offset >= questionTextView.getText().length() - 1) {
+                    return true;
+                }
+                
+                // Se o toque foi em um espaço em branco
+                char c = questionTextView.getText().charAt(offset);
+                return Character.isWhitespace(c);
+            }
+            
             return false;
         }
     }
@@ -499,7 +537,7 @@ public class MainActivity extends AppCompatActivity {
                         touchStartY = event.getY();
                         isSwiping = false;
                         isPotentialTap = true;
-                        isTextSelected = false;
+                        v.onTouchEvent(event);
                         return true;
 
                     case MotionEvent.ACTION_MOVE:
@@ -517,13 +555,17 @@ public class MainActivity extends AppCompatActivity {
 
                     case MotionEvent.ACTION_UP:
                         if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
-                            if (((TextView)v).hasSelection()) {
-                                isTextSelected = true;
+                            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                                questionTextView.clearFocus();
+                                answerTextView.clearFocus();
                                 return true;
                             }
-                            toggleAnswerVisibility();
-                            v.cancelLongPress();
-                            return true;
+                            // Só processa o toque se for em área sem texto
+                            if (((SwipeGestureListener)gestureDetector).isTouchOnEmptySpace(event.getX(), event.getY())) {
+                                toggleAnswerVisibility();
+                                v.cancelLongPress();
+                                return true;
+                            }
                         }
                         break;
                 }
