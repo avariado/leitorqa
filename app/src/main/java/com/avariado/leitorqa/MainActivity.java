@@ -155,6 +155,7 @@ public class MainActivity extends AppCompatActivity {
         currentCardInput.setCursorVisible(false);
 
         setupCardInputBehavior();
+        setupTextViewTouchListeners();
 
         cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -221,6 +222,58 @@ public class MainActivity extends AppCompatActivity {
         }
         updateDisplay();
         updateFontSize();
+    }
+
+    private void setupTextViewTouchListeners() {
+        View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
+            private GestureDetector gestureDetector = new GestureDetector(MainActivity.this, new GestureDetector.SimpleOnGestureListener() {
+                @Override
+                public boolean onSingleTapUp(MotionEvent e) {
+                    toggleAnswerVisibility();
+                    return true;
+                }
+
+                @Override
+                public boolean onDown(MotionEvent e) {
+                    return true;
+                }
+
+                @Override
+                public void onLongPress(MotionEvent e) {
+                    TextView textView = (TextView) ((View) e.getSource());
+                    textView.performLongClick();
+                }
+            });
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                TextView textView = (TextView) v;
+                gestureDetector.onTouchEvent(event);
+                
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        if (!gestureDetector.onTouchEvent(event)) {
+                            textView.cancelLongPress();
+                        }
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        if (textView.hasSelection()) {
+                            textView.clearFocus();
+                            textView.clearComposingText();
+                        }
+                        break;
+                }
+                
+                return textView.onTouchEvent(event);
+            }
+        };
+
+        questionTextView.setOnTouchListener(textViewTouchListener);
+        answerTextView.setOnTouchListener(textViewTouchListener);
+        questionTextView.setTextIsSelectable(true);
+        answerTextView.setTextIsSelectable(true);
+        questionTextView.setMovementMethod(LinkMovementMethod.getInstance());
+        answerTextView.setMovementMethod(LinkMovementMethod.getInstance());
     }
 
     @Override
@@ -338,19 +391,14 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
-            // Verifica se há seleção de texto ativa
             if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
                 questionTextView.clearFocus();
                 answerTextView.clearFocus();
                 return true;
             }
             
-            // Verifica se o toque foi em uma área sem texto
-            if (isTouchOnEmptySpace(e.getX(), e.getY())) {
-                toggleAnswerVisibility();
-                return true;
-            }
-            return false;
+            toggleAnswerVisibility();
+            return true;
         }
 
         @Override
@@ -374,39 +422,6 @@ public class MainActivity extends AppCompatActivity {
                     return true;
                 }
             }
-            return false;
-        }
-
-        private boolean isTouchOnEmptySpace(float x, float y) {
-            // Verifica se o toque foi fora do texto
-            int[] location = new int[2];
-            questionTextView.getLocationOnScreen(location);
-            int textLeft = location[0];
-            int textTop = location[1];
-            int textRight = textLeft + questionTextView.getWidth();
-            int textBottom = textTop + questionTextView.getHeight();
-
-            // Se o toque foi fora da área do texto
-            if (x < textLeft || x > textRight || y < textTop || y > textBottom) {
-                return true;
-            }
-
-            // Verifica se o toque foi em uma posição sem texto
-            Layout layout = questionTextView.getLayout();
-            if (layout != null) {
-                int line = layout.getLineForVertical((int) y - textTop);
-                int offset = layout.getOffsetForHorizontal(line, x - textLeft);
-                
-                // Se o offset está no final da linha (espaço vazio)
-                if (offset >= questionTextView.getText().length() - 1) {
-                    return true;
-                }
-                
-                // Se o toque foi em um espaço em branco
-                char c = questionTextView.getText().charAt(offset);
-                return Character.isWhitespace(c);
-            }
-            
             return false;
         }
     }
@@ -517,70 +532,7 @@ public class MainActivity extends AppCompatActivity {
         questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
 
-        View.OnTouchListener touchListener = new View.OnTouchListener() {
-            private long touchStartTime;
-            private float touchStartX;
-            private float touchStartY;
-            private boolean isSwiping = false;
-            private boolean isPotentialTap = true;
-            private final int tapTimeout = ViewConfiguration.getTapTimeout();
-            private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        touchStartTime = System.currentTimeMillis();
-                        touchStartX = event.getX();
-                        touchStartY = event.getY();
-                        isSwiping = false;
-                        isPotentialTap = true;
-                        v.onTouchEvent(event);
-                        return true;
-
-                    case MotionEvent.ACTION_MOVE:
-                        if (isPotentialTap) {
-                            float dx = Math.abs(event.getX() - touchStartX);
-                            float dy = Math.abs(event.getY() - touchStartY);
-                            if (dx > touchSlop || dy > touchSlop) {
-                                isPotentialTap = false;
-                                if (dx > dy && dx > touchSlop) {
-                                    isSwiping = true;
-                                }
-                            }
-                        }
-                        break;
-
-                    case MotionEvent.ACTION_UP:
-                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
-                            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                                questionTextView.clearFocus();
-                                answerTextView.clearFocus();
-                                return true;
-                            }
-                            // Só processa o toque se for em área sem texto
-                            if (((SwipeGestureListener)gestureDetector).isTouchOnEmptySpace(event.getX(), event.getY())) {
-                                toggleAnswerVisibility();
-                                v.cancelLongPress();
-                                return true;
-                            }
-                        }
-                        break;
-                }
-
-                if (!isSwiping) {
-                    v.onTouchEvent(event);
-                }
-                return true;
-            }
-        };
-
-        questionTextView.setOnTouchListener(touchListener);
-        answerTextView.setOnTouchListener(touchListener);
-
-        currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
+        currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1);
         QAItem currentItem = items.get(currentIndex);
 
         if (isQAMode) {
