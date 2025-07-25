@@ -2,8 +2,6 @@
 <resources>
     <string name="app_name">Q&amp;A</string>
     <string name="app_long_name">Q&amp;A Reader</string>
-    
-    <!-- Interface texts -->
     <string name="menu_button">☰</string>
     <string name="import_button">Import file</string>
     <string name="export_button">Export file</string>
