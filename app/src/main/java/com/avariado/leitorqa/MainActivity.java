@@ -124,41 +124,6 @@ public class MainActivity extends AppCompatActivity {
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
 
-        ImageView clearButton = new ImageView(this);
-        clearButton.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
-        clearButton.setPadding(8, 8, 8, 8);
-        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
-            RelativeLayout.LayoutParams.WRAP_CONTENT,
-            RelativeLayout.LayoutParams.WRAP_CONTENT
-        );
-        params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, RelativeLayout.TRUE);
-        params.addRule(RelativeLayout.CENTER_VERTICAL, RelativeLayout.TRUE);
-        if (searchInput.getParent() instanceof RelativeLayout) {
-            RelativeLayout parent = (RelativeLayout) searchInput.getParent();
-            parent.addView(clearButton, params);
-            searchInput.setPadding(
-                searchInput.getPaddingLeft(),
-                searchInput.getPaddingTop(),
-                60,
-                searchInput.getPaddingBottom()
-            );
-            clearButton.setOnClickListener(v -> {
-                searchInput.setText("");
-                clearSearch();
-            });
-            searchInput.addTextChangedListener(new TextWatcher() {
-                @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-                @Override
-                public void onTextChanged(CharSequence s, int start, int before, int count) {
-                    clearButton.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
-                }
-                @Override
-                public void afterTextChanged(Editable s) {}
-            });
-            clearButton.setVisibility(searchInput.getText().length() > 0 ? View.VISIBLE : View.GONE);
-        }
-
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
