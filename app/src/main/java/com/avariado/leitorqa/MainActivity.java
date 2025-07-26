@@ -14,9 +14,7 @@ import android.text.Spanned;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
 import android.view.GestureDetector;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewTreeObserver;
 import android.view.inputmethod.EditorInfo;
@@ -73,8 +71,7 @@ public class MainActivity extends AppCompatActivity {
     private static final float QA_LINE_SPACING_MULTIPLIER = 1.3f;
     private static final float TEXT_LINE_SPACING_MULTIPLIER = 1.2f;
 
-    private static final int TAP_TIMEOUT = ViewConfiguration.getTapTimeout();
-    private static final int LONG_PRESS_TIMEOUT = ViewConfiguration.getLongPressTimeout();
+    private static final int TAP_TIMEOUT = ViewConfiguration.getDoubleTapTimeout();
 
     private TextView questionTextView;
     private TextView answerTextView;
@@ -90,20 +87,19 @@ public class MainActivity extends AppCompatActivity {
     private ScrollView textScrollView;
     private TextView processingMessage;
 
-    private List<QAItem> items = new ArrayList<>();
-    private List<QAItem> originalItems = new ArrayList<>();
+    private List < QAItem > items = new ArrayList < > ();
+    private List < QAItem > originalItems = new ArrayList < > ();
     private int currentIndex = 0;
     private boolean isQAMode = true;
     private boolean menuVisible = false;
     private int baseFontSize = 20;
     private String originalSeparator = "\t";
 
-    private List<Integer> searchResults = new ArrayList<>();
+    private List < Integer > searchResults = new ArrayList < > ();
     private int currentSearchIndex = -1;
     private String searchTerm = "";
 
     private GestureDetectorCompat gestureDetector;
-    private boolean isTextSelected = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -174,107 +170,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        questionTextView.setOnTouchListener(new View.OnTouchListener() {
-            private long touchStartTime;
-            private float touchStartX;
-            private float touchStartY;
-            private boolean isPotentialTap = true;
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        touchStartTime = System.currentTimeMillis();
-                        touchStartX = event.getX();
-                        touchStartY = event.getY();
-                        isPotentialTap = true;
-                        break;
-
-                    case MotionEvent.ACTION_MOVE:
-                        if (isPotentialTap) {
-                            float dx = Math.abs(event.getX() - touchStartX);
-                            float dy = Math.abs(event.getY() - touchStartY);
-                            int touchSlop = ViewConfiguration.get(MainActivity.this).getScaledTouchSlop();
-                            if (dx > touchSlop || dy > touchSlop) {
-                                isPotentialTap = false;
-                            }
-                        }
-                        break;
-
-                    case MotionEvent.ACTION_UP:
-                        if (isPotentialTap) {
-                            long touchDuration = System.currentTimeMillis() - touchStartTime;
-                            if (touchDuration < TAP_TIMEOUT) {
-                                if (isTextSelected) {
-                                    questionTextView.clearFocus();
-                                    answerTextView.clearFocus();
-                                    isTextSelected = false;
-                                    return true;
-                                }
-                                toggleAnswerVisibility();
-                                return true;
-                            }
-                        }
-                        break;
-                }
-                return false;
-            }
-        });
-
-        answerTextView.setOnTouchListener(new View.OnTouchListener() {
-            private long touchStartTime;
-            private float touchStartX;
-            private float touchStartY;
-            private boolean isPotentialTap = true;
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        touchStartTime = System.currentTimeMillis();
-                        touchStartX = event.getX();
-                        touchStartY = event.getY();
-                        isPotentialTap = true;
-                        break;
-
-                    case MotionEvent.ACTION_MOVE:
-                        if (isPotentialTap) {
-                            float dx = Math.abs(event.getX() - touchStartX);
-                            float dy = Math.abs(event.getY() - touchStartY);
-                            int touchSlop = ViewConfiguration.get(MainActivity.this).getScaledTouchSlop();
-                            if (dx > touchSlop || dy > touchSlop) {
-                                isPotentialTap = false;
-                            }
-                        }
-                        break;
-
-                    case MotionEvent.ACTION_UP:
-                        if (isPotentialTap) {
-                            long touchDuration = System.currentTimeMillis() - touchStartTime;
-                            if (touchDuration < TAP_TIMEOUT) {
-                                if (isTextSelected) {
-                                    questionTextView.clearFocus();
-                                    answerTextView.clearFocus();
-                                    isTextSelected = false;
-                                    return true;
-                                }
-                                toggleAnswerVisibility();
-                                return true;
-                            }
-                        }
-                        break;
-                }
-                return false;
-            }
-        });
-
         menuButton.setOnClickListener(v -> toggleMenu());
-        prevButton.setOnClickListener(v -> safePrevItem());
-        nextButton.setOnClickListener(v -> safeNextItem());
+        prevButton.setOnClickListener(v -> {
+            validateAndUpdateCardNumber();
+            safePrevItem();
+        });
+        nextButton.setOnClickListener(v -> {
+            validateAndUpdateCardNumber();
+            safeNextItem();
+        });
         importButton.setOnClickListener(v -> importTextFile());
         exportButton.setOnClickListener(v -> showExportDialog());
         editButton.setOnClickListener(v -> showEditDialog());
@@ -323,61 +227,69 @@ public class MainActivity extends AppCompatActivity {
         updateFontSize();
     }
 
-    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
-        private static final int SWIPE_THRESHOLD = 100;
-        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-        private static final float SWIPE_ANGLE_THRESHOLD = 30;
-
-        @Override
-        public boolean onDown(MotionEvent e) {
-            return true;
-        }
-
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            return false;
-        }
-
-        @Override
-        public void onLongPress(MotionEvent e) {
-            // Permite a seleção de texto via long press
-            super.onLongPress(e);
-            isTextSelected = true;
-        }
-
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            float diffX = e2.getX() - e1.getX();
-            float diffY = e2.getY() - e1.getY();
-
-            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
-
-            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD ||
-                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
-
-                if (Math.abs(diffX) > SWIPE_THRESHOLD &&
-                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-
-                    if (diffX > 0) {
-                        safePrevItem();
-                    } else {
-                        safeNextItem();
-                    }
-                    return true;
-                }
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (currentCardInput.hasFocus()) {
+            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                finishEditing();
+                return true;
             }
-            return false;
+            return super.onKeyDown(keyCode, event);
+        }
+    
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                validateAndUpdateCardNumber();
+                safePrevItem();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                validateAndUpdateCardNumber();
+                safeNextItem();
+                return true;
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_NUMPAD_ENTER:
+                toggleAnswerVisibility();
+                return true;
+            case KeyEvent.KEYCODE_SPACE:
+                toggleMenu();
+                return true;
+            default:
+                return super.onKeyDown(keyCode, event);
         }
     }
-
-    private void toggleAnswerVisibility() {
-        if (isQAMode) {
-            if (answerTextView.getVisibility() == View.VISIBLE) {
-                answerTextView.setVisibility(View.GONE);
-            } else {
-                answerTextView.setVisibility(View.VISIBLE);
+    
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            int keyCode = event.getKeyCode();
+    
+            if (currentCardInput.hasFocus()) {
+                if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                    finishEditing();
+                    return true;
+                }
+                return super.dispatchKeyEvent(event);
+            }
+    
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_DPAD_LEFT:
+                    validateAndUpdateCardNumber();
+                    safePrevItem();
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                    validateAndUpdateCardNumber();
+                    safeNextItem();
+                    return true;
+                case KeyEvent.KEYCODE_ENTER:
+                case KeyEvent.KEYCODE_NUMPAD_ENTER:
+                    toggleAnswerVisibility();
+                    return true;
+                case KeyEvent.KEYCODE_SPACE:
+                    toggleMenu();
+                    return true;
             }
         }
+        return super.dispatchKeyEvent(event);
     }
 
     private void setupCardInputBehavior() {
@@ -420,6 +332,55 @@ public class MainActivity extends AppCompatActivity {
         validateAndUpdateCardNumber();
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
+    }
+
+    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
+        private static final int SWIPE_THRESHOLD = 100;
+        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+        private static final float SWIPE_ANGLE_THRESHOLD = 30;
+
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                questionTextView.clearFocus();
+                answerTextView.clearFocus();
+                return true;
+            }
+            
+            toggleAnswerVisibility();
+            return true;
+        }
+
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            float diffX = e2.getX() - e1.getX();
+            float diffY = e2.getY() - e1.getY();
+
+            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
+
+            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD ||
+                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
+
+                if (Math.abs(diffX) > SWIPE_THRESHOLD &&
+                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+
+                    if (diffX > 0) {
+                        validateAndUpdateCardNumber();
+                        safePrevItem();
+                    } else {
+                        validateAndUpdateCardNumber();
+                        safeNextItem();
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     private void safePrevItem() {
@@ -497,6 +458,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void toggleAnswerVisibility() {
+        if (isQAMode) {
+            if (answerTextView.getVisibility() == View.VISIBLE) {
+                answerTextView.setVisibility(View.GONE);
+            } else {
+                answerTextView.setVisibility(View.VISIBLE);
+            }
+        }
+    }
+
     private void updateDisplay() {
         if (items.isEmpty()) {
             questionTextView.setText("Nenhum conteúdo carregado.");
@@ -517,6 +488,66 @@ public class MainActivity extends AppCompatActivity {
         answerTextView.setTextIsSelectable(true);
         questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
+
+        View.OnTouchListener touchListener = new View.OnTouchListener() {
+            private long touchStartTime;
+            private float touchStartX;
+            private float touchStartY;
+            private boolean isSwiping = false;
+            private boolean isPotentialTap = true;
+            private final int tapTimeout = ViewConfiguration.getTapTimeout();
+            private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        touchStartTime = System.currentTimeMillis();
+                        touchStartX = event.getX();
+                        touchStartY = event.getY();
+                        isSwiping = false;
+                        isPotentialTap = true;
+                        v.onTouchEvent(event);
+                        return true;
+
+                    case MotionEvent.ACTION_MOVE:
+                        if (isPotentialTap) {
+                            float dx = Math.abs(event.getX() - touchStartX);
+                            float dy = Math.abs(event.getY() - touchStartY);
+                            if (dx > touchSlop || dy > touchSlop) {
+                                isPotentialTap = false;
+                                if (dx > dy && dx > touchSlop) {
+                                    isSwiping = true;
+                                }
+                            }
+                        }
+                        break;
+
+                    case MotionEvent.ACTION_UP:
+                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
+                            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                                questionTextView.clearFocus();
+                                answerTextView.clearFocus();
+                                return true;
+                            }
+                            toggleAnswerVisibility();
+                            v.cancelLongPress();
+                            return true;
+                        }
+                        break;
+                }
+
+                if (!isSwiping) {
+                    v.onTouchEvent(event);
+                }
+                return true;
+            }
+        };
+
+        questionTextView.setOnTouchListener(touchListener);
+        answerTextView.setOnTouchListener(touchListener);
 
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
         QAItem currentItem = items.get(currentIndex);
@@ -573,7 +604,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void resetOrder() {
         if (originalItems.isEmpty()) return;
-        items = new ArrayList<>(originalItems);
+        items = new ArrayList < > (originalItems);
         currentIndex = 0;
         updateDisplay();
         toggleMenu();
@@ -629,7 +660,7 @@ public class MainActivity extends AppCompatActivity {
         if (hasTabs || hasDoubleSemicolon) {
             originalSeparator = hasTabs ? "\t" : ";;";
 
-            for (String line : lines) {
+            for (String line: lines) {
                 if (line.trim().isEmpty()) continue;
 
                 String[] parts = line.split(originalSeparator);
@@ -656,7 +687,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        originalItems = new ArrayList<>(items);
+        originalItems = new ArrayList < > (items);
         currentIndex = 0;
         isQAMode = !items.isEmpty() && items.get(0).isQA();
     }
@@ -685,7 +716,7 @@ public class MainActivity extends AppCompatActivity {
 
         Pattern pattern = Pattern.compile("[^.!?…]+[.!?…]+");
         Matcher matcher = pattern.matcher(singleLine);
-        List<String> sentences = new ArrayList<>();
+        List < String > sentences = new ArrayList < > ();
 
         while (matcher.find()) {
             sentences.add(matcher.group().trim());
@@ -708,10 +739,10 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        List<QAItem> processedItems = new ArrayList<>();
+        List < QAItem > processedItems = new ArrayList < > ();
         StringBuilder currentChunk = new StringBuilder();
 
-        for (String sentence : sentences) {
+        for (String sentence: sentences) {
             if (currentChunk.length() == 0) {
                 currentChunk.append(sentence);
             } else if (currentChunk.length() + sentence.length() < 75) {
@@ -730,7 +761,7 @@ public class MainActivity extends AppCompatActivity {
         if (!processedItems.isEmpty()) {
             processedItems.get(0).setOriginalLine(originalText);
         }
-        originalItems = new ArrayList<>(items);
+        originalItems = new ArrayList < > (items);
         currentIndex = 0;
         isQAMode = false;
     }
@@ -972,11 +1003,11 @@ public class MainActivity extends AppCompatActivity {
 
         StringBuilder content = new StringBuilder();
         if (isQAMode) {
-            for (QAItem item : items) {
+            for (QAItem item: items) {
                 content.append(item.getOriginalLine()).append("\n");
             }
         } else {
-            for (QAItem item : items) {
+            for (QAItem item: items) {
                 content.append(item.getOriginalLine() != null ? item.getOriginalLine() : item.getText()).append("\n");
             }
         }
@@ -1002,7 +1033,7 @@ public class MainActivity extends AppCompatActivity {
         StringBuilder content = new StringBuilder();
 
         if (isQAMode) {
-            for (QAItem item : originalItems) {
+            for (QAItem item: originalItems) {
                 if (item.isQA()) {
                     content.append(item.getOriginalLine()).append("\n");
                 } else {
@@ -1010,7 +1041,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         } else {
-            for (QAItem item : originalItems) {
+            for (QAItem item: originalItems) {
                 content.append(item.getOriginalLine() != null ?
                     item.getOriginalLine() : item.getText()).append("\n");
             }
@@ -1073,7 +1104,7 @@ public class MainActivity extends AppCompatActivity {
             items.add(new QAItem(question, answer, originalLines));
         }
 
-        originalItems = new ArrayList<>(items);
+        originalItems = new ArrayList < > (items);
         currentIndex = 0;
         isQAMode = true;
     }
@@ -1157,7 +1188,7 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences.Editor editor = prefs.edit();
 
         StringBuilder itemsStr = new StringBuilder();
-        for (QAItem item : items) {
+        for (QAItem item: items) {
             if (item.isQA()) {
                 itemsStr.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
             } else {
@@ -1167,7 +1198,7 @@ public class MainActivity extends AppCompatActivity {
         editor.putString(ITEMS_KEY, itemsStr.toString());
 
         StringBuilder originalItemsStr = new StringBuilder();
-        for (QAItem item : originalItems) {
+        for (QAItem item: originalItems) {
             if (item.isQA()) {
                 originalItemsStr.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
             } else {
@@ -1194,9 +1225,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (!originalItemsStr.isEmpty()) {
-            List<QAItem> loadedOriginalItems = new ArrayList<>();
+            List < QAItem > loadedOriginalItems = new ArrayList < > ();
             String[] lines = originalItemsStr.split("\n");
-            for (String line : lines) {
+            for (String line: lines) {
                 if (line.trim().isEmpty()) continue;
 
                 String[] parts = line.split("\t");
