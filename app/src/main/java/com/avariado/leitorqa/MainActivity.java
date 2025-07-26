@@ -89,15 +89,15 @@ public class MainActivity extends AppCompatActivity {
     private ScrollView textScrollView;
     private TextView processingMessage;
 
-    private List < QAItem > items = new ArrayList < > ();
-    private List < QAItem > originalItems = new ArrayList < > ();
+    private List<QAItem> items = new ArrayList<>();
+    private List<QAItem> originalItems = new ArrayList<>();
     private int currentIndex = 0;
     private boolean isQAMode = true;
     private boolean menuVisible = false;
     private int baseFontSize = 20;
     private String originalSeparator = "\t";
 
-    private List < Integer > searchResults = new ArrayList < > ();
+    private List<Integer> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
     private String searchTerm = "";
 
@@ -156,6 +156,7 @@ public class MainActivity extends AppCompatActivity {
 
         setupCardInputBehavior();
 
+        // Configuração do touch listener para o cardView
         cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -164,6 +165,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Configuração do touch listener para o scrollView
         textScrollView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -171,6 +173,41 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
+
+        // Configuração do touch listener para os TextViews
+        View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
+            private GestureDetector textGestureDetector = new GestureDetector(MainActivity.this, 
+                new GestureDetector.SimpleOnGestureListener() {
+                    @Override
+                    public boolean onSingleTapUp(MotionEvent e) {
+                        if (!questionTextView.hasSelection() && !answerTextView.hasSelection()) {
+                            toggleAnswerVisibility();
+                            return true;
+                        }
+                        return false;
+                    }
+
+                    @Override
+                    public void onLongPress(MotionEvent e) {
+                        super.onLongPress(e);
+                    }
+                });
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                boolean gestureResult = gestureDetector.onTouchEvent(event);
+                boolean textGestureResult = textGestureDetector.onTouchEvent(event);
+                
+                if (!gestureResult) {
+                    v.onTouchEvent(event);
+                }
+                
+                return true;
+            }
+        };
+
+        questionTextView.setOnTouchListener(textViewTouchListener);
+        answerTextView.setOnTouchListener(textViewTouchListener);
 
         menuButton.setOnClickListener(v -> toggleMenu());
         prevButton.setOnClickListener(v -> safePrevItem());
@@ -337,18 +374,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                questionTextView.clearFocus();
-                answerTextView.clearFocus();
-                return true;
-            }
-            
-            toggleAnswerVisibility();
-            return true;
-        }
-
-        @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
@@ -479,66 +504,6 @@ public class MainActivity extends AppCompatActivity {
         questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
 
-        View.OnTouchListener touchListener = new View.OnTouchListener() {
-            private long touchStartTime;
-            private float touchStartX;
-            private float touchStartY;
-            private boolean isSwiping = false;
-            private boolean isPotentialTap = true;
-            private final int tapTimeout = ViewConfiguration.getTapTimeout();
-            private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        touchStartTime = System.currentTimeMillis();
-                        touchStartX = event.getX();
-                        touchStartY = event.getY();
-                        isSwiping = false;
-                        isPotentialTap = true;
-                        v.onTouchEvent(event);
-                        return true;
-
-                    case MotionEvent.ACTION_MOVE:
-                        if (isPotentialTap) {
-                            float dx = Math.abs(event.getX() - touchStartX);
-                            float dy = Math.abs(event.getY() - touchStartY);
-                            if (dx > touchSlop || dy > touchSlop) {
-                                isPotentialTap = false;
-                                if (dx > dy && dx > touchSlop) {
-                                    isSwiping = true;
-                                }
-                            }
-                        }
-                        break;
-
-                    case MotionEvent.ACTION_UP:
-                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
-                            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
-                                questionTextView.clearFocus();
-                                answerTextView.clearFocus();
-                                return true;
-                            }
-                            toggleAnswerVisibility();
-                            v.cancelLongPress();
-                            return true;
-                        }
-                        break;
-                }
-
-                if (!isSwiping) {
-                    v.onTouchEvent(event);
-                }
-                return true;
-            }
-        };
-
-        questionTextView.setOnTouchListener(touchListener);
-        answerTextView.setOnTouchListener(touchListener);
-
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
         QAItem currentItem = items.get(currentIndex);
 
@@ -594,7 +559,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void resetOrder() {
         if (originalItems.isEmpty()) return;
-        items = new ArrayList < > (originalItems);
+        items = new ArrayList<>(originalItems);
         currentIndex = 0;
         updateDisplay();
         toggleMenu();
@@ -650,7 +615,7 @@ public class MainActivity extends AppCompatActivity {
         if (hasTabs || hasDoubleSemicolon) {
             originalSeparator = hasTabs ? "\t" : ";;";
 
-            for (String line: lines) {
+            for (String line : lines) {
                 if (line.trim().isEmpty()) continue;
 
                 String[] parts = line.split(originalSeparator);
@@ -677,7 +642,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        originalItems = new ArrayList < > (items);
+        originalItems = new ArrayList<>(items);
         currentIndex = 0;
         isQAMode = !items.isEmpty() && items.get(0).isQA();
     }
@@ -706,7 +671,7 @@ public class MainActivity extends AppCompatActivity {
 
         Pattern pattern = Pattern.compile("[^.!?…]+[.!?…]+");
         Matcher matcher = pattern.matcher(singleLine);
-        List < String > sentences = new ArrayList < > ();
+        List<String> sentences = new ArrayList<>();
 
         while (matcher.find()) {
             sentences.add(matcher.group().trim());
@@ -729,10 +694,10 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        List < QAItem > processedItems = new ArrayList < > ();
+        List<QAItem> processedItems = new ArrayList<>();
         StringBuilder currentChunk = new StringBuilder();
 
-        for (String sentence: sentences) {
+        for (String sentence : sentences) {
             if (currentChunk.length() == 0) {
                 currentChunk.append(sentence);
             } else if (currentChunk.length() + sentence.length() < 75) {
@@ -751,7 +716,7 @@ public class MainActivity extends AppCompatActivity {
         if (!processedItems.isEmpty()) {
             processedItems.get(0).setOriginalLine(originalText);
         }
-        originalItems = new ArrayList < > (items);
+        originalItems = new ArrayList<>(items);
         currentIndex = 0;
         isQAMode = false;
     }
@@ -796,7 +761,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void processTextContent(String fileContent, Uri uri) throws IOException {
-
         boolean hasTabs = fileContent.contains("\t");
         boolean hasDoubleSemicolon = fileContent.contains(";;");
         boolean isAlternatingLines = checkAlternatingLinesFormat(fileContent);
@@ -993,11 +957,11 @@ public class MainActivity extends AppCompatActivity {
 
         StringBuilder content = new StringBuilder();
         if (isQAMode) {
-            for (QAItem item: items) {
+            for (QAItem item : items) {
                 content.append(item.getOriginalLine()).append("\n");
             }
         } else {
-            for (QAItem item: items) {
+            for (QAItem item : items) {
                 content.append(item.getOriginalLine() != null ? item.getOriginalLine() : item.getText()).append("\n");
             }
         }
@@ -1023,7 +987,7 @@ public class MainActivity extends AppCompatActivity {
         StringBuilder content = new StringBuilder();
 
         if (isQAMode) {
-            for (QAItem item: originalItems) {
+            for (QAItem item : originalItems) {
                 if (item.isQA()) {
                     content.append(item.getOriginalLine()).append("\n");
                 } else {
@@ -1031,7 +995,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         } else {
-            for (QAItem item: originalItems) {
+            for (QAItem item : originalItems) {
                 content.append(item.getOriginalLine() != null ?
                     item.getOriginalLine() : item.getText()).append("\n");
             }
@@ -1094,7 +1058,7 @@ public class MainActivity extends AppCompatActivity {
             items.add(new QAItem(question, answer, originalLines));
         }
 
-        originalItems = new ArrayList < > (items);
+        originalItems = new ArrayList<>(items);
         currentIndex = 0;
         isQAMode = true;
     }
@@ -1178,7 +1142,7 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences.Editor editor = prefs.edit();
 
         StringBuilder itemsStr = new StringBuilder();
-        for (QAItem item: items) {
+        for (QAItem item : items) {
             if (item.isQA()) {
                 itemsStr.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
             } else {
@@ -1188,7 +1152,7 @@ public class MainActivity extends AppCompatActivity {
         editor.putString(ITEMS_KEY, itemsStr.toString());
 
         StringBuilder originalItemsStr = new StringBuilder();
-        for (QAItem item: originalItems) {
+        for (QAItem item : originalItems) {
             if (item.isQA()) {
                 originalItemsStr.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
             } else {
@@ -1215,9 +1179,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (!originalItemsStr.isEmpty()) {
-            List < QAItem > loadedOriginalItems = new ArrayList < > ();
+            List<QAItem> loadedOriginalItems = new ArrayList<>();
             String[] lines = originalItemsStr.split("\n");
-            for (String line: lines) {
+            for (String line : lines) {
                 if (line.trim().isEmpty()) continue;
 
                 String[] parts = line.split("\t");
