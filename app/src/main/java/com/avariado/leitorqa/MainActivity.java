@@ -74,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
     private static final float TEXT_LINE_SPACING_MULTIPLIER = 1.2f;
 
     private static final int TAP_TIMEOUT = ViewConfiguration.getDoubleTapTimeout();
+    private static final int LONG_PRESS_TIMEOUT = ViewConfiguration.getLongPressTimeout();
 
     private TextView questionTextView;
     private TextView answerTextView;
@@ -102,6 +103,7 @@ public class MainActivity extends AppCompatActivity {
     private String searchTerm = "";
 
     private GestureDetectorCompat gestureDetector;
+    private boolean isLongPress = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -155,7 +157,6 @@ public class MainActivity extends AppCompatActivity {
         currentCardInput.setCursorVisible(false);
 
         setupCardInputBehavior();
-        setupTextViewTouchListeners();
 
         cardView.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -222,98 +223,6 @@ public class MainActivity extends AppCompatActivity {
         }
         updateDisplay();
         updateFontSize();
-    }
-
-    private void setupTextViewTouchListeners() {
-        View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
-            private GestureDetectorCompat textGestureDetector = new GestureDetectorCompat(
-                MainActivity.this, new TextGestureListener());
-            
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                textGestureDetector.onTouchEvent(event);
-                
-                // Permitir a seleção de texto quando for um toque longo
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    TextView textView = (TextView) v;
-                    if (textView.hasSelection()) {
-                        textView.clearFocus();
-                        return true;
-                    }
-                }
-                return false;
-            }
-        };
-
-        questionTextView.setOnTouchListener(textViewTouchListener);
-        answerTextView.setOnTouchListener(textViewTouchListener);
-    }
-
-    private class TextGestureListener extends GestureDetector.SimpleOnGestureListener {
-        @Override
-        public boolean onDown(MotionEvent e) {
-            return true;
-        }
-
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            // Tratar toque muito curto
-            toggleAnswerVisibility();
-            return true;
-        }
-
-        @Override
-        public void onLongPress(MotionEvent e) {
-            // Permitir a seleção de texto com toque longo
-            TextView textView = (TextView) (e.getX() < questionTextView.getWidth() ? 
-                questionTextView : answerTextView);
-            textView.performLongClick();
-        }
-    }
-
-    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
-        private static final int SWIPE_THRESHOLD = 100;
-        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
-        private static final float SWIPE_ANGLE_THRESHOLD = 30;
-
-        @Override
-        public boolean onDown(MotionEvent e) {
-            return true;
-        }
-
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            // Toque muito curto em áreas sem texto
-            if (!menuVisible) {
-                finishEditing();
-                toggleAnswerVisibility();
-            }
-            return true;
-        }
-
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            float diffX = e2.getX() - e1.getX();
-            float diffY = e2.getY() - e1.getY();
-
-            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
-
-            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD ||
-                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
-
-                if (Math.abs(diffX) > SWIPE_THRESHOLD &&
-                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-
-                    if (diffX > 0) {
-                        safePrevItem();
-                    } else {
-                        safeNextItem();
-                    }
-                    return true;
-                }
-            }
-            return false;
-        }
     }
 
     @Override
@@ -417,6 +326,53 @@ public class MainActivity extends AppCompatActivity {
         validateAndUpdateCardNumber();
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
+    }
+
+    private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
+        private static final int SWIPE_THRESHOLD = 100;
+        private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+        private static final float SWIPE_ANGLE_THRESHOLD = 30;
+
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                questionTextView.clearFocus();
+                answerTextView.clearFocus();
+                return true;
+            }
+            
+            toggleAnswerVisibility();
+            return true;
+        }
+
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            float diffX = e2.getX() - e1.getX();
+            float diffY = e2.getY() - e1.getY();
+
+            float angle = (float) Math.toDegrees(Math.atan2(diffY, diffX));
+
+            if (Math.abs(angle) < SWIPE_ANGLE_THRESHOLD ||
+                Math.abs(angle) > 180 - SWIPE_ANGLE_THRESHOLD) {
+
+                if (Math.abs(diffX) > SWIPE_THRESHOLD &&
+                    Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+
+                    if (diffX > 0) {
+                        safePrevItem();
+                    } else {
+                        safeNextItem();
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     private void safePrevItem() {
@@ -524,6 +480,74 @@ public class MainActivity extends AppCompatActivity {
         answerTextView.setTextIsSelectable(true);
         questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
+
+        View.OnTouchListener touchListener = new View.OnTouchListener() {
+            private long touchStartTime;
+            private float touchStartX;
+            private float touchStartY;
+            private boolean isPotentialTap = true;
+            private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
+            private Runnable longPressRunnable;
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        touchStartTime = System.currentTimeMillis();
+                        touchStartX = event.getX();
+                        touchStartY = event.getY();
+                        isPotentialTap = true;
+                        isLongPress = false;
+
+                        longPressRunnable = () -> {
+                            isLongPress = true;
+                            v.performLongClick();
+                        };
+                        v.postDelayed(longPressRunnable, LONG_PRESS_TIMEOUT);
+                        return true;
+
+                    case MotionEvent.ACTION_MOVE:
+                        if (isPotentialTap) {
+                            float dx = Math.abs(event.getX() - touchStartX);
+                            float dy = Math.abs(event.getY() - touchStartY);
+                            if (dx > touchSlop || dy > touchSlop) {
+                                isPotentialTap = false;
+                                if (longPressRunnable != null) {
+                                    v.removeCallbacks(longPressRunnable);
+                                }
+                            }
+                        }
+                        break;
+
+                    case MotionEvent.ACTION_UP:
+                        if (longPressRunnable != null) {
+                            v.removeCallbacks(longPressRunnable);
+                        }
+
+                        if (isPotentialTap && !isLongPress) {
+                            long touchDuration = System.currentTimeMillis() - touchStartTime;
+                            if (touchDuration < TAP_TIMEOUT) {
+                                if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
+                                    questionTextView.clearFocus();
+                                    answerTextView.clearFocus();
+                                    return true;
+                                }
+                                toggleAnswerVisibility();
+                                return true;
+                            }
+                        }
+                        isLongPress = false;
+                        break;
+                }
+
+                return false;
+            }
+        };
+
+        questionTextView.setOnTouchListener(touchListener);
+        answerTextView.setOnTouchListener(touchListener);
 
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
         QAItem currentItem = items.get(currentIndex);
