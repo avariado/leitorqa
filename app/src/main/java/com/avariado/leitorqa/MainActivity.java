@@ -82,7 +82,6 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout menuLayout;
     private View overlay;
     private EditText searchInput;
-    private ImageView clearSearchButton;
     private TextView searchInfo;
     private TextView fontSizeText;
     private FrameLayout mainContainer;
@@ -90,19 +89,20 @@ public class MainActivity extends AppCompatActivity {
     private ScrollView textScrollView;
     private TextView processingMessage;
 
-    private List<QAItem> items = new ArrayList<>();
-    private List<QAItem> originalItems = new ArrayList<>();
+    private List < QAItem > items = new ArrayList < > ();
+    private List < QAItem > originalItems = new ArrayList < > ();
     private int currentIndex = 0;
     private boolean isQAMode = true;
     private boolean menuVisible = false;
     private int baseFontSize = 20;
     private String originalSeparator = "\t";
 
-    private List<Integer> searchResults = new ArrayList<>();
+    private List < Integer > searchResults = new ArrayList < > ();
     private int currentSearchIndex = -1;
     private String searchTerm = "";
 
     private GestureDetectorCompat gestureDetector;
+    private ImageView clearSearchButton; // Novo campo para o botão de limpar pesquisa
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,30 +125,28 @@ public class MainActivity extends AppCompatActivity {
         textScrollView = findViewById(R.id.text_scroll_view);
         processingMessage = findViewById(R.id.processing_message);
 
-        // Configuração do botão de limpar pesquisa
+        // Criação do botão "x" para limpar a pesquisa
         clearSearchButton = new ImageView(this);
         clearSearchButton.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
         clearSearchButton.setVisibility(View.GONE);
-        clearSearchButton.setPadding(8, 8, 8, 8);
         clearSearchButton.setOnClickListener(v -> {
             searchInput.setText("");
             clearSearch();
-            clearSearchButton.setVisibility(View.GONE);
         });
 
-        // Adiciona o botão à direita do EditText
-        searchInput.setCompoundDrawablesWithIntrinsicBounds(null, null, clearSearchButton.getDrawable(), null);
-        searchInput.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (event.getRawX() >= (searchInput.getRight() - searchInput.getCompoundDrawables()[2].getBounds().width())) {
-                    searchInput.setText("");
-                    clearSearch();
-                    clearSearchButton.setVisibility(View.GONE);
-                    return true;
-                }
-            }
-            return false;
-        });
+        // Adiciona o botão ao layout da caixa de pesquisa
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.WRAP_CONTENT,
+                RelativeLayout.LayoutParams.WRAP_CONTENT);
+        params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, RelativeLayout.TRUE);
+        params.addRule(RelativeLayout.CENTER_VERTICAL, RelativeLayout.TRUE);
+        params.rightMargin = dpToPx(8); // 8dp de margem à direita
+
+        // Adiciona o botão ao RelativeLayout que contém o searchInput
+        if (searchInput.getParent() instanceof RelativeLayout) {
+            RelativeLayout searchContainer = (RelativeLayout) searchInput.getParent();
+            searchContainer.addView(clearSearchButton, params);
+        }
 
         menuLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -236,6 +234,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 searchTerm = s.toString().trim();
+                // Mostra ou esconde o botão de limpar conforme o conteúdo
                 clearSearchButton.setVisibility(searchTerm.isEmpty() ? View.GONE : View.VISIBLE);
                 if (searchTerm.isEmpty()) {
                     clearSearch();
@@ -255,6 +254,15 @@ public class MainActivity extends AppCompatActivity {
         updateDisplay();
         updateFontSize();
     }
+
+    // Método auxiliar para converter dp para pixels
+    private int dpToPx(int dp) {
+        float density = getResources().getDisplayMetrics().density;
+        return Math.round(dp * density);
+    }
+
+    // ... (o resto do código permanece exatamente igual)
+    // Todos os outros métodos da classe MainActivity permanecem inalterados
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -1150,7 +1158,7 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < items.size(); i++) {
             QAItem item = items.get(i);
             String textToSearch = isQAMode ?
-                    item.getQuestion() + " " + item.getAnswer() : item.getText();
+                item.getQuestion() + " " + item.getAnswer() : item.getText();
 
             if (textToSearch.toLowerCase().contains(searchTerm.toLowerCase())) {
                 searchResults.add(i);
@@ -1172,12 +1180,45 @@ public class MainActivity extends AppCompatActivity {
         updateDisplay();
     }
 
+    private void goToPrevSearchResult() {
+        if (searchResults.isEmpty()) return;
+
+        currentSearchIndex = (currentSearchIndex - 1 + searchResults.size()) % searchResults.size();
+        currentIndex = searchResults.get(currentSearchIndex);
+        updateDisplay();
+        updateSearchInfo();
+        if (isQAMode) {
+            answerTextView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void goToNextSearchResult() {
+        if (searchResults.isEmpty()) return;
+
+        currentSearchIndex = (currentSearchIndex + 1) % searchResults.size();
+        currentIndex = searchResults.get(currentSearchIndex);
+        updateDisplay();
+        updateSearchInfo();
+        if (isQAMode) {
+            answerTextView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void updateSearchInfo() {
+        if (searchResults.isEmpty()) {
+            searchInfo.setText("");
+        } else {
+            searchInfo.setText("Resultado " + (currentSearchIndex + 1) + " de " + searchResults.size());
+        }
+    }
+
     private void clearSearch() {
         searchTerm = "";
         searchResults.clear();
         currentSearchIndex = -1;
         searchInfo.setText("");
         updateDisplay();
+        clearSearchButton.setVisibility(View.GONE); // Esconde o botão quando a pesquisa é limpa
     }
 
     private void saveState() {
