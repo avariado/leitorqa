@@ -15,6 +15,7 @@ import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.LayoutInflater
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewTreeObserver;
