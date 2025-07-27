@@ -15,4 +15,28 @@
     <string name="decrease_font_button">-</string>
     <string name="increase_font_button">+</string>
     <string name="processing_message">Processing PDF\u2026</string>
+    
+    <!-- Error and status messages -->
+    <string name="error_navigating_previous">Error navigating to previous card</string>
+    <string name="error_navigating_next">Error navigating to next card</string>
+    <string name="invalid_card_number">Invalid card number</string>
+    <string name="please_enter_valid_number">Please enter a valid number</string>
+    <string name="no_content_loaded">No content loaded.</string>
+    <string name="file_imported_successfully">File imported successfully!</string>
+    <string name="processing_pdf">Processing PDF, please wait\u2026</string>
+    <string name="pdf_imported_successfully">PDF imported successfully!</string>
+    <string name="error_processing_pdf">Error processing PDF: </string>
+    <string name="error_reading_file">Error reading file: </string>
+    <string name="no_content_to_export">No content to export</string>
+    <string name="questions_answers_file">questions_answers.txt</string>
+    <string name="document_file">document.txt</string>
+    <string name="file_exported_successfully">File exported successfully!</string>
+    <string name="error_exporting_file">Error exporting file: </string>
+    <string name="edit_content_title">Edit Content</string>
+    <string name="save_button">Save</string>
+    <string name="cancel_button">Cancel</string>
+    <string name="content_cannot_be_empty">Content cannot be empty!</string>
+    <string name="warning_odd_lines">Warning: Odd number of lines. The file will be treated as plain text.</string>
+    <string name="search_result_format">Result %1$d of %2$d</string>
+    <string name="no_results_found">No results found for: %s</string>
 </resources>
