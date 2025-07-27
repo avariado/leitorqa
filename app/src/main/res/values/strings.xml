@@ -14,8 +14,6 @@
     <string name="decrease_font_button">-</string>
     <string name="increase_font_button">+</string>
     <string name="processing_message">Processando PDF, aguarde...</string>
-    
-    <!-- Error and status messages -->
     <string name="error_navigating_previous">Erro ao navegar para o cartão anterior</string>
     <string name="error_navigating_next">Erro ao navegar para o próximo cartão</string>
     <string name="invalid_card_number">Número de cartão inválido</string>
