@@ -420,11 +420,11 @@ public class MainActivity extends AppCompatActivity {
                 saveState();
             } else {
                 currentCardInput.setText(String.valueOf(currentIndex + 1));
-                showError("Número de cartão inválido");
+                showError(getString(R.string.invalid_card_number));
             }
         } catch (NumberFormatException e) {
             currentCardInput.setText(String.valueOf(currentIndex + 1));
-            showError("Por favor insira um número válido");
+            showError(getString(R.string.please_enter_valid_number));
         }
     }
 
@@ -472,7 +472,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateDisplay() {
         if (items.isEmpty()) {
-            questionTextView.setText("Nenhum conteúdo carregado.");
+            questionTextView.setText(getString(R.string.no_content_loaded));
             answerTextView.setText("");
             currentCardInput.setText("0");
             totalCardsText.setText("/ 0");
@@ -828,9 +828,7 @@ public class MainActivity extends AppCompatActivity {
             parseQAContent(fileContent);
         } else if (isAlternatingLines && !hasMultipleSentences && lines.length >= 2) {
             if (lines.length % 2 != 0) {
-                Toast.makeText(this,
-                    "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.",
-                    Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.file_imported_successfully), Toast.LENGTH_SHORT).show();
                 parseTextContent(fileContent);
             } else {
                 parseAlternatingLinesContent(fileContent);
@@ -846,7 +844,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void processPDFFile(Uri uri) {
         processingMessage.setVisibility(View.VISIBLE);
-        processingMessage.setText("Processando PDF, aguarde...");
+        processingMessage.setText(getString(R.string.processing_pdf));
 
         new Thread(() -> {
             try {
@@ -902,19 +900,19 @@ public class MainActivity extends AppCompatActivity {
                     updateDisplay();
                     saveState();
                     processingMessage.setVisibility(View.GONE);
-                    Toast.makeText(this, "PDF importado com sucesso!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getString(R.string.pdf_imported_successfully), Toast.LENGTH_SHORT).show();
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     processingMessage.setVisibility(View.GONE);
-                    Toast.makeText(this, "Erro ao processar PDF: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, getString(R.string.error_processing_pdf) + e.getMessage(), Toast.LENGTH_LONG).show();
                     e.printStackTrace();
 
                     try {
                         String fileContent = readTextFileWithEncodingDetection(uri);
                         processTextContent(fileContent, uri);
                     } catch (IOException ex) {
-                        Toast.makeText(this, "Erro ao ler ficheiro: " + ex.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, getString(R.string.error_reading_file) + ex.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
             }
@@ -987,11 +985,11 @@ public class MainActivity extends AppCompatActivity {
         toggleMenu();
 
         if (items.isEmpty()) {
-            Toast.makeText(this, "Nenhum conteúdo para exportar", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.no_content_to_export), Toast.LENGTH_SHORT).show();
             return;
         }
 
-        String filename = isQAMode ? "perguntas_respostas.txt" : "documento.txt";
+        String filename = isQAMode ? getString(R.string.questions_answers_file) : getString(R.string.document_file);
 
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -1019,9 +1017,9 @@ public class MainActivity extends AppCompatActivity {
             fos.write(content.toString().getBytes());
             fos.close();
 
-            Toast.makeText(this, "Ficheiro exportado com sucesso!", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.file_exported_successfully), Toast.LENGTH_LONG).show();
         } catch (IOException e) {
-            Toast.makeText(this, "Erro ao exportar ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.error_exporting_file) + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -1053,11 +1051,11 @@ public class MainActivity extends AppCompatActivity {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setView(dialogView);
-        builder.setTitle("Editar Conteúdo");
-        builder.setPositiveButton("Guardar", (dialog, which) -> {
+        builder.setTitle(getString(R.string.edit_content_title));
+        builder.setPositiveButton(getString(R.string.save_button), (dialog, which) -> {
             String text = contentEditor.getText().toString();
             if (text.trim().isEmpty()) {
-                Toast.makeText(this, "O conteúdo não pode estar vazio!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getString(R.string.content_cannot_be_empty), Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -1076,7 +1074,7 @@ public class MainActivity extends AppCompatActivity {
             updateDisplay();
             saveState();
         });
-        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
+        builder.setNegativeButton(getString(R.string.cancel_button), (dialog, which) -> dialog.dismiss());
         builder.show();
     }
 
@@ -1087,7 +1085,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (lines.length % 2 != 0) {
             Toast.makeText(this,
-                "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.",
+                getString(R.string.warning_odd_lines),
                 Toast.LENGTH_LONG).show();
             parseTextContent(text);
             return;
@@ -1173,7 +1171,8 @@ public class MainActivity extends AppCompatActivity {
         if (searchResults.isEmpty()) {
             searchInfo.setText("");
         } else {
-            searchInfo.setText("Resultado " + (currentSearchIndex + 1) + " de " + searchResults.size());
+            searchInfo.setText(getString(R.string.search_result_format, 
+                currentSearchIndex + 1, searchResults.size()));
         }
     }
 
