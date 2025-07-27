@@ -801,7 +801,7 @@ public class MainActivity extends AppCompatActivity {
                     exportFile(uri);
                 }
             } catch (IOException e) {
-                Toast.makeText(this, "Erro ao ler ficheiro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(this, getString(R.string.error_reading_file) + e.getMessage(), Toast.LENGTH_LONG).show();
                 e.printStackTrace();
             }
         }
@@ -839,7 +839,7 @@ public class MainActivity extends AppCompatActivity {
 
         updateDisplay();
         saveState();
-        Toast.makeText(this, "Ficheiro importado com sucesso!", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, getString(R.string.file_imported_successfully), Toast.LENGTH_SHORT).show();
     }
 
     private void processPDFFile(Uri uri) {
@@ -883,7 +883,7 @@ public class MainActivity extends AppCompatActivity {
                     if (lines.length % 2 != 0) {
                         runOnUiThread(() -> {
                             Toast.makeText(this,
-                                "Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.",
+                                getString(R.string.warning_odd_lines),
                                 Toast.LENGTH_LONG).show();
                         });
                         parseTextContent(pdfContent);
@@ -1055,7 +1055,9 @@ public class MainActivity extends AppCompatActivity {
         builder.setPositiveButton(getString(R.string.save_button), (dialog, which) -> {
             String text = contentEditor.getText().toString();
             if (text.trim().isEmpty()) {
-                Toast.makeText(this, getString(R.string.content_cannot_be_empty), Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, 
+                    getString(R.string.content_cannot_be_empty), 
+                    Toast.LENGTH_SHORT).show();
                 return;
             }
 
