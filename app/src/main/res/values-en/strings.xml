@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Q&amp;A</string>
-    <string name="app_long_name">Q&amp;A - Study Reader</string>
+    <string name="app_long_name">Q&amp;A Study Reader</string>
     <string name="menu_button">☰</string>
     <string name="import_button">Import file</string>
     <string name="export_button">Export file</string>
