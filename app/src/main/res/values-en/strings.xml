@@ -15,8 +15,6 @@
     <string name="decrease_font_button">-</string>
     <string name="increase_font_button">+</string>
     <string name="processing_message">Processing PDF\u2026</string>
-    
-    <!-- Error and status messages -->
     <string name="error_navigating_previous">Error navigating to previous card</string>
     <string name="error_navigating_next">Error navigating to next card</string>
     <string name="invalid_card_number">Invalid card number</string>
