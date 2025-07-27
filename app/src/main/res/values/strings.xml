@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Q&amp;A</string>
     <string name="app_long_name">Leitor Q&amp;A</string>
@@ -14,5 +13,29 @@
     <string name="next_button">►</string>
     <string name="decrease_font_button">-</string>
     <string name="increase_font_button">+</string>
-    <string name="processing_message">Processando PDF\u2026</string>
+    <string name="processing_message">Processando PDF, aguarde...</string>
+    
+    <!-- Error and status messages -->
+    <string name="error_navigating_previous">Erro ao navegar para o cartão anterior</string>
+    <string name="error_navigating_next">Erro ao navegar para o próximo cartão</string>
+    <string name="invalid_card_number">Número de cartão inválido</string>
+    <string name="please_enter_valid_number">Por favor insira um número válido</string>
+    <string name="no_content_loaded">Nenhum conteúdo carregado.</string>
+    <string name="file_imported_successfully">Ficheiro importado com sucesso!</string>
+    <string name="processing_pdf">Processando PDF, aguarde...</string>
+    <string name="pdf_imported_successfully">PDF importado com sucesso!</string>
+    <string name="error_processing_pdf">Erro ao processar PDF: </string>
+    <string name="error_reading_file">Erro ao ler ficheiro: </string>
+    <string name="no_content_to_export">Nenhum conteúdo para exportar</string>
+    <string name="questions_answers_file">perguntas_respostas.txt</string>
+    <string name="document_file">documento.txt</string>
+    <string name="file_exported_successfully">Ficheiro exportado com sucesso!</string>
+    <string name="error_exporting_file">Erro ao exportar ficheiro: </string>
+    <string name="edit_content_title">Editar Conteúdo</string>
+    <string name="save_button">Guardar</string>
+    <string name="cancel_button">Cancelar</string>
+    <string name="content_cannot_be_empty">O conteúdo não pode estar vazio!</string>
+    <string name="warning_odd_lines">Aviso: O número de linhas não é par. O ficheiro será tratado como texto normal.</string>
+    <string name="search_result_format">Resultado %1$d de %2$d</string>
+    <string name="no_results_found">Nenhum resultado encontrado para: %s</string>
 </resources>
