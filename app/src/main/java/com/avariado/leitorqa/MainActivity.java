@@ -135,9 +135,6 @@ public class MainActivity extends AppCompatActivity {
 
         menuLayout.setVisibility(View.VISIBLE);
 
-        Button aboutButton = findViewById(R.id.about_button);
-        aboutButton.setOnClickListener(v -> showAboutDialog());
-
         gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
 
         Button menuButton = findViewById(R.id.menu_button);
@@ -337,16 +334,6 @@ public class MainActivity extends AppCompatActivity {
         validateAndUpdateCardNumber();
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(currentCardInput.getWindowToken(), 0);
-    }
-
-    private void showAboutDialog() {
-    toggleMenu();
-    
-    AlertDialog.Builder builder = new AlertDialog.Builder(this);
-    builder.setTitle(R.string.about_title);
-    builder.setMessage(R.string.about_content);
-    builder.setPositiveButton(R.string.ok_button, (dialog, which) -> dialog.dismiss());
-    builder.show();
     }
 
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
