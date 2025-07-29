@@ -36,10 +36,14 @@
             android:textSize="20sp"
             android:textStyle="bold" />
 
-        <View
+        <Button
+            android:id="@+id/about_button"
             android:layout_width="48dp"
-            android:layout_height="1dp"
-            android:visibility="invisible" />
+            android:layout_height="48dp"
+            android:background="@null"
+            android:text="⋮"
+            android:textColor="#fff"
+            android:textSize="24sp" />
     </LinearLayout>
 
     <FrameLayout
