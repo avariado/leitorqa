@@ -43,7 +43,7 @@
     <string name="contact_label">Contact: %s</string>
     <string name="icon_author_label">Icon creator: %s</string>
     <string name="website_label">Website: %s</string>
-    <string name="year_label">Year: %s</string>
+    <string name="year_label">Year of release: %s</string>
     <string name="author_name">Avariado</string>
     <string name="author_email">avariadopt@hotmail.com</string>
     <string name="icon_author_name">Iconsea</string>
