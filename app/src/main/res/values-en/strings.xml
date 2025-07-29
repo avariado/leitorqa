@@ -37,4 +37,15 @@
     <string name="warning_odd_lines">Warning: Odd number of lines. The file will be treated as plain text.</string>
     <string name="search_result_format">Result %1$d of %2$d</string>
     <string name="no_results_found">No results found for: %s</string>
+    <string name="about_menu">About</string>
+    <string name="about_dialog_title">About</string>
+    <string name="author_label">Author: %s</string>
+    <string name="contact_label">Contact: %s</string>
+    <string name="icon_author_label">Icon author: %s</string>
+    <string name="website_label">Website: %s</string>
+    <string name="year_label">Year: %s</string>
+    <string name="author_name">Avariado</string>
+    <string name="author_email">avariadopt@hotmail.com</string>
+    <string name="icon_author_name">Iconsea</string>
+    <string name="icon_author_website">https://www.freepik.com/author/iconsea</string>
 </resources>
