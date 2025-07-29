@@ -231,19 +231,26 @@ public class MainActivity extends AppCompatActivity {
         updateFontSize();
     }
 
-        private void showAboutDialog() {
+    private void showAboutDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.about_dialog_title));
         
-        String message = getString(R.string.author_label, getString(R.string.author_name)) + "\n\n" +
-                         getString(R.string.contact_label, getString(R.string.author_email)) + "\n\n" +
-                         getString(R.string.icon_author_label, getString(R.string.icon_author_name)) + "\n\n" +
-                         getString(R.string.website_label, getString(R.string.icon_author_website)) + "\n\n" +
-                         getString(R.string.year_label, "2025");
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_about, null);
+        TextView aboutText = dialogView.findViewById(R.id.about_text);
         
-        builder.setMessage(message);
+        String message = getString(R.string.author_label, getString(R.string.author_name)) + "\n\n" +
+                       getString(R.string.contact_label, getString(R.string.author_email)) + "\n\n" +
+                       getString(R.string.icon_author_label, getString(R.string.icon_author_name)) + "\n\n" +
+                       getString(R.string.website_label, getString(R.string.icon_author_website)) + "\n\n" +
+                       getString(R.string.year_label, "2025");
+        
+        aboutText.setText(message);
+        
+        builder.setView(dialogView);
         builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
-        builder.show();
+        
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     @Override
