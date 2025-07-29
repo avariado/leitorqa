@@ -138,6 +138,7 @@ public class MainActivity extends AppCompatActivity {
         gestureDetector = new GestureDetectorCompat(this, new SwipeGestureListener());
 
         Button menuButton = findViewById(R.id.menu_button);
+        Button aboutButton = findViewById(R.id.about_button);
         Button prevButton = findViewById(R.id.prev_button);
         Button nextButton = findViewById(R.id.next_button);
         Button importButton = findViewById(R.id.import_button);
@@ -173,6 +174,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         menuButton.setOnClickListener(v -> toggleMenu());
+        aboutButton.setOnClickListener(v -> showAboutDialog());
         prevButton.setOnClickListener(v -> {
             validateAndUpdateCardNumber();
             safePrevItem();
@@ -227,6 +229,21 @@ public class MainActivity extends AppCompatActivity {
         }
         updateDisplay();
         updateFontSize();
+    }
+
+        private void showAboutDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getString(R.string.about_dialog_title));
+        
+        String message = getString(R.string.author_label, getString(R.string.author_name)) + "\n\n" +
+                         getString(R.string.contact_label, getString(R.string.author_email)) + "\n\n" +
+                         getString(R.string.icon_author_label, getString(R.string.icon_author_name)) + "\n\n" +
+                         getString(R.string.website_label, getString(R.string.icon_author_website)) + "\n\n" +
+                         getString(R.string.year_label, "2025");
+        
+        builder.setMessage(message);
+        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
+        builder.show();
     }
 
     @Override
