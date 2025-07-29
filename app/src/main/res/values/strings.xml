@@ -41,7 +41,7 @@
     <string name="about_dialog_title">Sobre</string>
     <string name="author_label">Autor: %s</string>
     <string name="contact_label">Contacto: %s</string>
-    <string name="icon_author_label">Autor do ícone: %s</string>
+    <string name="icon_author_label">Criador do ícone: %s</string>
     <string name="website_label">Website: %s</string>
     <string name="year_label">Ano: %s</string>
     <string name="author_name">Avariado</string>
