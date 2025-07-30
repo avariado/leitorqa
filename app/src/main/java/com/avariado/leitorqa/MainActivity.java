@@ -517,11 +517,19 @@ private void updateDisplay() {
 
     // Configuração do touch listener para as TextViews
     View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
+        private final Handler handler = new Handler();
         private long touchStartTime;
         private float touchStartX;
         private float touchStartY;
         private boolean isPotentialTap = true;
         private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
+        private Runnable enableSelectionRunnable = new Runnable() {
+            @Override
+            public void run() {
+                questionTextView.setEnabled(true);
+                answerTextView.setEnabled(true);
+            }
+        };
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
@@ -531,6 +539,7 @@ private void updateDisplay() {
                     touchStartX = event.getX();
                     touchStartY = event.getY();
                     isPotentialTap = true;
+                    handler.removeCallbacks(enableSelectionRunnable);
                     break;
 
                 case MotionEvent.ACTION_MOVE:
@@ -548,11 +557,7 @@ private void updateDisplay() {
                         // Impede a seleção de texto para toques muito curtos
                         questionTextView.setEnabled(false);
                         answerTextView.setEnabled(false);
-                        
-                        new Handler().postDelayed(() -> {
-                            questionTextView.setEnabled(true);
-                            answerTextView.setEnabled(true);
-                        }, 50);
+                        handler.postDelayed(enableSelectionRunnable, 50);
                         
                         toggleAnswerVisibility();
                         return true;
