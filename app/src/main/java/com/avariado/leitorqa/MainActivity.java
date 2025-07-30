@@ -510,58 +510,8 @@ private void updateDisplay() {
         questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
     }
 
-    questionTextView.setTextIsSelectable(true);
-    answerTextView.setTextIsSelectable(true);
-    questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-    answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-
-    // Configuração do touch listener para as TextViews
-    View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
-        private long touchStartTime;
-        private float touchStartX;
-        private float touchStartY;
-        private boolean isPotentialTap = true;
-        private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
-
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    touchStartTime = System.currentTimeMillis();
-                    touchStartX = event.getX();
-                    touchStartY = event.getY();
-                    isPotentialTap = true;
-                    break;
-
-                case MotionEvent.ACTION_MOVE:
-                    if (isPotentialTap) {
-                        float dx = Math.abs(event.getX() - touchStartX);
-                        float dy = Math.abs(event.getY() - touchStartY);
-                        if (dx > touchSlop || dy > touchSlop) {
-                            isPotentialTap = false;
-                        }
-                    }
-                    break;
-
-                case MotionEvent.ACTION_UP:
-                    if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < TAP_TIMEOUT)) {
-                        // Solução simplificada que não requer Handler
-                        v.performClick();
-                        return true;
-                    }
-                    break;
-            }
-
-            // Permite que o GestureDetector processe os eventos também
-            gestureDetector.onTouchEvent(event);
-            return false;
-        }
-    };
-
-    questionTextView.setOnTouchListener(textViewTouchListener);
-    answerTextView.setOnTouchListener(textViewTouchListener);
-    questionTextView.setOnClickListener(v -> toggleAnswerVisibility());
-    answerTextView.setOnClickListener(v -> toggleAnswerVisibility());
+    // Configuração dos listeners de toque
+    setupTouchHandlers();
 
     currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
     QAItem currentItem = items.get(currentIndex);
@@ -578,6 +528,95 @@ private void updateDisplay() {
 
     currentCardInput.setText(String.valueOf(currentIndex + 1));
     totalCardsText.setText("/ " + items.size());
+}
+
+private void setupTouchHandlers() {
+    // Reset dos listeners para evitar acumulação
+    questionTextView.setOnTouchListener(null);
+    answerTextView.setOnTouchListener(null);
+    cardView.setOnTouchListener(null);
+
+    // Configuração da seleção de texto
+    questionTextView.setTextIsSelectable(true);
+    answerTextView.setTextIsSelectable(true);
+    questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
+    answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
+
+    // Listener para as áreas de texto
+    View.OnTouchListener textTouchListener = new View.OnTouchListener() {
+        private long touchStartTime;
+        private float touchStartX;
+        private float touchStartY;
+        private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
+        private boolean isClick = false;
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    touchStartTime = System.currentTimeMillis();
+                    touchStartX = event.getX();
+                    touchStartY = event.getY();
+                    isClick = true;
+                    break;
+
+                case MotionEvent.ACTION_MOVE:
+                    if (isClick) {
+                        float dx = Math.abs(event.getX() - touchStartX);
+                        float dy = Math.abs(event.getY() - touchStartY);
+                        if (dx > touchSlop || dy > touchSlop) {
+                            isClick = false;
+                        }
+                    }
+                    break;
+
+                case MotionEvent.ACTION_UP:
+                    if (isClick && (System.currentTimeMillis() - touchStartTime < TAP_TIMEOUT)) {
+                        // Toque muito curto - mostra/oculta resposta sem selecionar texto
+                        v.performClick();
+                        return true;
+                    }
+                    break;
+            }
+            
+            // Permite a seleção de texto com toque longo
+            v.onTouchEvent(event);
+            
+            // Permite que o GestureDetector processe os eventos de swipe
+            gestureDetector.onTouchEvent(event);
+            return true;
+        }
+    };
+
+    questionTextView.setOnTouchListener(textTouchListener);
+    answerTextView.setOnTouchListener(textTouchListener);
+
+    // Listener para a área sem texto (cardView)
+    cardView.setOnTouchListener(new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                // Toque em área sem texto - mostra/oculta resposta
+                toggleAnswerVisibility();
+                return true;
+            }
+            
+            // Permite que o GestureDetector processe os eventos de swipe
+            gestureDetector.onTouchEvent(event);
+            return true;
+        }
+    });
+
+    // Click listeners para as TextViews
+    View.OnClickListener textClickListener = v -> {
+        // Limpa qualquer seleção de texto antes de processar o clique
+        questionTextView.clearFocus();
+        answerTextView.clearFocus();
+        toggleAnswerVisibility();
+    };
+
+    questionTextView.setOnClickListener(textClickListener);
+    answerTextView.setOnClickListener(textClickListener);
 }
 
     private Spanned highlightText(String text, String searchTerm) {
