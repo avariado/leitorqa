@@ -498,122 +498,111 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-private void updateDisplay() {
-    if (items.isEmpty()) {
-        questionTextView.setText(getString(R.string.no_content_loaded));
-        answerTextView.setText("");
-        currentCardInput.setText("0");
-        totalCardsText.setText("/ 0");
-        return;
+    private void updateDisplay() {
+        if (items.isEmpty()) {
+            questionTextView.setText(getString(R.string.no_content_loaded));
+            answerTextView.setText("");
+            currentCardInput.setText("0");
+            totalCardsText.setText("/ 0");
+            return;
+        }
+    
+        if (isQAMode) {
+            questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
+            answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
+        } else {
+            questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
+        }
+    
+        setupTouchHandlers();
+    
+        currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
+        QAItem currentItem = items.get(currentIndex);
+    
+        if (isQAMode) {
+            questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
+            answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
+            answerTextView.setVisibility(View.GONE);
+        } else {
+            questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
+            answerTextView.setText("");
+            answerTextView.setVisibility(View.GONE);
+        }
+    
+        currentCardInput.setText(String.valueOf(currentIndex + 1));
+        totalCardsText.setText("/ " + items.size());
     }
-
-    if (isQAMode) {
-        questionTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
-        answerTextView.setLineSpacing(QA_LINE_SPACING_EXTRA, QA_LINE_SPACING_MULTIPLIER);
-    } else {
-        questionTextView.setLineSpacing(TEXT_LINE_SPACING_EXTRA, TEXT_LINE_SPACING_MULTIPLIER);
-    }
-
-    // Configuração dos listeners de toque
-    setupTouchHandlers();
-
-    currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
-    QAItem currentItem = items.get(currentIndex);
-
-    if (isQAMode) {
-        questionTextView.setText(highlightText(currentItem.getQuestion(), searchTerm));
-        answerTextView.setText(highlightText(currentItem.getAnswer(), searchTerm));
-        answerTextView.setVisibility(View.GONE);
-    } else {
-        questionTextView.setText(highlightText(currentItem.getText(), searchTerm));
-        answerTextView.setText("");
-        answerTextView.setVisibility(View.GONE);
-    }
-
-    currentCardInput.setText(String.valueOf(currentIndex + 1));
-    totalCardsText.setText("/ " + items.size());
-}
-
-private void setupTouchHandlers() {
-    // Reset dos listeners
-    questionTextView.setOnTouchListener(null);
-    answerTextView.setOnTouchListener(null);
-    cardView.setOnTouchListener(null);
-
-    // Configuração básica
-    questionTextView.setTextIsSelectable(true);
-    answerTextView.setTextIsSelectable(true);
-    questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-    answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
-
-    final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
-    final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
-
-    // Listener para áreas de texto
-    View.OnTouchListener textTouchListener = new View.OnTouchListener() {
-        private long touchStartTime;
-        private float touchStartX;
-        private float touchStartY;
-        private boolean isPotentialTap = true;
-        private boolean isLongPress = false;
-
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            // Processa primeiro o toque na view
-            boolean handledByView = v.onTouchEvent(event);
-
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    touchStartTime = System.currentTimeMillis();
-                    touchStartX = event.getX();
-                    touchStartY = event.getY();
-                    isPotentialTap = true;
-                    isLongPress = false;
-                    break;
-
-                case MotionEvent.ACTION_MOVE:
-                    if (isPotentialTap) {
-                        float dx = Math.abs(event.getX() - touchStartX);
-                        float dy = Math.abs(event.getY() - touchStartY);
-                        if (dx > touchSlop || dy > touchSlop) {
-                            isPotentialTap = false;
+    
+    private void setupTouchHandlers() {
+        questionTextView.setOnTouchListener(null);
+        answerTextView.setOnTouchListener(null);
+        cardView.setOnTouchListener(null);
+    
+        questionTextView.setTextIsSelectable(true);
+        answerTextView.setTextIsSelectable(true);
+        questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
+        answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
+    
+        final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
+        final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
+    
+        View.OnTouchListener textTouchListener = new View.OnTouchListener() {
+            private long touchStartTime;
+            private float touchStartX;
+            private float touchStartY;
+            private boolean isPotentialTap = true;
+            private boolean isLongPress = false;
+    
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                boolean handledByView = v.onTouchEvent(event);
+    
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        touchStartTime = System.currentTimeMillis();
+                        touchStartX = event.getX();
+                        touchStartY = event.getY();
+                        isPotentialTap = true;
+                        isLongPress = false;
+                        break;
+    
+                    case MotionEvent.ACTION_MOVE:
+                        if (isPotentialTap) {
+                            float dx = Math.abs(event.getX() - touchStartX);
+                            float dy = Math.abs(event.getY() - touchStartY);
+                            if (dx > touchSlop || dy > touchSlop) {
+                                isPotentialTap = false;
+                            }
                         }
-                    }
-                    break;
-
-                case MotionEvent.ACTION_UP:
-                    if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < ViewConfiguration.getTapTimeout())) {
-                        // Toque muito curto - mostra/oculta resposta
-                        toggleAnswerVisibility();
-                        return true;
-                    }
-                    break;
+                        break;
+    
+                    case MotionEvent.ACTION_UP:
+                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < ViewConfiguration.getTapTimeout())) {
+                            toggleAnswerVisibility();
+                            return true;
+                        }
+                        break;
+                }
+    
+                boolean isGesture = gestureDetector.onTouchEvent(event);
+                return isGesture || handledByView;
             }
-
-            // Depois processa os gestos (swipe)
-            boolean isGesture = gestureDetector.onTouchEvent(event);
-
-            // Se foi um toque longo, a view já processou a seleção
-            // Se foi um swipe, prevalece o gesto
-            return isGesture || handledByView;
-        }
-    };
-
-    questionTextView.setOnTouchListener(textTouchListener);
-    answerTextView.setOnTouchListener(textTouchListener);
-
-    // Listener para área sem texto
-    cardView.setOnTouchListener(new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            gestureDetector.onTouchEvent(event);
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                toggleAnswerVisibility();
+        };
+    
+        questionTextView.setOnTouchListener(textTouchListener);
+        answerTextView.setOnTouchListener(textTouchListener);
+    
+        cardView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    toggleAnswerVisibility();
+                }
+                return true;
             }
-            return true;
-        }
-    });
-}
+        });
+    }
     
     private Spanned highlightText(String text, String searchTerm) {
         if (text == null || searchTerm == null || searchTerm.isEmpty()) {
