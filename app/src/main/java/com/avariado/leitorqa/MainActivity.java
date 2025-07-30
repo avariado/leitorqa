@@ -536,7 +536,7 @@ private void setupTouchHandlers() {
     answerTextView.setOnTouchListener(null);
     cardView.setOnTouchListener(null);
 
-    // Configuração da seleção de texto
+    // Configuração básica
     questionTextView.setTextIsSelectable(true);
     answerTextView.setTextIsSelectable(true);
     questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
@@ -553,8 +553,8 @@ private void setupTouchHandlers() {
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            // Primeiro deixamos o GestureDetector processar o evento
-            boolean handledByGesture = gestureDetector.onTouchEvent(event);
+            // Primeiro verifica se é um swipe
+            boolean isSwipe = gestureDetector.onTouchEvent(event);
             
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
@@ -567,24 +567,23 @@ private void setupTouchHandlers() {
                 case MotionEvent.ACTION_MOVE:
                     if (isClick) {
                         float dx = Math.abs(event.getX() - touchStartX);
-                        float dy = Math.abs(event.getY() - touchStartY);
-                        if (dx > touchSlop || dy > touchSlop) {
-                            isClick = false;
+                        if (dx > touchSlop) {
+                            isClick = false; // Não é mais um clique simples
                         }
                     }
                     break;
 
                 case MotionEvent.ACTION_UP:
-                    if (isClick && (System.currentTimeMillis() - touchStartTime < TAP_TIMEOUT)) {
+                    if (isClick && (System.currentTimeMillis() - touchStartTime < ViewConfiguration.getTapTimeout())) {
                         // Toque muito curto - mostra/oculta resposta
                         toggleAnswerVisibility();
-                        return true;
+                        return true; // Consumimos o evento
                     }
                     break;
             }
             
-            // Se não foi um clique curto, permite seleção de texto
-            if (!handledByGesture) {
+            // Se não foi um clique curto nem swipe, permite seleção de texto
+            if (!isSwipe) {
                 v.onTouchEvent(event);
             }
             return true;
@@ -594,16 +593,13 @@ private void setupTouchHandlers() {
     questionTextView.setOnTouchListener(textTouchListener);
     answerTextView.setOnTouchListener(textTouchListener);
 
-    // Listener para área sem texto (cardView)
+    // Listener simplificado para área sem texto
     cardView.setOnTouchListener(new View.OnTouchListener() {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            // Processa gestos primeiro
-            gestureDetector.onTouchEvent(event);
-            
+            gestureDetector.onTouchEvent(event); // Processa swipes
             if (event.getAction() == MotionEvent.ACTION_UP) {
                 toggleAnswerVisibility();
-                return true;
             }
             return true;
         }
