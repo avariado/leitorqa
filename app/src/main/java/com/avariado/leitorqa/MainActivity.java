@@ -531,81 +531,89 @@ private void updateDisplay() {
 }
 
 private void setupTouchHandlers() {
-    // 1. Reset dos listeners
+    // Reset de todos os listeners
     questionTextView.setOnTouchListener(null);
     answerTextView.setOnTouchListener(null);
     cardView.setOnTouchListener(null);
 
-    // 2. Configuração básica das TextViews
+    // Configurações básicas das TextViews
     questionTextView.setTextIsSelectable(true);
     answerTextView.setTextIsSelectable(true);
     questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
     answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
 
-    // 3. Variáveis para controle de toque
     final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
     final int tapTimeout = ViewConfiguration.getTapTimeout();
 
-    // 4. Listener PARA AS ÁREAS DE TEXTO (PERGUNTA/RESPOSTA)
+    // Listener para áreas de texto (pergunta e resposta)
     View.OnTouchListener textTouchListener = new View.OnTouchListener() {
         private long touchStartTime;
         private float touchStartX;
         private float touchStartY;
         private boolean isPotentialTap = true;
+        private boolean isBeingScrolled = false;
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            // A. Primeiro processamos os gestos (swipe)
+            // Primeiro processa o gesto de swipe
             boolean isGesture = gestureDetector.onTouchEvent(event);
 
-            // B. Depois processamos os toques
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     touchStartTime = System.currentTimeMillis();
                     touchStartX = event.getX();
                     touchStartY = event.getY();
                     isPotentialTap = true;
+                    isBeingScrolled = false;
                     break;
 
                 case MotionEvent.ACTION_MOVE:
                     if (isPotentialTap) {
                         float dx = Math.abs(event.getX() - touchStartX);
                         float dy = Math.abs(event.getY() - touchStartY);
+                        
+                        // Verifica se é um movimento significativo
                         if (dx > touchSlop || dy > touchSlop) {
                             isPotentialTap = false;
+                            // Se for movimento vertical, marca como scroll
+                            if (dy > dx) {
+                                isBeingScrolled = true;
+                            }
                         }
                     }
                     break;
 
                 case MotionEvent.ACTION_UP:
-                    if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
-                        // TOQUE CURTO - Mostrar/ocultar resposta
+                    if (isPotentialTap && !isBeingScrolled && 
+                        (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
+                        // Toque muito curto - mostra/oculta resposta
                         toggleAnswerVisibility();
                         return true;
                     }
+                    isBeingScrolled = false;
                     break;
             }
 
-            // C. Se não foi um toque curto, permite o comportamento padrão (seleção de texto)
-            if (!isGesture) {
+            // Permite seleção de texto se não foi um gesto
+            if (!isGesture && !isBeingScrolled) {
                 v.onTouchEvent(event);
             }
             return true;
         }
     };
 
-    // 5. Aplicar o listener às TextViews
+    // Aplica o listener às TextViews
     questionTextView.setOnTouchListener(textTouchListener);
     answerTextView.setOnTouchListener(textTouchListener);
 
-    // 6. Listener PARA ÁREA SEM TEXTO (CARDVIEW)
+    // Listener para área sem texto (cardView)
     cardView.setOnTouchListener(new View.OnTouchListener() {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            // Processar gestos primeiro
+            // Processa gestos primeiro
             gestureDetector.onTouchEvent(event);
             
-            // Toque simples - mostrar/ocultar resposta
+            // Toque simples - mostra/oculta resposta
             if (event.getAction() == MotionEvent.ACTION_UP) {
                 toggleAnswerVisibility();
             }
@@ -613,7 +621,7 @@ private void setupTouchHandlers() {
         }
     });
 }
-
+    
     private Spanned highlightText(String text, String searchTerm) {
         if (text == null || searchTerm == null || searchTerm.isEmpty()) {
             return Html.fromHtml(text != null ? text : "");
