@@ -531,73 +531,81 @@ private void updateDisplay() {
 }
 
 private void setupTouchHandlers() {
-    // Reset dos listeners
+    // 1. Reset dos listeners
     questionTextView.setOnTouchListener(null);
     answerTextView.setOnTouchListener(null);
     cardView.setOnTouchListener(null);
 
-    // Configuração básica
+    // 2. Configuração básica das TextViews
     questionTextView.setTextIsSelectable(true);
     answerTextView.setTextIsSelectable(true);
     questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
     answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
 
+    // 3. Variáveis para controle de toque
     final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
+    final int tapTimeout = ViewConfiguration.getTapTimeout();
 
-    // Listener para áreas de texto
+    // 4. Listener PARA AS ÁREAS DE TEXTO (PERGUNTA/RESPOSTA)
     View.OnTouchListener textTouchListener = new View.OnTouchListener() {
         private long touchStartTime;
         private float touchStartX;
         private float touchStartY;
-        private boolean isClick = false;
+        private boolean isPotentialTap = true;
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            // Primeiro verifica se é um swipe
-            boolean isSwipe = gestureDetector.onTouchEvent(event);
-            
+            // A. Primeiro processamos os gestos (swipe)
+            boolean isGesture = gestureDetector.onTouchEvent(event);
+
+            // B. Depois processamos os toques
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     touchStartTime = System.currentTimeMillis();
                     touchStartX = event.getX();
                     touchStartY = event.getY();
-                    isClick = true;
+                    isPotentialTap = true;
                     break;
 
                 case MotionEvent.ACTION_MOVE:
-                    if (isClick) {
+                    if (isPotentialTap) {
                         float dx = Math.abs(event.getX() - touchStartX);
-                        if (dx > touchSlop) {
-                            isClick = false; // Não é mais um clique simples
+                        float dy = Math.abs(event.getY() - touchStartY);
+                        if (dx > touchSlop || dy > touchSlop) {
+                            isPotentialTap = false;
                         }
                     }
                     break;
 
                 case MotionEvent.ACTION_UP:
-                    if (isClick && (System.currentTimeMillis() - touchStartTime < ViewConfiguration.getTapTimeout())) {
-                        // Toque muito curto - mostra/oculta resposta
+                    if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
+                        // TOQUE CURTO - Mostrar/ocultar resposta
                         toggleAnswerVisibility();
-                        return true; // Consumimos o evento
+                        return true;
                     }
                     break;
             }
-            
-            // Se não foi um clique curto nem swipe, permite seleção de texto
-            if (!isSwipe) {
+
+            // C. Se não foi um toque curto, permite o comportamento padrão (seleção de texto)
+            if (!isGesture) {
                 v.onTouchEvent(event);
             }
             return true;
         }
     };
 
+    // 5. Aplicar o listener às TextViews
     questionTextView.setOnTouchListener(textTouchListener);
     answerTextView.setOnTouchListener(textTouchListener);
 
-    // Listener simplificado para área sem texto
+    // 6. Listener PARA ÁREA SEM TEXTO (CARDVIEW)
     cardView.setOnTouchListener(new View.OnTouchListener() {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            gestureDetector.onTouchEvent(event); // Processa swipes
+            // Processar gestos primeiro
+            gestureDetector.onTouchEvent(event);
+            
+            // Toque simples - mostrar/ocultar resposta
             if (event.getAction() == MotionEvent.ACTION_UP) {
                 toggleAnswerVisibility();
             }
