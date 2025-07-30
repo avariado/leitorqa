@@ -741,36 +741,17 @@ public class MainActivity extends AppCompatActivity {
                                .replaceAll("\\s+", " ")
                                .trim();
     
-        // Primeiro padrão: captura sentenças terminadas com pontuação
-        Pattern pattern = Pattern.compile("[^.!?…]+[.!?…]+");
+        // Padrão melhorado para capturar sentenças com pontuação e parênteses/aspas finais
+        Pattern pattern = Pattern.compile(
+            "([^.!?…]*[.!?…]+[)'”\"]*)(?=\\s|$)|([^.!?…]+$)"
+        );
         Matcher matcher = pattern.matcher(singleLine);
         List<String> sentences = new ArrayList<>();
     
         while (matcher.find()) {
-            sentences.add(matcher.group().trim());
-        }
-    
-        // Segundo padrão: captura qualquer texto restante sem pontuação no final
-        Pattern implicitPattern = Pattern.compile("[^.!?…]+$");
-        Matcher implicitMatcher = implicitPattern.matcher(singleLine);
-        String lastImplicit = "";
-    
-        if (implicitMatcher.find()) {
-            lastImplicit = implicitMatcher.group().trim();
-        }
-    
-        // Se houver texto restante sem pontuação, adiciona à última sentença ou como nova
-        if (!lastImplicit.isEmpty()) {
-            if (!sentences.isEmpty()) {
-                // Adiciona ao último pedaço se couber
-                String lastSentence = sentences.get(sentences.size() - 1);
-                if (lastSentence.length() + lastImplicit.length() + 1 <= 75) {
-                    sentences.set(sentences.size() - 1, lastSentence + " " + lastImplicit);
-                } else {
-                    sentences.add(lastImplicit);
-                }
-            } else {
-                sentences.add(lastImplicit);
+            String sentence = matcher.group().trim();
+            if (!sentence.isEmpty()) {
+                sentences.add(sentence);
             }
         }
     
@@ -779,15 +760,22 @@ public class MainActivity extends AppCompatActivity {
     
         for (String sentence : sentences) {
             if (currentChunk.length() == 0) {
+                // Primeira sentença do chunk
                 currentChunk.append(sentence);
-            } else if (currentChunk.length() + sentence.length() + 1 <= 75) {
-                currentChunk.append(" ").append(sentence);
             } else {
-                processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
-                currentChunk = new StringBuilder(sentence);
+                // Verifica se a sentença cabe no chunk atual
+                int newLength = currentChunk.length() + 1 + sentence.length();
+                if (newLength <= 75) {
+                    currentChunk.append(" ").append(sentence);
+                } else {
+                    // Se não couber, finaliza o chunk atual e começa um novo
+                    processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
+                    currentChunk = new StringBuilder(sentence);
+                }
             }
         }
     
+        // Adiciona o último chunk se não estiver vazio
         if (currentChunk.length() > 0) {
             processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
         }
