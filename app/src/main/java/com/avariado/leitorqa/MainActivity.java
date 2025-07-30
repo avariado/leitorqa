@@ -542,12 +542,13 @@ private void setupTouchHandlers() {
     questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
     answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
 
+    final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
+
     // Listener para áreas de texto
     View.OnTouchListener textTouchListener = new View.OnTouchListener() {
         private long touchStartTime;
         private float touchStartX;
         private float touchStartY;
-        private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
         private boolean isClick = false;
         private boolean isSwiping = false;
 
@@ -581,7 +582,7 @@ private void setupTouchHandlers() {
                     break;
 
                 case MotionEvent.ACTION_UP:
-                    if (isClick && !isSwiping && (System.currentTimeMillis() - touchStartTime < TAP_TIMEOUT)) {
+                    if (isClick && !isSwiping && (System.currentTimeMillis() - touchStartTime < ViewConfiguration.getDoubleTapTimeout())) {
                         // Só processa o clique se não foi um swipe
                         v.performClick();
                         return true;
@@ -600,23 +601,33 @@ private void setupTouchHandlers() {
 
     // Listener para área sem texto (cardView)
     cardView.setOnTouchListener(new View.OnTouchListener() {
+        private float startX;
         private boolean isSwiping = false;
+        private final int localTouchSlop = ViewConfiguration.get(MainActivity.this).getScaledTouchSlop();
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
             // Primeiro processa os gestos de swipe
             gestureDetector.onTouchEvent(event);
             
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                isSwiping = false;
-            } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
-                // Detecta movimento horizontal significativo
-                if (Math.abs(event.getX() - event.getHistoricalX(0)) > touchSlop) {
-                    isSwiping = true;
-                }
-            } else if (event.getAction() == MotionEvent.ACTION_UP && !isSwiping) {
-                toggleAnswerVisibility();
-                return true;
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    startX = event.getX();
+                    isSwiping = false;
+                    break;
+                    
+                case MotionEvent.ACTION_MOVE:
+                    if (Math.abs(event.getX() - startX) > localTouchSlop) {
+                        isSwiping = true;
+                    }
+                    break;
+                    
+                case MotionEvent.ACTION_UP:
+                    if (!isSwiping) {
+                        toggleAnswerVisibility();
+                        return true;
+                    }
+                    break;
             }
             return true;
         }
