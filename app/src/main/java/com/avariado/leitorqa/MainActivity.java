@@ -17,6 +17,9 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.LayoutInflater;
 import android.os.Handler;
+import android.view.ActionMode;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewTreeObserver;
@@ -537,7 +540,7 @@ private void setupTouchHandlers() {
     answerTextView.setOnTouchListener(null);
     cardView.setOnTouchListener(null);
 
-    // Configurações de seleção de texto
+    // Configuração básica para seleção de texto
     questionTextView.setTextIsSelectable(true);
     answerTextView.setTextIsSelectable(true);
     questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
@@ -556,7 +559,7 @@ private void setupTouchHandlers() {
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            // Processa gestos primeiro (swipe)
+            // Processa primeiro os gestos (swipe)
             boolean isGesture = gestureDetector.onTouchEvent(event);
 
             switch (event.getAction()) {
@@ -575,7 +578,7 @@ private void setupTouchHandlers() {
                         if (dx > touchSlop || dy > touchSlop) {
                             isPotentialTap = false;
                             if (dx > dy && dx > touchSlop) {
-                                isSwiping = true; // Movimento horizontal - swipe
+                                isSwiping = true;
                             }
                         }
                     }
@@ -586,16 +589,16 @@ private void setupTouchHandlers() {
                         (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
                         // Toque muito curto - mostra/oculta resposta
                         toggleAnswerVisibility();
-                        return true; // Consome o evento
+                        return true;
                     }
                     break;
             }
 
-            // Permite seleção de texto se:
+            // Permite o comportamento padrão (seleção de texto) se:
             // 1. Não foi um gesto de swipe
             // 2. Não foi um toque muito curto
-            if (!isGesture && !isPotentialTap) {
-                v.onTouchEvent(event);
+            if (!isGesture) {
+                return v.onTouchEvent(event);
             }
             return true;
         }
@@ -604,7 +607,7 @@ private void setupTouchHandlers() {
     questionTextView.setOnTouchListener(textTouchListener);
     answerTextView.setOnTouchListener(textTouchListener);
 
-    // Listener para área sem texto
+    // Listener para área sem texto (cardView)
     cardView.setOnTouchListener(new View.OnTouchListener() {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
@@ -613,6 +616,49 @@ private void setupTouchHandlers() {
                 toggleAnswerVisibility();
             }
             return true;
+        }
+    });
+
+    // Configuração adicional CRUCIAL para seleção de texto
+    questionTextView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
+        @Override
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            return true;
+        }
+
+        @Override
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            return false;
+        }
+
+        @Override
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            return false;
+        }
+
+        @Override
+        public void onDestroyActionMode(ActionMode mode) {
+        }
+    });
+
+    answerTextView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
+        @Override
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            return true;
+        }
+
+        @Override
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            return false;
+        }
+
+        @Override
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            return false;
+        }
+
+        @Override
+        public void onDestroyActionMode(ActionMode mode) {
         }
     });
 }
