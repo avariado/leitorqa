@@ -731,86 +731,77 @@ public class MainActivity extends AppCompatActivity {
         return punctuationCount > 1;
     }
 
-private void parseTextContent(String text) {
-    if (text == null || text.trim().isEmpty()) return;
-
-    // 1. Normalização idêntica ao JavaScript
-    String normalizedText = text.replaceAll("(\\r\\n|\\n|\\r)(?![.!?…])", " ")
-                              .replaceAll("\\s+", " ")
-                              .trim();
-
-    // 2. Divisão inteligente que mantém pontuação com o texto
-    List<String> parts = new ArrayList<>();
-    int lastSplit = 0;
-    boolean inQuotes = false;
+    private void parseTextContent(String text) {
+        if (text == null || text.trim().isEmpty()) return;
     
-    for (int i = 0; i < normalizedText.length(); i++) {
-        char c = normalizedText.charAt(i);
+        String normalizedText = text.replaceAll("(\\r\\n|\\n|\\r)(?![.!?…])", " ")
+                                  .replaceAll("\\s+", " ")
+                                  .trim();
+    
+        List<String> parts = new ArrayList<>();
+        int lastSplit = 0;
+        boolean inQuotes = false;
         
-        // Verifica se estamos dentro de aspas ou parênteses
-        if (c == '"' || c == '\'' || c == '(' || c == '[' || c == '{') {
-            inQuotes = true;
-        } else if (c == ')' || c == ']' || c == '}' || c == '"' || c == '\'') {
-            inQuotes = false;
-        }
-        
-        // Só divide se não estiver dentro de aspas/parênteses
-        if (!inQuotes && (c == '.' || c == '!' || c == '?' || c == '…')) {
-            // Pega até o próximo espaço ou fim do texto
-            int end = i + 1;
-            while (end < normalizedText.length() && 
-                  !Character.isWhitespace(normalizedText.charAt(end))) {
-                end++;
+        for (int i = 0; i < normalizedText.length(); i++) {
+            char c = normalizedText.charAt(i);
+            
+            if (c == '"' || c == '\'' || c == '(' || c == '[' || c == '{') {
+                inQuotes = true;
+            } else if (c == ')' || c == ']' || c == '}' || c == '"' || c == '\'') {
+                inQuotes = false;
             }
             
-            parts.add(normalizedText.substring(lastSplit, end).trim());
-            lastSplit = end;
-            i = end - 1;
+            if (!inQuotes && (c == '.' || c == '!' || c == '?' || c == '…')) {
+                int end = i + 1;
+                while (end < normalizedText.length() && 
+                      !Character.isWhitespace(normalizedText.charAt(end))) {
+                    end++;
+                }
+                
+                parts.add(normalizedText.substring(lastSplit, end).trim());
+                lastSplit = end;
+                i = end - 1;
+            }
+        }
+        
+        if (lastSplit < normalizedText.length()) {
+            parts.add(normalizedText.substring(lastSplit).trim());
+        }
+    
+        List<String> mergedParts = new ArrayList<>();
+        StringBuilder currentPart = new StringBuilder();
+        
+        for (String part : parts) {
+            if (currentPart.length() + part.length() + 1 <= 75) {
+                if (currentPart.length() > 0) {
+                    currentPart.append(" ");
+                }
+                currentPart.append(part);
+            } else {
+                if (currentPart.length() > 0) {
+                    mergedParts.add(currentPart.toString());
+                }
+                currentPart = new StringBuilder(part);
+            }
+        }
+        
+        if (currentPart.length() > 0) {
+            mergedParts.add(currentPart.toString());
+        }
+    
+        this.items = new ArrayList<>();
+        for (String part : mergedParts) {
+            this.items.add(new QAItem(part, part));
+        }
+        
+        this.originalItems = new ArrayList<>(this.items);
+        this.currentIndex = 0;
+        this.isQAMode = false;
+        
+        if (!this.items.isEmpty()) {
+            this.items.get(0).setOriginalLine(text);
         }
     }
-    
-    // Adiciona o restante do texto
-    if (lastSplit < normalizedText.length()) {
-        parts.add(normalizedText.substring(lastSplit).trim());
-    }
-
-    // 3. Junta partes pequenas com as anteriores
-    List<String> mergedParts = new ArrayList<>();
-    StringBuilder currentPart = new StringBuilder();
-    
-    for (String part : parts) {
-        if (currentPart.length() + part.length() + 1 <= 75) {
-            if (currentPart.length() > 0) {
-                currentPart.append(" ");
-            }
-            currentPart.append(part);
-        } else {
-            if (currentPart.length() > 0) {
-                mergedParts.add(currentPart.toString());
-            }
-            currentPart = new StringBuilder(part);
-        }
-    }
-    
-    if (currentPart.length() > 0) {
-        mergedParts.add(currentPart.toString());
-    }
-
-    // 4. Cria os itens finais
-    this.items = new ArrayList<>();
-    for (String part : mergedParts) {
-        this.items.add(new QAItem(part, part));
-    }
-    
-    this.originalItems = new ArrayList<>(this.items);
-    this.currentIndex = 0;
-    this.isQAMode = false;
-    
-    // Preserva o texto original no primeiro item
-    if (!this.items.isEmpty()) {
-        this.items.get(0).setOriginalLine(text);
-    }
-}
 
     private void importTextFile() {
         toggleMenu();
