@@ -89,15 +89,15 @@ public class MainActivity extends AppCompatActivity {
     private ScrollView textScrollView;
     private TextView processingMessage;
 
-    private List < QAItem > items = new ArrayList < > ();
-    private List < QAItem > originalItems = new ArrayList < > ();
+    private List<QAItem> items = new ArrayList<>();
+    private List<QAItem> originalItems = new ArrayList<>();
     private int currentIndex = 0;
     private boolean isQAMode = true;
     private boolean menuVisible = false;
     private int baseFontSize = 20;
     private String originalSeparator = "\t";
 
-    private List < Integer > searchResults = new ArrayList < > ();
+    private List<Integer> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
     private String searchTerm = "";
 
@@ -515,28 +515,23 @@ public class MainActivity extends AppCompatActivity {
         questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
         answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
 
-        View.OnTouchListener touchListener = new View.OnTouchListener() {
+        // Configuração do touch listener para as TextViews
+        View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
             private long touchStartTime;
             private float touchStartX;
             private float touchStartY;
-            private boolean isSwiping = false;
             private boolean isPotentialTap = true;
-            private final int tapTimeout = ViewConfiguration.getTapTimeout();
             private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         touchStartTime = System.currentTimeMillis();
                         touchStartX = event.getX();
                         touchStartY = event.getY();
-                        isSwiping = false;
                         isPotentialTap = true;
-                        v.onTouchEvent(event);
-                        return true;
+                        break;
 
                     case MotionEvent.ACTION_MOVE:
                         if (isPotentialTap) {
@@ -544,36 +539,31 @@ public class MainActivity extends AppCompatActivity {
                             float dy = Math.abs(event.getY() - touchStartY);
                             if (dx > touchSlop || dy > touchSlop) {
                                 isPotentialTap = false;
-                                if (dx > dy && dx > touchSlop) {
-                                    isSwiping = true;
-                                }
                             }
                         }
                         break;
 
                     case MotionEvent.ACTION_UP:
-                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
+                        if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < TAP_TIMEOUT)) {
                             if (questionTextView.hasSelection() || answerTextView.hasSelection()) {
                                 questionTextView.clearFocus();
                                 answerTextView.clearFocus();
                                 return true;
                             }
                             toggleAnswerVisibility();
-                            v.cancelLongPress();
                             return true;
                         }
                         break;
                 }
 
-                if (!isSwiping) {
-                    v.onTouchEvent(event);
-                }
-                return true;
+                // Permite que o GestureDetector processe os eventos também
+                gestureDetector.onTouchEvent(event);
+                return false;
             }
         };
 
-        questionTextView.setOnTouchListener(touchListener);
-        answerTextView.setOnTouchListener(touchListener);
+        questionTextView.setOnTouchListener(textViewTouchListener);
+        answerTextView.setOnTouchListener(textViewTouchListener);
 
         currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
         QAItem currentItem = items.get(currentIndex);
@@ -630,7 +620,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void resetOrder() {
         if (originalItems.isEmpty()) return;
-        items = new ArrayList < > (originalItems);
+        items = new ArrayList<>(originalItems);
         currentIndex = 0;
         updateDisplay();
         toggleMenu();
@@ -686,7 +676,7 @@ public class MainActivity extends AppCompatActivity {
         if (hasTabs || hasDoubleSemicolon) {
             originalSeparator = hasTabs ? "\t" : ";;";
 
-            for (String line: lines) {
+            for (String line : lines) {
                 if (line.trim().isEmpty()) continue;
 
                 String[] parts = line.split(originalSeparator);
@@ -713,7 +703,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        originalItems = new ArrayList < > (items);
+        originalItems = new ArrayList<>(items);
         currentIndex = 0;
         isQAMode = !items.isEmpty() && items.get(0).isQA();
     }
@@ -803,6 +793,66 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private boolean checkAlternatingLinesFormat(String text) {
+        String[] lines = text.split("\n");
+        if (lines.length < 2) return false;
+
+        int linesToCheck = Math.min(lines.length, 50);
+
+        for (int i = 0; i < linesToCheck; i++) {
+            String line = lines[i].trim();
+            if (line.isEmpty()) continue;
+
+            Pattern pattern = Pattern.compile("[.!?…](?![.!?…]*$)");
+            Matcher matcher = pattern.matcher(line);
+            if (matcher.find()) {
+                return false;
+            }
+
+            int punctuationCount = line.replaceAll("[^.!?…]", "").length();
+            if (punctuationCount > 1) {
+                return false;
+            }
+        }
+
+        if (lines.length % 2 != 0) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private void parseAlternatingLinesContent(String text) {
+        String[] lines = text.split("\n");
+        items.clear();
+        originalItems.clear();
+
+        if (lines.length % 2 != 0) {
+            Toast.makeText(this,
+                getString(R.string.warning_odd_lines),
+                Toast.LENGTH_LONG).show();
+            parseTextContent(text);
+            return;
+        }
+
+        for (int i = 0; i < lines.length - 1; i += 2) {
+            String question = lines[i].trim();
+            String answer = lines[i + 1].trim();
+            String originalLines = lines[i] + "\n" + lines[i + 1];
+
+            if (hasMultipleSentences(question) || hasMultipleSentences(answer)) {
+                parseTextContent(text);
+                return;
+            }
+
+            items.add(new QAItem(question, answer, originalLines));
+        }
+
+        originalItems = new ArrayList<>(items);
+        currentIndex = 0;
+        isQAMode = true;
+    }
+
     private void importTextFile() {
         toggleMenu();
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
@@ -843,7 +893,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void processTextContent(String fileContent, Uri uri) throws IOException {
-
         boolean hasTabs = fileContent.contains("\t");
         boolean hasDoubleSemicolon = fileContent.contains(";;");
         boolean isAlternatingLines = checkAlternatingLinesFormat(fileContent);
@@ -863,7 +912,7 @@ public class MainActivity extends AppCompatActivity {
             parseQAContent(fileContent);
         } else if (isAlternatingLines && !hasMultipleSentences && lines.length >= 2) {
             if (lines.length % 2 != 0) {
-            Toast.makeText(this, getString(R.string.file_imported_successfully), Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getString(R.string.file_imported_successfully), Toast.LENGTH_SHORT).show();
                 parseTextContent(fileContent);
             } else {
                 parseAlternatingLinesContent(fileContent);
@@ -875,6 +924,39 @@ public class MainActivity extends AppCompatActivity {
         updateDisplay();
         saveState();
         Toast.makeText(this, getString(R.string.file_imported_successfully), Toast.LENGTH_SHORT).show();
+    }
+
+    private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
+        InputStream inputStream = getContentResolver().openInputStream(uri);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int length;
+        while ((length = inputStream.read(buffer)) != -1) {
+            byteArrayOutputStream.write(buffer, 0, length);
+        }
+        byte[] fileContentBytes = byteArrayOutputStream.toByteArray();
+        inputStream.close();
+
+        try {
+            String content = new String(fileContentBytes, StandardCharsets.UTF_8);
+            if (!hasInvalidUTF8Characters(content)) {
+                return content;
+            }
+        } catch (Exception e) {}
+
+        try {
+            return new String(fileContentBytes, "ISO-8859-1");
+        } catch (Exception e) {}
+
+        try {
+            return new String(fileContentBytes, "Windows-1252");
+        } catch (Exception e) {
+            return new String(fileContentBytes);
+        }
+    }
+
+    private boolean hasInvalidUTF8Characters(String content) {
+        return content.contains("�");
     }
 
     private void processPDFFile(Uri uri) {
@@ -954,68 +1036,6 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    private boolean checkAlternatingLinesFormat(String text) {
-        String[] lines = text.split("\n");
-        if (lines.length < 2) return false;
-
-        int linesToCheck = Math.min(lines.length, 50);
-
-        for (int i = 0; i < linesToCheck; i++) {
-            String line = lines[i].trim();
-            if (line.isEmpty()) continue;
-
-            Pattern pattern = Pattern.compile("[.!?…](?![.!?…]*$)");
-            Matcher matcher = pattern.matcher(line);
-            if (matcher.find()) {
-                return false;
-            }
-
-            int punctuationCount = line.replaceAll("[^.!?…]", "").length();
-            if (punctuationCount > 1) {
-                return false;
-            }
-        }
-
-        if (lines.length % 2 != 0) {
-            return false;
-        }
-
-        return true;
-    }
-
-    private String readTextFileWithEncodingDetection(Uri uri) throws IOException {
-        InputStream inputStream = getContentResolver().openInputStream(uri);
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        byte[] buffer = new byte[1024];
-        int length;
-        while ((length = inputStream.read(buffer)) != -1) {
-            byteArrayOutputStream.write(buffer, 0, length);
-        }
-        byte[] fileContentBytes = byteArrayOutputStream.toByteArray();
-        inputStream.close();
-
-        try {
-            String content = new String(fileContentBytes, StandardCharsets.UTF_8);
-            if (!hasInvalidUTF8Characters(content)) {
-                return content;
-            }
-        } catch (Exception e) {}
-
-        try {
-            return new String(fileContentBytes, "ISO-8859-1");
-        } catch (Exception e) {}
-
-        try {
-            return new String(fileContentBytes, "Windows-1252");
-        } catch (Exception e) {
-            return new String(fileContentBytes);
-        }
-    }
-
-    private boolean hasInvalidUTF8Characters(String content) {
-        return content.contains("�");
-    }
-
     private void showExportDialog() {
         toggleMenu();
 
@@ -1038,11 +1058,11 @@ public class MainActivity extends AppCompatActivity {
 
         StringBuilder content = new StringBuilder();
         if (isQAMode) {
-            for (QAItem item: items) {
+            for (QAItem item : items) {
                 content.append(item.getOriginalLine()).append("\n");
             }
         } else {
-            for (QAItem item: items) {
+            for (QAItem item : items) {
                 content.append(item.getOriginalLine() != null ? item.getOriginalLine() : item.getText()).append("\n");
             }
         }
@@ -1068,7 +1088,7 @@ public class MainActivity extends AppCompatActivity {
         StringBuilder content = new StringBuilder();
 
         if (isQAMode) {
-            for (QAItem item: originalItems) {
+            for (QAItem item : originalItems) {
                 if (item.isQA()) {
                     content.append(item.getOriginalLine()).append("\n");
                 } else {
@@ -1076,7 +1096,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         } else {
-            for (QAItem item: originalItems) {
+            for (QAItem item : originalItems) {
                 content.append(item.getOriginalLine() != null ?
                     item.getOriginalLine() : item.getText()).append("\n");
             }
@@ -1113,37 +1133,6 @@ public class MainActivity extends AppCompatActivity {
         });
         builder.setNegativeButton(getString(R.string.cancel_button), (dialog, which) -> dialog.dismiss());
         builder.show();
-    }
-
-    private void parseAlternatingLinesContent(String text) {
-        String[] lines = text.split("\n");
-        items.clear();
-        originalItems.clear();
-
-        if (lines.length % 2 != 0) {
-            Toast.makeText(this,
-                getString(R.string.warning_odd_lines),
-                Toast.LENGTH_LONG).show();
-            parseTextContent(text);
-            return;
-        }
-
-        for (int i = 0; i < lines.length - 1; i += 2) {
-            String question = lines[i].trim();
-            String answer = lines[i + 1].trim();
-            String originalLines = lines[i] + "\n" + lines[i + 1];
-
-            if (hasMultipleSentences(question) || hasMultipleSentences(answer)) {
-                parseTextContent(text);
-                return;
-            }
-
-            items.add(new QAItem(question, answer, originalLines));
-        }
-
-        originalItems = new ArrayList < > (items);
-        currentIndex = 0;
-        isQAMode = true;
     }
 
     private void performSearch() {
@@ -1226,7 +1215,7 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences.Editor editor = prefs.edit();
 
         StringBuilder itemsStr = new StringBuilder();
-        for (QAItem item: items) {
+        for (QAItem item : items) {
             if (item.isQA()) {
                 itemsStr.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
             } else {
@@ -1236,7 +1225,7 @@ public class MainActivity extends AppCompatActivity {
         editor.putString(ITEMS_KEY, itemsStr.toString());
 
         StringBuilder originalItemsStr = new StringBuilder();
-        for (QAItem item: originalItems) {
+        for (QAItem item : originalItems) {
             if (item.isQA()) {
                 originalItemsStr.append(item.getQuestion()).append("\t").append(item.getAnswer()).append("\n");
             } else {
@@ -1263,9 +1252,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (!originalItemsStr.isEmpty()) {
-            List < QAItem > loadedOriginalItems = new ArrayList < > ();
+            List<QAItem> loadedOriginalItems = new ArrayList<>();
             String[] lines = originalItemsStr.split("\n");
-            for (String line: lines) {
+            for (String line : lines) {
                 if (line.trim().isEmpty()) continue;
 
                 String[] parts = line.split("\t");
