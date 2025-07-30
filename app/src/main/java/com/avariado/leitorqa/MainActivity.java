@@ -246,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
                        getString(R.string.contact_label, getString(R.string.author_email)) + "\n\n" +
                        getString(R.string.icon_author_label, getString(R.string.icon_author_name)) + "\n\n" +
                        getString(R.string.website_label, getString(R.string.icon_author_website)) + "\n\n" +
-                       getString(R.string.privacy_policy, getString(R.string.icon_privacy_policy)) + "\n\n";
+                       getString(R.string.privacy_policy, getString(R.string.icon_privacy_policy));
         
         aboutText.setText(message);
         
