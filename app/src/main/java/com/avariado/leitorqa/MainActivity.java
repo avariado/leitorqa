@@ -531,7 +531,7 @@ private void updateDisplay() {
 }
 
 private void setupTouchHandlers() {
-    // Reset dos listeners
+    // Reset dos listeners para evitar acumulação
     questionTextView.setOnTouchListener(null);
     answerTextView.setOnTouchListener(null);
     cardView.setOnTouchListener(null);
@@ -544,18 +544,18 @@ private void setupTouchHandlers() {
 
     final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
 
-    // Listener para áreas de texto
+    // Listener para as áreas de texto
     View.OnTouchListener textTouchListener = new View.OnTouchListener() {
         private long touchStartTime;
         private float touchStartX;
         private float touchStartY;
         private boolean isClick = false;
-        private boolean isSwiping = false;
+        private boolean isHorizontalSwipe = false;
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            // Primeiro processa os gestos de swipe
-            gestureDetector.onTouchEvent(event);
+            // Primeiro processa o gesto de swipe
+            boolean isGestureHandled = gestureDetector.onTouchEvent(event);
             
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
@@ -563,7 +563,7 @@ private void setupTouchHandlers() {
                     touchStartX = event.getX();
                     touchStartY = event.getY();
                     isClick = true;
-                    isSwiping = false;
+                    isHorizontalSwipe = false;
                     break;
 
                 case MotionEvent.ACTION_MOVE:
@@ -571,19 +571,19 @@ private void setupTouchHandlers() {
                         float dx = Math.abs(event.getX() - touchStartX);
                         float dy = Math.abs(event.getY() - touchStartY);
                         
-                        // Considera como swipe apenas movimentos horizontais significativos
+                        // Detecta especificamente swipes horizontais
                         if (dx > touchSlop && dx > dy * 2) {
+                            isHorizontalSwipe = true;
                             isClick = false;
-                            isSwiping = true;
-                        } else if (dy > touchSlop || dx > touchSlop) {
+                        } else if (dx > touchSlop || dy > touchSlop) {
                             isClick = false;
                         }
                     }
                     break;
 
                 case MotionEvent.ACTION_UP:
-                    if (isClick && !isSwiping && (System.currentTimeMillis() - touchStartTime < ViewConfiguration.getDoubleTapTimeout())) {
-                        // Só processa o clique se não foi um swipe
+                    if (isClick && !isHorizontalSwipe && (System.currentTimeMillis() - touchStartTime < TAP_TIMEOUT)) {
+                        // Toque muito curto - mostra/oculta resposta sem selecionar texto
                         v.performClick();
                         return true;
                     }
@@ -591,7 +591,10 @@ private void setupTouchHandlers() {
             }
             
             // Permite a seleção de texto com toque longo
-            v.onTouchEvent(event);
+            if (!isHorizontalSwipe) {
+                v.onTouchEvent(event);
+            }
+            
             return true;
         }
     };
@@ -599,31 +602,30 @@ private void setupTouchHandlers() {
     questionTextView.setOnTouchListener(textTouchListener);
     answerTextView.setOnTouchListener(textTouchListener);
 
-    // Listener para área sem texto (cardView)
+    // Listener para a área sem texto (cardView)
     cardView.setOnTouchListener(new View.OnTouchListener() {
         private float startX;
-        private boolean isSwiping = false;
-        private final int localTouchSlop = ViewConfiguration.get(MainActivity.this).getScaledTouchSlop();
+        private boolean isHorizontalSwipe = false;
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            // Primeiro processa os gestos de swipe
+            // Processa o gesto de swipe primeiro
             gestureDetector.onTouchEvent(event);
             
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     startX = event.getX();
-                    isSwiping = false;
+                    isHorizontalSwipe = false;
                     break;
                     
                 case MotionEvent.ACTION_MOVE:
-                    if (Math.abs(event.getX() - startX) > localTouchSlop) {
-                        isSwiping = true;
+                    if (Math.abs(event.getX() - startX) > touchSlop) {
+                        isHorizontalSwipe = true;
                     }
                     break;
                     
                 case MotionEvent.ACTION_UP:
-                    if (!isSwiping) {
+                    if (!isHorizontalSwipe) {
                         toggleAnswerVisibility();
                         return true;
                     }
@@ -633,7 +635,7 @@ private void setupTouchHandlers() {
         }
     });
 
-    // Click listener para as TextViews
+    // Click listeners para as TextViews
     View.OnClickListener textClickListener = v -> {
         questionTextView.clearFocus();
         answerTextView.clearFocus();
