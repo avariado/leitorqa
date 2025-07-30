@@ -9,7 +9,6 @@
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
         <item name="android:windowSplashScreenBackground">@color/white</item>
-        <item name="android:windowSplashScreenAnimationDuration">200</item> 
     </style>
 
     <style name="Theme.LeitorQA.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar">
