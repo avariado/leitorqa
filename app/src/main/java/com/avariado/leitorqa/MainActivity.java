@@ -549,7 +549,7 @@ private void updateDisplay() {
                         questionTextView.setEnabled(false);
                         answerTextView.setEnabled(false);
                         
-                        postDelayed(() -> {
+                        new Handler().postDelayed(() -> {
                             questionTextView.setEnabled(true);
                             answerTextView.setEnabled(true);
                         }, 50);
