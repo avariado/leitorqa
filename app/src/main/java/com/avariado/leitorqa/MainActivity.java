@@ -739,66 +739,76 @@ private void parseTextContent(String text) {
                               .replaceAll("\\s+", " ")
                               .trim();
 
-    // 2. Divisão em partes exatamente como no JavaScript
+    // 2. Divisão inteligente que mantém pontuação com o texto
     List<String> parts = new ArrayList<>();
-    Pattern pattern = Pattern.compile("([^.!?…]*[.!?…]+[)'”\"]*)|([^.!?…]+$)");
-    Matcher matcher = pattern.matcher(normalizedText);
+    int lastSplit = 0;
+    boolean inQuotes = false;
     
-    while (matcher.find()) {
-        String part = matcher.group().trim();
-        if (!part.isEmpty()) {
-            parts.add(part);
+    for (int i = 0; i < normalizedText.length(); i++) {
+        char c = normalizedText.charAt(i);
+        
+        // Verifica se estamos dentro de aspas ou parênteses
+        if (c == '"' || c == '\'' || c == '(' || c == '[' || c == '{') {
+            inQuotes = true;
+        } else if (c == ')' || c == ']' || c == '}' || c == '"' || c == '\'') {
+            inQuotes = false;
+        }
+        
+        // Só divide se não estiver dentro de aspas/parênteses
+        if (!inQuotes && (c == '.' || c == '!' || c == '?' || c == '…')) {
+            // Pega até o próximo espaço ou fim do texto
+            int end = i + 1;
+            while (end < normalizedText.length() && 
+                  !Character.isWhitespace(normalizedText.charAt(end))) {
+                end++;
+            }
+            
+            parts.add(normalizedText.substring(lastSplit, end).trim());
+            lastSplit = end;
+            i = end - 1;
         }
     }
+    
+    // Adiciona o restante do texto
+    if (lastSplit < normalizedText.length()) {
+        parts.add(normalizedText.substring(lastSplit).trim());
+    }
 
-    // 3. Processamento especial para parênteses (como no JavaScript)
-    List<String> processedParts = new ArrayList<>();
-    String pendingPunctuation = "";
+    // 3. Junta partes pequenas com as anteriores
+    List<String> mergedParts = new ArrayList<>();
+    StringBuilder currentPart = new StringBuilder();
     
     for (String part : parts) {
-        if (part.matches("^[)'”\"]+$")) {
-            pendingPunctuation = part;
+        if (currentPart.length() + part.length() + 1 <= 75) {
+            if (currentPart.length() > 0) {
+                currentPart.append(" ");
+            }
+            currentPart.append(part);
         } else {
-            processedParts.add(pendingPunctuation + part);
-            pendingPunctuation = "";
+            if (currentPart.length() > 0) {
+                mergedParts.add(currentPart.toString());
+            }
+            currentPart = new StringBuilder(part);
         }
     }
     
-    if (!pendingPunctuation.isEmpty()) {
-        processedParts.add(pendingPunctuation);
+    if (currentPart.length() > 0) {
+        mergedParts.add(currentPart.toString());
     }
 
-    // 4. Construção dos chunks mantendo TODO o conteúdo
-    List<QAItem> itemsList = new ArrayList<>();
-    StringBuilder currentChunk = new StringBuilder();
-    
-    for (String part : processedParts) {
-        if (currentChunk.length() + part.length() + 1 <= 75) {
-            if (currentChunk.length() > 0) {
-                currentChunk.append(" ");
-            }
-            currentChunk.append(part);
-        } else {
-            if (currentChunk.length() > 0) {
-                itemsList.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
-            }
-            currentChunk = new StringBuilder(part);
-        }
+    // 4. Cria os itens finais
+    this.items = new ArrayList<>();
+    for (String part : mergedParts) {
+        this.items.add(new QAItem(part, part));
     }
     
-    if (currentChunk.length() > 0) {
-        itemsList.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
-    }
-
-    // Atualiza as listas
-    this.items = itemsList;
-    this.originalItems = new ArrayList<>(itemsList);
+    this.originalItems = new ArrayList<>(this.items);
     this.currentIndex = 0;
     this.isQAMode = false;
     
     // Preserva o texto original no primeiro item
-    if (!itemsList.isEmpty()) {
-        itemsList.get(0).setOriginalLine(text);
+    if (!this.items.isEmpty()) {
+        this.items.get(0).setOriginalLine(text);
     }
 }
 
