@@ -736,13 +736,13 @@ public class MainActivity extends AppCompatActivity {
     
         String originalText = text;
     
-        // Normaliza espaços e quebras de linha
-        String singleLine = text.replaceAll("[\\r\\n]+", " ")
+        // Substitui quebras de linha que não seguem pontuação por espaço
+        String singleLine = text.replaceAll("(\\r\\n|\\n|\\r)(?<![.!?…])", " ")
                                .replaceAll("\\s+", " ")
                                .trim();
     
-        // Padrão para identificar frases terminadas com pontuação
-        Pattern pattern = Pattern.compile("[^.!?…]+[.!?…]+\\s*");
+        // Regex para capturar frases incluindo pontuação seguida de parênteses
+        Pattern pattern = Pattern.compile("[^.!?…]+([.!?…]+\\s*\\)?)(?=\\s|$)");
         Matcher matcher = pattern.matcher(singleLine);
         List<String> sentences = new ArrayList<>();
     
@@ -750,22 +750,21 @@ public class MainActivity extends AppCompatActivity {
             sentences.add(matcher.group().trim());
         }
     
-        // Trata o último trecho se não terminou com pontuação
-        int lastMatchEnd = matcher.hitEnd() ? matcher.end() : 0;
-        if (lastMatchEnd < singleLine.length()) {
-            String remaining = singleLine.substring(lastMatchEnd).trim();
-            if (!remaining.isEmpty()) {
-                if (!sentences.isEmpty()) {
-                    // Adiciona ao último item se couber
-                    String lastSentence = sentences.get(sentences.size() - 1);
-                    if (lastSentence.length() + remaining.length() + 1 <= 75) {
-                        sentences.set(sentences.size() - 1, lastSentence + " " + remaining);
-                    } else {
-                        sentences.add(remaining);
-                    }
-                } else {
-                    sentences.add(remaining);
-                }
+        // Captura última frase sem pontuação final
+        Pattern implicitPattern = Pattern.compile("[^.!?…]+$");
+        Matcher implicitMatcher = implicitPattern.matcher(singleLine);
+        String lastImplicit = "";
+    
+        if (implicitMatcher.find()) {
+            lastImplicit = implicitMatcher.group().trim();
+        }
+    
+        if (!lastImplicit.isEmpty()) {
+            if (!sentences.isEmpty()) {
+                sentences.set(sentences.size() - 1,
+                    sentences.get(sentences.size() - 1) + " " + lastImplicit);
+            } else {
+                sentences.add(lastImplicit);
             }
         }
     
@@ -775,19 +774,14 @@ public class MainActivity extends AppCompatActivity {
         for (String sentence : sentences) {
             if (currentChunk.length() == 0) {
                 currentChunk.append(sentence);
+            } else if (currentChunk.length() + sentence.length() + 1 <= 75) {
+                currentChunk.append(" ").append(sentence);
             } else {
-                // Verifica se adicionando a próxima frase ultrapassa o limite
-                if (currentChunk.length() + sentence.length() + 1 <= 75) {
-                    currentChunk.append(" ").append(sentence);
-                } else {
-                    // Se ultrapassar, adiciona o chunk atual e começa um novo
-                    processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
-                    currentChunk = new StringBuilder(sentence);
-                }
+                processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
+                currentChunk = new StringBuilder(sentence);
             }
         }
     
-        // Adiciona o último chunk se não estiver vazio
         if (currentChunk.length() > 0) {
             processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
         }
