@@ -540,14 +540,14 @@ private void setupTouchHandlers() {
     answerTextView.setOnTouchListener(null);
     cardView.setOnTouchListener(null);
 
-    // Configuração básica para seleção de texto
+    // Configuração básica
     questionTextView.setTextIsSelectable(true);
     answerTextView.setTextIsSelectable(true);
     questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
     answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
 
     final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
-    final int tapTimeout = ViewConfiguration.getTapTimeout();
+    final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
 
     // Listener para áreas de texto
     View.OnTouchListener textTouchListener = new View.OnTouchListener() {
@@ -555,12 +555,12 @@ private void setupTouchHandlers() {
         private float touchStartX;
         private float touchStartY;
         private boolean isPotentialTap = true;
-        private boolean isSwiping = false;
+        private boolean isLongPress = false;
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            // Processa primeiro os gestos (swipe)
-            boolean isGesture = gestureDetector.onTouchEvent(event);
+            // Processa primeiro o toque na view
+            boolean handledByView = v.onTouchEvent(event);
 
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
@@ -568,7 +568,7 @@ private void setupTouchHandlers() {
                     touchStartX = event.getX();
                     touchStartY = event.getY();
                     isPotentialTap = true;
-                    isSwiping = false;
+                    isLongPress = false;
                     break;
 
                 case MotionEvent.ACTION_MOVE:
@@ -577,16 +577,12 @@ private void setupTouchHandlers() {
                         float dy = Math.abs(event.getY() - touchStartY);
                         if (dx > touchSlop || dy > touchSlop) {
                             isPotentialTap = false;
-                            if (dx > dy && dx > touchSlop) {
-                                isSwiping = true;
-                            }
                         }
                     }
                     break;
 
                 case MotionEvent.ACTION_UP:
-                    if (isPotentialTap && !isSwiping && 
-                        (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
+                    if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < ViewConfiguration.getTapTimeout())) {
                         // Toque muito curto - mostra/oculta resposta
                         toggleAnswerVisibility();
                         return true;
@@ -594,20 +590,19 @@ private void setupTouchHandlers() {
                     break;
             }
 
-            // Permite o comportamento padrão (seleção de texto) se:
-            // 1. Não foi um gesto de swipe
-            // 2. Não foi um toque muito curto
-            if (!isGesture) {
-                return v.onTouchEvent(event);
-            }
-            return true;
+            // Depois processa os gestos (swipe)
+            boolean isGesture = gestureDetector.onTouchEvent(event);
+
+            // Se foi um toque longo, a view já processou a seleção
+            // Se foi um swipe, prevalece o gesto
+            return isGesture || handledByView;
         }
     };
 
     questionTextView.setOnTouchListener(textTouchListener);
     answerTextView.setOnTouchListener(textTouchListener);
 
-    // Listener para área sem texto (cardView)
+    // Listener para área sem texto
     cardView.setOnTouchListener(new View.OnTouchListener() {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
@@ -616,49 +611,6 @@ private void setupTouchHandlers() {
                 toggleAnswerVisibility();
             }
             return true;
-        }
-    });
-
-    // Configuração adicional CRUCIAL para seleção de texto
-    questionTextView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
-        @Override
-        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-            return true;
-        }
-
-        @Override
-        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-            return false;
-        }
-
-        @Override
-        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-            return false;
-        }
-
-        @Override
-        public void onDestroyActionMode(ActionMode mode) {
-        }
-    });
-
-    answerTextView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
-        @Override
-        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-            return true;
-        }
-
-        @Override
-        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-            return false;
-        }
-
-        @Override
-        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-            return false;
-        }
-
-        @Override
-        public void onDestroyActionMode(ActionMode mode) {
         }
     });
 }
