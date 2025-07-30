@@ -43,9 +43,10 @@
     <string name="contact_label">Contact: %s</string>
     <string name="icon_author_label">Icon creator: %s</string>
     <string name="website_label">Website: %s</string>
-    <string name="year_label">Year of release: %s</string>
+    <string name="privacy_policy">Privacy policy: %s</string>
     <string name="author_name">Avariado</string>
     <string name="author_email">avariadopt@hotmail.com</string>
     <string name="icon_author_name">Iconsea</string>
     <string name="icon_author_website">https://www.freepik.com/author/iconsea</string>
+    <string name="icon_privacy_policy">no data is collected</string>
 </resources>
