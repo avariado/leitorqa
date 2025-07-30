@@ -733,32 +733,29 @@ public class MainActivity extends AppCompatActivity {
 
     private void parseTextContent(String text) {
         if (text == null) return;
-    
+
         String originalText = text;
-    
-        // Substitui quebras de linha que não seguem pontuação por espaço
-        String singleLine = text.replaceAll("(\\r\\n|\\n|\\r)(?<![.!?…])", " ")
-                               .replaceAll("\\s+", " ")
-                               .trim();
-    
-        // Regex para capturar frases incluindo pontuação seguida de parênteses
-        Pattern pattern = Pattern.compile("[^.!?…]+([.!?…]+\\s*\\)?)(?=\\s|$)");
+
+        String singleLine = text.replaceAll("[\\r\\n]+", " ")
+            .replaceAll("\\s+", " ")
+            .trim();
+
+        Pattern pattern = Pattern.compile("[^.!?…]+[.!?…]+");
         Matcher matcher = pattern.matcher(singleLine);
-        List<String> sentences = new ArrayList<>();
-    
+        List < String > sentences = new ArrayList < > ();
+
         while (matcher.find()) {
             sentences.add(matcher.group().trim());
         }
-    
-        // Captura última frase sem pontuação final
+
         Pattern implicitPattern = Pattern.compile("[^.!?…]+$");
         Matcher implicitMatcher = implicitPattern.matcher(singleLine);
         String lastImplicit = "";
-    
+
         if (implicitMatcher.find()) {
             lastImplicit = implicitMatcher.group().trim();
         }
-    
+
         if (!lastImplicit.isEmpty()) {
             if (!sentences.isEmpty()) {
                 sentences.set(sentences.size() - 1,
@@ -767,30 +764,30 @@ public class MainActivity extends AppCompatActivity {
                 sentences.add(lastImplicit);
             }
         }
-    
-        List<QAItem> processedItems = new ArrayList<>();
+
+        List < QAItem > processedItems = new ArrayList < > ();
         StringBuilder currentChunk = new StringBuilder();
-    
-        for (String sentence : sentences) {
+
+        for (String sentence: sentences) {
             if (currentChunk.length() == 0) {
                 currentChunk.append(sentence);
-            } else if (currentChunk.length() + sentence.length() + 1 <= 75) {
+            } else if (currentChunk.length() + sentence.length() < 75) {
                 currentChunk.append(" ").append(sentence);
             } else {
                 processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
                 currentChunk = new StringBuilder(sentence);
             }
         }
-    
+
         if (currentChunk.length() > 0) {
             processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
         }
-    
+
         items = processedItems;
         if (!processedItems.isEmpty()) {
             processedItems.get(0).setOriginalLine(originalText);
         }
-        originalItems = new ArrayList<>(items);
+        originalItems = new ArrayList < > (items);
         currentIndex = 0;
         isQAMode = false;
     }
