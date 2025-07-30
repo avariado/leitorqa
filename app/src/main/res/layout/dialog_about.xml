@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textIsSelectable="true"
-        android:textSize="14sp"
+        android:textSize="15sp"
         android:lineSpacingMultiplier="1.0"
         android:textAlignment="viewStart"
         android:textColor="@android:color/black"
