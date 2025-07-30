@@ -544,7 +544,7 @@ private void setupTouchHandlers() {
     answerTextView.setHighlightColor(Color.parseColor("#80FF5722"));
 
     final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
-    final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
+    final int tapTimeout = ViewConfiguration.getTapTimeout();
 
     // Listener para áreas de texto
     View.OnTouchListener textTouchListener = new View.OnTouchListener() {
@@ -552,22 +552,12 @@ private void setupTouchHandlers() {
         private float touchStartX;
         private float touchStartY;
         private boolean isPotentialTap = true;
-        private boolean isLongPress = false;
-        private Handler handler = new Handler();
-        private Runnable longPressRunnable = new Runnable() {
-            @Override
-            public void run() {
-                isLongPress = true;
-                // Permite a seleção de texto
-                questionTextView.performLongClick();
-                answerTextView.performLongClick();
-            }
-        };
+        private boolean isScroll = false;
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
             // Primeiro processa os gestos (swipe)
-            gestureDetector.onTouchEvent(event);
+            boolean isGesture = gestureDetector.onTouchEvent(event);
 
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
@@ -575,9 +565,7 @@ private void setupTouchHandlers() {
                     touchStartX = event.getX();
                     touchStartY = event.getY();
                     isPotentialTap = true;
-                    isLongPress = false;
-                    // Agenda a verificação de toque longo
-                    handler.postDelayed(longPressRunnable, longPressTimeout);
+                    isScroll = false;
                     break;
 
                 case MotionEvent.ACTION_MOVE:
@@ -585,28 +573,31 @@ private void setupTouchHandlers() {
                         float dx = Math.abs(event.getX() - touchStartX);
                         float dy = Math.abs(event.getY() - touchStartY);
                         if (dx > touchSlop || dy > touchSlop) {
-                            // Cancela o toque longo se houve movimento
-                            handler.removeCallbacks(longPressRunnable);
                             isPotentialTap = false;
+                            if (dy > dx) {
+                                isScroll = true; // Movimento vertical - scroll
+                            }
                         }
                     }
                     break;
 
                 case MotionEvent.ACTION_UP:
-                    // Cancela o toque longo
-                    handler.removeCallbacks(longPressRunnable);
-                    if (isPotentialTap && !isLongPress && 
-                        (System.currentTimeMillis() - touchStartTime < ViewConfiguration.getTapTimeout())) {
-                        // Toque muito curto - mostra/oculta resposta
+                    if (isPotentialTap && !isScroll && 
+                        (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
+                        // Toque muito curto - mostra/oculta resposta SEM selecionar texto
+                        questionTextView.clearFocus();
+                        answerTextView.clearFocus();
                         toggleAnswerVisibility();
-                        return true;
+                        return true; // Consome o evento
                     }
-                    isLongPress = false;
                     break;
             }
 
-            // Permite o comportamento padrão para seleção de texto
-            return v.onTouchEvent(event);
+            // Permite comportamento padrão (seleção) apenas se não foi toque curto nem scroll
+            if (!isGesture && !isPotentialTap && !isScroll) {
+                v.onTouchEvent(event);
+            }
+            return true;
         }
     };
 
