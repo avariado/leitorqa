@@ -517,19 +517,11 @@ private void updateDisplay() {
 
     // Configuração do touch listener para as TextViews
     View.OnTouchListener textViewTouchListener = new View.OnTouchListener() {
-        private final Handler handler = new Handler();
         private long touchStartTime;
         private float touchStartX;
         private float touchStartY;
         private boolean isPotentialTap = true;
         private final int touchSlop = ViewConfiguration.get(getApplicationContext()).getScaledTouchSlop();
-        private Runnable enableSelectionRunnable = new Runnable() {
-            @Override
-            public void run() {
-                questionTextView.setEnabled(true);
-                answerTextView.setEnabled(true);
-            }
-        };
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
@@ -539,7 +531,6 @@ private void updateDisplay() {
                     touchStartX = event.getX();
                     touchStartY = event.getY();
                     isPotentialTap = true;
-                    handler.removeCallbacks(enableSelectionRunnable);
                     break;
 
                 case MotionEvent.ACTION_MOVE:
@@ -554,12 +545,8 @@ private void updateDisplay() {
 
                 case MotionEvent.ACTION_UP:
                     if (isPotentialTap && (System.currentTimeMillis() - touchStartTime < TAP_TIMEOUT)) {
-                        // Impede a seleção de texto para toques muito curtos
-                        questionTextView.setEnabled(false);
-                        answerTextView.setEnabled(false);
-                        handler.postDelayed(enableSelectionRunnable, 50);
-                        
-                        toggleAnswerVisibility();
+                        // Solução simplificada que não requer Handler
+                        v.performClick();
                         return true;
                     }
                     break;
@@ -573,6 +560,8 @@ private void updateDisplay() {
 
     questionTextView.setOnTouchListener(textViewTouchListener);
     answerTextView.setOnTouchListener(textViewTouchListener);
+    questionTextView.setOnClickListener(v -> toggleAnswerVisibility());
+    answerTextView.setOnClickListener(v -> toggleAnswerVisibility());
 
     currentIndex = Math.max(0, Math.min(currentIndex, items.size() - 1));
     QAItem currentItem = items.get(currentIndex);
