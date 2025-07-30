@@ -736,16 +736,13 @@ public class MainActivity extends AppCompatActivity {
     
         String originalText = text;
     
-        // Normaliza quebras de linha e espaços
+        // Normaliza o texto - substitui quebras de linha por espaços e múltiplos espaços por um único
         String singleLine = text.replaceAll("[\\r\\n]+", " ")
                                .replaceAll("\\s+", " ")
                                .trim();
     
-        // Padrão para capturar sentenças, incluindo pontuação e parênteses
-        Pattern pattern = Pattern.compile(
-            "[^.!?…]*[.!?…]+(?:[)'”]*(?:\\s|$)|(?=\\s|$))", 
-            Pattern.DOTALL
-        );
+        // Primeiro padrão: captura sentenças terminadas com pontuação
+        Pattern pattern = Pattern.compile("[^.!?…]+[.!?…]+");
         Matcher matcher = pattern.matcher(singleLine);
         List<String> sentences = new ArrayList<>();
     
@@ -753,7 +750,7 @@ public class MainActivity extends AppCompatActivity {
             sentences.add(matcher.group().trim());
         }
     
-        // Captura qualquer texto restante que não terminou com pontuação
+        // Segundo padrão: captura qualquer texto restante sem pontuação no final
         Pattern implicitPattern = Pattern.compile("[^.!?…]+$");
         Matcher implicitMatcher = implicitPattern.matcher(singleLine);
         String lastImplicit = "";
@@ -762,11 +759,12 @@ public class MainActivity extends AppCompatActivity {
             lastImplicit = implicitMatcher.group().trim();
         }
     
+        // Se houver texto restante sem pontuação, adiciona à última sentença ou como nova
         if (!lastImplicit.isEmpty()) {
             if (!sentences.isEmpty()) {
                 // Adiciona ao último pedaço se couber
                 String lastSentence = sentences.get(sentences.size() - 1);
-                if (lastSentence.length() + lastImplicit.length() + 1 < 75) {
+                if (lastSentence.length() + lastImplicit.length() + 1 <= 75) {
                     sentences.set(sentences.size() - 1, lastSentence + " " + lastImplicit);
                 } else {
                     sentences.add(lastImplicit);
