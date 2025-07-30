@@ -537,7 +537,7 @@ private void setupTouchHandlers() {
     answerTextView.setOnTouchListener(null);
     cardView.setOnTouchListener(null);
 
-    // Configuração básica para seleção de texto
+    // Configurações de seleção de texto
     questionTextView.setTextIsSelectable(true);
     answerTextView.setTextIsSelectable(true);
     questionTextView.setHighlightColor(Color.parseColor("#80FF5722"));
@@ -552,11 +552,11 @@ private void setupTouchHandlers() {
         private float touchStartX;
         private float touchStartY;
         private boolean isPotentialTap = true;
-        private boolean isScroll = false;
+        private boolean isSwiping = false;
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            // Primeiro processa os gestos (swipe)
+            // Processa gestos primeiro (swipe)
             boolean isGesture = gestureDetector.onTouchEvent(event);
 
             switch (event.getAction()) {
@@ -565,7 +565,7 @@ private void setupTouchHandlers() {
                     touchStartX = event.getX();
                     touchStartY = event.getY();
                     isPotentialTap = true;
-                    isScroll = false;
+                    isSwiping = false;
                     break;
 
                 case MotionEvent.ACTION_MOVE:
@@ -574,27 +574,27 @@ private void setupTouchHandlers() {
                         float dy = Math.abs(event.getY() - touchStartY);
                         if (dx > touchSlop || dy > touchSlop) {
                             isPotentialTap = false;
-                            if (dy > dx) {
-                                isScroll = true; // Movimento vertical - scroll
+                            if (dx > dy && dx > touchSlop) {
+                                isSwiping = true; // Movimento horizontal - swipe
                             }
                         }
                     }
                     break;
 
                 case MotionEvent.ACTION_UP:
-                    if (isPotentialTap && !isScroll && 
+                    if (isPotentialTap && !isSwiping && 
                         (System.currentTimeMillis() - touchStartTime < tapTimeout)) {
-                        // Toque muito curto - mostra/oculta resposta SEM selecionar texto
-                        questionTextView.clearFocus();
-                        answerTextView.clearFocus();
+                        // Toque muito curto - mostra/oculta resposta
                         toggleAnswerVisibility();
                         return true; // Consome o evento
                     }
                     break;
             }
 
-            // Permite comportamento padrão (seleção) apenas se não foi toque curto nem scroll
-            if (!isGesture && !isPotentialTap && !isScroll) {
+            // Permite seleção de texto se:
+            // 1. Não foi um gesto de swipe
+            // 2. Não foi um toque muito curto
+            if (!isGesture && !isPotentialTap) {
                 v.onTouchEvent(event);
             }
             return true;
@@ -604,7 +604,7 @@ private void setupTouchHandlers() {
     questionTextView.setOnTouchListener(textTouchListener);
     answerTextView.setOnTouchListener(textTouchListener);
 
-    // Listener para área sem texto (cardView)
+    // Listener para área sem texto
     cardView.setOnTouchListener(new View.OnTouchListener() {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
