@@ -731,61 +731,70 @@ public class MainActivity extends AppCompatActivity {
         return punctuationCount > 1;
     }
 
-    private void parseTextContent(String text) {
-        if (text == null || text.trim().isEmpty()) return;
-    
-        String originalText = text;
-    
-        // Normalização idêntica ao JavaScript
-        String cleanedText = text.replaceAll("(\\r\\n|\\n|\\r)", " ")
-                               .replaceAll("\\s+", " ")
-                               .trim();
-    
-        // Padrão que replica exatamente o comportamento do JavaScript
-        // Captura: texto + pontuação + parênteses/aspas finais como uma unidade
-        Pattern pattern = Pattern.compile("([^.!?…]*[.!?…]+[)'”\"]*)|([^.!?…]+$)");
-        Matcher matcher = pattern.matcher(cleanedText);
-        List<String> parts = new ArrayList<>();
-    
-        while (matcher.find()) {
-            String part = matcher.group().trim();
-            if (!part.isEmpty()) {
-                parts.add(part);
-            }
+private void parseTextContent(String text) {
+    if (text == null || text.trim().isEmpty()) return;
+
+    String originalText = text;
+
+    // Normalização idêntica ao JavaScript
+    String cleanedText = text.replaceAll("(\\r\\n|\\n|\\r)", " ")
+                           .replaceAll("\\s+", " ")
+                           .trim();
+
+    // Padrão especial que trata parênteses/aspas após pontuação como parte da próxima frase
+    Pattern pattern = Pattern.compile(
+        "([^.!?…]*[.!?…]+)([)'”\"]*)(?=\\s|$)|([^.!?…]+$)"
+    );
+    Matcher matcher = pattern.matcher(cleanedText);
+    List<String> sentences = new ArrayList<>();
+    String pendingPunctuation = "";
+
+    while (matcher.find()) {
+        String mainText = matcher.group(1) != null ? matcher.group(1) : "";
+        String closingPunct = matcher.group(2) != null ? matcher.group(2) : "";
+        String remainingText = matcher.group(3) != null ? matcher.group(3) : "";
+
+        if (!mainText.isEmpty()) {
+            // Se houver pontuação pendente da frase anterior, adiciona ao início
+            String completeSentence = pendingPunctuation + mainText.trim();
+            sentences.add(completeSentence);
+            pendingPunctuation = closingPunct.isEmpty() ? "" : closingPunct;
+        } else if (!remainingText.isEmpty()) {
+            // Texto sem pontuação no final
+            sentences.add(pendingPunctuation + remainingText.trim());
+            pendingPunctuation = "";
         }
-    
-        // Processamento para manter EXATAMENTE o mesmo comportamento do JavaScript
-        List<QAItem> processedItems = new ArrayList<>();
-        StringBuilder currentChunk = new StringBuilder();
-    
-        for (String part : parts) {
-            if (currentChunk.length() == 0) {
-                currentChunk.append(part);
-            } else {
-                // Verifica se podemos adicionar ao chunk atual
-                if (currentChunk.length() + part.length() + 1 <= 75) {
-                    currentChunk.append(" ").append(part);
-                } else {
-                    // Se não couber, finaliza o chunk atual
-                    processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
-                    currentChunk = new StringBuilder(part);
-                }
-            }
-        }
-    
-        // Adiciona o último chunk se não estiver vazio
-        if (currentChunk.length() > 0) {
-            processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
-        }
-    
-        items = processedItems;
-        if (!processedItems.isEmpty()) {
-            processedItems.get(0).setOriginalLine(originalText);
-        }
-        originalItems = new ArrayList<>(items);
-        currentIndex = 0;
-        isQAMode = false;
     }
+
+    // Processamento para manter o limite de 75 caracteres
+    List<QAItem> processedItems = new ArrayList<>();
+    StringBuilder currentChunk = new StringBuilder();
+
+    for (String sentence : sentences) {
+        if (currentChunk.length() == 0) {
+            currentChunk.append(sentence);
+        } else {
+            if (currentChunk.length() + sentence.length() + 1 <= 75) {
+                currentChunk.append(" ").append(sentence);
+            } else {
+                processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
+                currentChunk = new StringBuilder(sentence);
+            }
+        }
+    }
+
+    if (currentChunk.length() > 0) {
+        processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
+    }
+
+    items = processedItems;
+    if (!processedItems.isEmpty()) {
+        processedItems.get(0).setOriginalLine(originalText);
+    }
+    originalItems = new ArrayList<>(items);
+    currentIndex = 0;
+    isQAMode = false;
+}
 
     private void importTextFile() {
         toggleMenu();
