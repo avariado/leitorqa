@@ -733,61 +733,72 @@ public class MainActivity extends AppCompatActivity {
 
     private void parseTextContent(String text) {
         if (text == null) return;
-
+    
         String originalText = text;
-
+    
+        // Normaliza quebras de linha e espaços
         String singleLine = text.replaceAll("[\\r\\n]+", " ")
-            .replaceAll("\\s+", " ")
-            .trim();
-
-        Pattern pattern = Pattern.compile("[^.!?…]+[.!?…]+");
+                               .replaceAll("\\s+", " ")
+                               .trim();
+    
+        // Padrão para capturar sentenças, incluindo pontuação e parênteses
+        Pattern pattern = Pattern.compile(
+            "[^.!?…]*[.!?…]+(?:[)'”]*(?:\\s|$)|(?=\\s|$))", 
+            Pattern.DOTALL
+        );
         Matcher matcher = pattern.matcher(singleLine);
-        List < String > sentences = new ArrayList < > ();
-
+        List<String> sentences = new ArrayList<>();
+    
         while (matcher.find()) {
             sentences.add(matcher.group().trim());
         }
-
+    
+        // Captura qualquer texto restante que não terminou com pontuação
         Pattern implicitPattern = Pattern.compile("[^.!?…]+$");
         Matcher implicitMatcher = implicitPattern.matcher(singleLine);
         String lastImplicit = "";
-
+    
         if (implicitMatcher.find()) {
             lastImplicit = implicitMatcher.group().trim();
         }
-
+    
         if (!lastImplicit.isEmpty()) {
             if (!sentences.isEmpty()) {
-                sentences.set(sentences.size() - 1,
-                    sentences.get(sentences.size() - 1) + " " + lastImplicit);
+                // Adiciona ao último pedaço se couber
+                String lastSentence = sentences.get(sentences.size() - 1);
+                if (lastSentence.length() + lastImplicit.length() + 1 < 75) {
+                    sentences.set(sentences.size() - 1, lastSentence + " " + lastImplicit);
+                } else {
+                    sentences.add(lastImplicit);
+                }
             } else {
                 sentences.add(lastImplicit);
             }
         }
-
-        List < QAItem > processedItems = new ArrayList < > ();
+    
+        List<QAItem> processedItems = new ArrayList<>();
         StringBuilder currentChunk = new StringBuilder();
-
-        for (String sentence: sentences) {
+    
+        for (String sentence : sentences) {
             if (currentChunk.length() == 0) {
                 currentChunk.append(sentence);
-            } else if (currentChunk.length() + sentence.length() < 75) {
+            } else if (currentChunk.length() + sentence.length() + 1 <= 75) {
                 currentChunk.append(" ").append(sentence);
             } else {
                 processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
                 currentChunk = new StringBuilder(sentence);
             }
         }
-
+    
         if (currentChunk.length() > 0) {
             processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
         }
-
+    
         items = processedItems;
         if (!processedItems.isEmpty()) {
             processedItems.get(0).setOriginalLine(originalText);
         }
-        originalItems = new ArrayList < > (items);
+        originalItems = new ArrayList<>(items);
         currentIndex = 0;
         isQAMode = false;
     }
