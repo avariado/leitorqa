@@ -732,50 +732,73 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void parseTextContent(String text) {
-        if (text == null) return;
+        if (text == null || text.trim().isEmpty()) return;
     
         String originalText = text;
     
-        // Normaliza o texto - substitui quebras de linha por espaços e múltiplos espaços por um único
-        String singleLine = text.replaceAll("[\\r\\n]+", " ")
-                               .replaceAll("\\s+", " ")
-                               .trim();
+        // Normalização do texto igual ao JavaScript
+        String cleanedText = text.replaceAll("(\\r\\n|\\n|\\r)(?![.!?…])", " ")
+                                .replaceAll("\\s+", " ")
+                                .trim();
     
-        // Padrão melhorado para capturar sentenças com pontuação e parênteses/aspas finais
-        Pattern pattern = Pattern.compile(
-            "([^.!?…]*[.!?…]+[)'”\"]*)(?=\\s|$)|([^.!?…]+$)"
-        );
-        Matcher matcher = pattern.matcher(singleLine);
+        // Padrão para capturar sentenças completas (igual ao JavaScript)
+        Pattern sentencePattern = Pattern.compile("[^.!?…]+[.!?…]+");
+        Matcher matcher = sentencePattern.matcher(cleanedText);
         List<String> sentences = new ArrayList<>();
     
         while (matcher.find()) {
-            String sentence = matcher.group().trim();
-            if (!sentence.isEmpty()) {
-                sentences.add(sentence);
+            sentences.add(matcher.group().trim());
+        }
+    
+        // Captura texto restante sem pontuação final (igual ao JavaScript)
+        Pattern implicitPattern = Pattern.compile("[^.!?…]+$");
+        Matcher implicitMatcher = implicitPattern.matcher(cleanedText);
+        String lastImplicit = "";
+    
+        if (implicitMatcher.find()) {
+            lastImplicit = implicitMatcher.group().trim();
+        }
+    
+        // Combina o texto restante com a última sentença (lógica igual ao JavaScript)
+        if (!lastImplicit.isEmpty()) {
+            if (!sentences.isEmpty()) {
+                String lastSentence = sentences.get(sentences.size() - 1);
+                sentences.set(sentences.size() - 1, lastSentence + " " + lastImplicit);
+            } else {
+                sentences.add(lastImplicit);
             }
         }
     
+        // Processamento dos chunks (lógica idêntica ao JavaScript)
         List<QAItem> processedItems = new ArrayList<>();
         StringBuilder currentChunk = new StringBuilder();
     
-        for (String sentence : sentences) {
+        for (int i = 0; i < sentences.size(); i++) {
+            String sentence = sentences.get(i);
+            
             if (currentChunk.length() == 0) {
-                // Primeira sentença do chunk
                 currentChunk.append(sentence);
-            } else {
-                // Verifica se a sentença cabe no chunk atual
-                int newLength = currentChunk.length() + 1 + sentence.length();
-                if (newLength <= 75) {
-                    currentChunk.append(" ").append(sentence);
-                } else {
-                    // Se não couber, finaliza o chunk atual e começa um novo
-                    processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
-                    currentChunk = new StringBuilder(sentence);
+            } 
+            else if (currentChunk.length() + sentence.length() + 1 <= 75) {
+                currentChunk.append(" ").append(sentence);
+            } 
+            else {
+                if (i == sentences.size() - 1 && processedItems.size() > 0) {
+                    // Lógica especial para última sentença (igual ao JavaScript)
+                    String lastChunk = processedItems.get(processedItems.size() - 1).getText();
+                    if (lastChunk.length() + sentence.length() + 1 <= 75) {
+                        processedItems.set(processedItems.size() - 1, 
+                            new QAItem(lastChunk + " " + sentence, lastChunk + " " + sentence));
+                        currentChunk.setLength(0);
+                        continue;
+                    }
                 }
+                
+                processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
+                currentChunk = new StringBuilder(sentence);
             }
         }
     
-        // Adiciona o último chunk se não estiver vazio
         if (currentChunk.length() > 0) {
             processedItems.add(new QAItem(currentChunk.toString(), currentChunk.toString()));
         }
